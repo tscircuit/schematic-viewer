@@ -43,12 +43,9 @@ export interface SchematicTrace {
 }
 
 export interface SchematicPort {
+  type: "schematic_port"
   schematic_port_id: string
   source_port_id: string
-}
-
-export interface SchematicPort {
-  type: "schematic_port"
   position: Position
 }
 
@@ -63,6 +60,12 @@ export interface PCBComponent {
   type: "pcb_component"
   pcb_component_id: string
   source_component_id: string
+}
+
+export interface PCBPort {
+  type: "pcb_port"
+  pcb_port_id: string
+  source_port_id: string
 }
 
 export interface PCBGroup {
@@ -95,33 +98,44 @@ export interface SourceComponent {
   name: string
 }
 
+export interface SourcePort {
+  type: "source_port"
+  source_port_id: string
+}
+
 export interface Project {
   type: "project"
   schematic_config: SchematicConfig
   schematic_components: SchematicComponent[]
   schematic_groups: SchematicGroup[]
   schematic_traces: SchematicTrace[]
+  schematic_ports: SchematicPort[]
   pcb_config: PCBConfig
   pcb_groups: PCBGroup[]
   pcb_components: PCBComponent[]
   pcb_traces: PCBTrace[]
+  pcb_ports: PCBPort[]
   source_config: SourceConfig
   source_traces: SourceTrace[]
   source_groups: SourceGroup[]
   source_components: SourceComponent[]
+  source_ports: SourcePort[]
 }
 
-export type AnyObject =
+export type AnyElement =
   | Project
   | SourceConfig
   | SourceComponent
   | SourceGroup
   | SourceTrace
+  | SourcePort
   | PCBTrace
   | PCBComponent
   | PCBGroup
   | PCBConfig
+  | PCBPort
   | SchematicGroup
   | SchematicComponent
   | SchematicTrace
   | SchematicConfig
+  | SchematicPort
