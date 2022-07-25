@@ -20,6 +20,7 @@ export interface SourceConfig {
 
 export interface SchematicGroup {
   type: "schematic_group"
+  schematic_group_id: string
   source_group_id: string
   bounds: Bounds
   children_schematic_component_ids: string[]
@@ -89,7 +90,7 @@ export interface SourceGroup {
   type: "source_group"
   source_group_id: string
   name: string
-  children_source_component_ids: string
+  children_source_component_ids: string[]
 }
 
 export interface SourceComponent {
