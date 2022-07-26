@@ -17,19 +17,11 @@ import {
   SourceConfig,
   SchematicComponent,
 } from "lib/types/index"
-
-export const defaultSchematicConfig: SchematicConfig = {
-  type: "schematic_config",
-}
-
-export const defaultPCBConfig: PCBConfig = {
-  type: "pcb_config",
-  dimension_unit: "mm",
-}
-
-export const defaultSourceConfig: SourceConfig = {
-  type: "source_config",
-}
+import {
+  defaultPCBConfig,
+  defaultSchematicConfig,
+  defaultSourceConfig,
+} from "./defaults"
 
 export const createProjectFromElements = (objects: AnyElement[]): Project => {
   const project: Project = {
