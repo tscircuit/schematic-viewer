@@ -20,4 +20,8 @@ export default createProjectFromElements([
     children_schematic_component_ids: [],
     children_schematic_trace_ids: [],
   },
+  // {
+  //   type: "schematic_component",
+  //   schematic_component_id: "",
+  // },
 ])

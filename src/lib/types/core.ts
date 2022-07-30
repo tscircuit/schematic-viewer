@@ -1,3 +1,5 @@
+import { SourceComponent } from "./source-component"
+
 export interface SchematicConfig {
   type: "schematic_config"
 }
@@ -93,15 +95,10 @@ export interface SourceGroup {
   children_source_component_ids: string[]
 }
 
-export interface SourceComponent {
-  type: "source_component"
-  source_component_id: string
-  name: string
-}
-
 export interface SourcePort {
   type: "source_port"
   source_port_id: string
+  source_component_id: string
 }
 
 export interface Project {
