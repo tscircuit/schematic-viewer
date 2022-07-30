@@ -32,7 +32,10 @@ export interface SchematicGroup {
 export interface SchematicComponent {
   type: "schematic_component"
   bounds: Bounds
+  rotation: number
+  size: { width: number; height: number }
   source_component_id: string
+  schematic_component_id: string
 }
 
 export interface SchematicTrace {

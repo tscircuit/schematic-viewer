@@ -11,25 +11,34 @@ export interface SourceComponentBase {
 export interface SimpleResistor extends SourceComponentBase {
   ftype: "simple_resistor"
   // Resistance measured in ohms
-  resistance: NumberWithUnit
+  resistance: NumberWithUnit<"ohm">
 }
 
 export interface SimpleCapacitor extends SourceComponentBase {
   ftype: "simple_capacitor"
   // Capacitance measured in farads
-  capacitance: NumberWithUnit
+  capacitance: NumberWithUnit<"farad">
 }
 
 export interface SimpleInductor extends SourceComponentBase {
   ftype: "simple_inductor"
   // Inductance measured in henries
-  inductance: NumberWithUnit
+  inductance: NumberWithUnit<"henry">
 }
 
 export interface SimpleBug extends SourceComponentBase {
   ftype: "simple_bug"
 }
 
-export type SourceComponent = SimpleResistor | SimpleCapacitor | SimpleBug
+export interface SimplePowerSource extends SourceComponentBase {
+  ftype: "simple_power_source"
+}
+
+export type SourceComponent =
+  | SimpleResistor
+  | SimpleCapacitor
+  | SimpleBug
+  | SimpleInductor
+  | SimplePowerSource
 
 export type SourceComponentFType = SourceComponent["ftype"]
