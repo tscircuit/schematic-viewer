@@ -1,4 +1,4 @@
-import { SimpleResistor } from "../components"
+import { SimpleResistor } from "../schematic-components"
 
 export default {
   title: "SimpleResistor",
