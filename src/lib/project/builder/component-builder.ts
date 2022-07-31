@@ -1,10 +1,9 @@
-import { createProjectFromElements } from "./create-project-from-elements"
-import { Project } from "./../types/core"
-import * as Type from "lib/types/index"
+import * as Type from "lib/types"
 import { Except, Simplify } from "type-fest"
+import { ProjectBuilder } from "./project-builder"
 
-type ComponentBuilderCallback = (cb: ComponentBuilder) => unknown
-interface ComponentBuilder {
+export type ComponentBuilderCallback = (cb: ComponentBuilder) => unknown
+export interface ComponentBuilder {
   project_builder: ProjectBuilder
   setName: (name: string) => ComponentBuilder
   setSourceProperties<T extends Type.SourceComponentFType>(
@@ -19,76 +18,6 @@ interface ComponentBuilder {
   setSchematicCenter(x: number, y: number): ComponentBuilder
   setSchematicRotation(rotation: number | `${number}deg`): ComponentBuilder
   build(): Type.AnyElement[]
-}
-
-type GroupBuilderCallback = (gb: GroupBuilder) => unknown
-interface GroupBuilder {
-  project_builder: ProjectBuilder
-  addGroup: (groupBuilderCallback: GroupBuilderCallback) => GroupBuilder
-  addComponent: (
-    componentBuilderCallback: ComponentBuilderCallback
-  ) => GroupBuilder
-  build(): Type.AnyElement[]
-}
-
-interface ProjectBuilder {
-  getId: (prefix: string) => string
-  addGroup: (groupBuilderCallback: GroupBuilderCallback) => ProjectBuilder
-  addComponent: (
-    componentBuilderCallback: ComponentBuilderCallback
-  ) => ProjectBuilder
-  build: () => Type.Project
-}
-
-export const createProjectBuilder = (): ProjectBuilder => {
-  const builder: any = createGroupBuilder()
-  builder.project_builder = builder
-  const idCount = {}
-  builder.getId = (prefix: string) => {
-    idCount[prefix] = idCount[prefix] || 0
-    return `${prefix}_${idCount[prefix]++}`
-  }
-  builder.build_group = builder.build
-  builder.build = () => {
-    return createProjectFromElements(builder.build_group())
-  }
-  return builder
-}
-
-export const createGroupBuilder = (
-  project_builder?: ProjectBuilder
-): GroupBuilder => {
-  const builder: any = {
-    project_builder,
-    groups: [],
-    components: [],
-    routes: [],
-  }
-
-  builder.addGroup = (callback) => {
-    const gb = createGroupBuilder()
-    gb.project_builder = builder.project_builder
-    builder.groups.push(gb)
-    callback(gb)
-    return builder
-  }
-  builder.addComponent = (callback) => {
-    const cb = createComponentBuilder(builder.project_builder)
-    cb.project_builder = builder.project_builder
-    builder.components.push(cb)
-    callback(cb)
-    return builder
-  }
-
-  builder.build = () => {
-    const elements = []
-    elements.push(...builder.groups.flatMap((g) => g.build()))
-    elements.push(...builder.components.flatMap((c) => c.build()))
-    elements.push(...builder.routes.flatMap((c) => c.build()))
-    return elements
-  }
-
-  return builder
 }
 
 export const createComponentBuilder = (
