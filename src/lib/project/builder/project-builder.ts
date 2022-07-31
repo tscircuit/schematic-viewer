@@ -3,6 +3,7 @@ import { Except, Simplify } from "type-fest"
 import { createGroupBuilder, GroupBuilderCallback } from "./group-builder"
 import { ComponentBuilderCallback } from "./component-builder"
 import { createProjectFromElements } from "../create-project-from-elements"
+import { RouteBuilderCallback } from "./route-builder"
 
 export interface ProjectBuilder {
   getId: (prefix: string) => string
@@ -10,6 +11,7 @@ export interface ProjectBuilder {
   addComponent: (
     componentBuilderCallback: ComponentBuilderCallback
   ) => ProjectBuilder
+  addRoute: (routeBuilderCallback: RouteBuilderCallback) => ProjectBuilder
   build: () => Type.Project
 }
 

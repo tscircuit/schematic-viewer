@@ -5,6 +5,11 @@ import {
   createComponentBuilder,
 } from "./component-builder"
 import { ProjectBuilder } from "./project-builder"
+import {
+  createRouteBuilder,
+  RouteBuilder,
+  RouteBuilderCallback,
+} from "./route-builder"
 import { Except, Simplify } from "type-fest"
 
 export type GroupBuilderCallback = (gb: GroupBuilder) => unknown
@@ -14,39 +19,47 @@ export interface GroupBuilder {
   addComponent: (
     componentBuilderCallback: ComponentBuilderCallback
   ) => GroupBuilder
+  addRoute: (routeBuilderCallback: RouteBuilderCallback) => GroupBuilder
   build(): Type.AnyElement[]
 }
 
 export const createGroupBuilder = (
   project_builder?: ProjectBuilder
 ): GroupBuilder => {
-  const builder: any = {
+  const builder: GroupBuilder = {
     project_builder,
-    groups: [],
-    components: [],
-    routes: [],
+  } as any
+  const internal = {
+    groups: [] as GroupBuilder[],
+    components: [] as ComponentBuilder[],
+    routes: [] as RouteBuilder[],
   }
 
   builder.addGroup = (callback) => {
     const gb = createGroupBuilder()
     gb.project_builder = builder.project_builder
-    builder.groups.push(gb)
+    internal.groups.push(gb)
     callback(gb)
     return builder
   }
   builder.addComponent = (callback) => {
     const cb = createComponentBuilder(builder.project_builder)
-    cb.project_builder = builder.project_builder
-    builder.components.push(cb)
+    internal.components.push(cb)
     callback(cb)
+    return builder
+  }
+  builder.addRoute = (callback) => {
+    const rb = createRouteBuilder(builder.project_builder)
+    internal.routes.push(rb)
+    callback(rb)
     return builder
   }
 
   builder.build = () => {
     const elements = []
-    elements.push(...builder.groups.flatMap((g) => g.build()))
-    elements.push(...builder.components.flatMap((c) => c.build()))
-    elements.push(...builder.routes.flatMap((c) => c.build()))
+    elements.push(...internal.groups.flatMap((g) => g.build()))
+    elements.push(...internal.components.flatMap((c) => c.build()))
+    elements.push(...internal.routes.flatMap((c) => c.build()))
     return elements
   }
 
