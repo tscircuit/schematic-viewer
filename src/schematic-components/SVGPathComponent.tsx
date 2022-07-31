@@ -34,7 +34,7 @@ function getSVGPathBounds(ds: string[]) {
 export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
   const ct = useCameraTransform()
   const pathBounds = getSVGPathBounds(paths.map((p) => p.d))
-  const margin = 5
+  // Margin in SVG Space
   const badRatio =
     Math.abs(pathBounds.width / pathBounds.height - size.width / size.height) >
     0.001
@@ -44,7 +44,11 @@ export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
     )
   }
   const absoluteCenter = applyToPoint(ct, center)
-  const absoluteSize = { width: size.width * ct.a, height: size.height * ct.d }
+  const absoluteSize = {
+    width: size.width * ct.a,
+    height: size.height * ct.d,
+  }
+
   return (
     <svg
       style={{
@@ -54,11 +58,10 @@ export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
         top: absoluteCenter.y - absoluteSize.height / 2,
         backgroundColor: badRatio ? "rgba(255, 0, 0, 0.5)" : "transparent",
       }}
+      overflow="visible"
       width={absoluteSize.width}
       height={absoluteSize.height}
-      viewBox={`${pathBounds.minX - margin} ${pathBounds.minY - margin} ${
-        pathBounds.width + margin * 2
-      } ${pathBounds.height + margin * 2}`}
+      viewBox={`${pathBounds.minX} ${pathBounds.minY} ${pathBounds.width} ${pathBounds.height}`}
     >
       {paths.map((p, i) => (
         <path

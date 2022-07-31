@@ -19,7 +19,7 @@ export const SchematicPort = ({ port: { source, schematic } }: Props) => {
         {
           stroke: "blue",
           strokeWidth: 1,
-          d: "M 0 0 l 10 0 l 0 10 l -10 0 l 0 -10",
+          d: "M 0 0 l 10 0 l 0 10 l -10 0 z",
         },
       ]}
     />
