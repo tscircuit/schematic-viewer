@@ -13,6 +13,7 @@ export const ProjectComponent = ({ project }: Props) => {
     <>
       {project.schematic_components.map((schematic_component) => (
         <SchematicComponent
+          key={schematic_component.schematic_component_id}
           component={{
             source: projectClass.getSourceComponent(
               schematic_component.source_component_id

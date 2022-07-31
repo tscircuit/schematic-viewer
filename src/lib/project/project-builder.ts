@@ -16,6 +16,8 @@ interface ComponentBuilder {
       >
     > & { name?: string }
   ): ComponentBuilder
+  setSchematicCenter(x: number, y: number): ComponentBuilder
+  setSchematicRotation(rotation: number | `${number}deg`): ComponentBuilder
   build(): Type.AnyElement[]
 }
 
@@ -48,9 +50,6 @@ export const createProjectBuilder = (): ProjectBuilder => {
   }
   builder.build_group = builder.build
   builder.build = () => {
-    console.log({
-      build_group_output: builder.build_group(),
-    })
     return createProjectFromElements(builder.build_group())
   }
   return builder
@@ -95,40 +94,59 @@ export const createGroupBuilder = (
 export const createComponentBuilder = (
   project_builder: ProjectBuilder
 ): ComponentBuilder => {
-  const builder: any = { project_builder }
+  const builder: ComponentBuilder = { project_builder } as any
+  const internal: any = {}
 
   builder.setName = (name: string) => {
-    builder.name = name
+    internal.name = name
+    return builder
   }
   builder.setSourceProperties = (ftype: string, props: any) => {
-    builder.source_properties = {
+    internal.source_properties = {
       ftype,
       ...props,
     }
+    return builder
+  }
+  builder.setSchematicCenter = (x: number, y: number) => {
+    internal.schematic_position = { x, y }
+    return builder
+  }
+  builder.setSchematicRotation = (rotation) => {
+    if (typeof rotation === "number") {
+      internal.schematic_rotation = rotation
+    } else {
+      internal.schematic_rotation =
+        (parseFloat(rotation.split("deg")[0]) / 180) * Math.PI
+    }
+    return builder
   }
 
   builder.build = () => {
     const elements: Type.AnyElement[] = []
-    const { ftype } = builder.source_properties
+    const { ftype } = internal.source_properties
     const source_component_id = project_builder.getId(ftype)
     elements.push({
       type: "source_component",
       source_component_id,
-      name: builder.name,
-      ...builder.source_properties,
+      name: internal.name,
+      ...internal.source_properties,
     })
     elements.push({
       type: "schematic_component",
       source_component_id,
       schematic_component_id: project_builder.getId(`sch_${ftype}`),
-      rotation: 0,
-      size: { width: 0.1, height: 0.1 },
-      bounds: {
-        left: 0,
-        right: 0.1,
-        top: 0.1,
-        bottom: 0,
-      },
+      rotation: internal.schematic_rotation ?? 0,
+      size:
+        ftype === "simple_capacitor"
+          ? { width: 3 / 4, height: 3 / 4 }
+          : ftype === "simple_resistor"
+          ? {
+              width: 1,
+              height: 12 / 40,
+            }
+          : { width: 1, height: 1 },
+      center: internal.schematic_position || { x: 0, y: 0 },
     })
     elements.push({
       type: "pcb_component",

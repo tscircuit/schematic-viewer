@@ -3,15 +3,17 @@ import SVGPathComponent from "./SVGPathComponent"
 
 interface Props {
   component: {
-    source: Type.SourceComponent
+    source: Type.SimpleResistor
     schematic: Type.SchematicComponent
   }
 }
 
-export const SimpleResistor = ({ component }: Props) => {
+export const SimpleResistor = ({ component: { source, schematic } }: Props) => {
   return (
     <SVGPathComponent
-      size={{ width: 50, height: 50 }}
+      rotation={schematic.rotation}
+      center={schematic.center}
+      size={schematic.size}
       paths={[
         {
           stroke: "red",

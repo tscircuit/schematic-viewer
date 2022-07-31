@@ -4,16 +4,14 @@ export interface SchematicConfig {
   type: "schematic_config"
 }
 
-export interface Bounds {
-  left: number
-  top: number
-  right: number
-  bottom: number
+export interface Point {
+  x: number
+  y: number
 }
 
-export interface Position {
-  left: number
-  top: number
+export interface Size {
+  width: number
+  height: number
 }
 
 export interface SourceConfig {
@@ -24,16 +22,17 @@ export interface SchematicGroup {
   type: "schematic_group"
   schematic_group_id: string
   source_group_id: string
-  bounds: Bounds
+  center: Point
+  size: Size
   children_schematic_component_ids: string[]
   children_schematic_trace_ids: string[]
 }
 
 export interface SchematicComponent {
   type: "schematic_component"
-  bounds: Bounds
   rotation: number
-  size: { width: number; height: number }
+  size: Size
+  center: Point
   source_component_id: string
   schematic_component_id: string
 }
@@ -42,9 +41,10 @@ export interface SchematicTrace {
   type: "schematic_trace"
   source_trace_id: string
   route: Array<{
-    position: Position
-    start_schematic_port_id: string
-    end_schematic_port_id: string
+    x: number
+    y: number
+    start_schematic_port_id?: string
+    end_schematic_port_id?: string
   }>
 }
 
@@ -52,14 +52,21 @@ export interface SchematicPort {
   type: "schematic_port"
   schematic_port_id: string
   source_port_id: string
-  position: Position
+  position: Point
 }
 
 export interface PCBTrace {
   type: "pcb_trace"
-  bounds: Bounds
   source_trace_id: string
   pcb_trace_id: string
+  route: Array<{
+    x: number
+    y: number
+    strokeWidth: number
+    cap: "butt" | "round" | "square"
+    start_pcb_port_id?: string
+    end_pcb_port_id?: string
+  }>
 }
 
 export interface PCBComponent {

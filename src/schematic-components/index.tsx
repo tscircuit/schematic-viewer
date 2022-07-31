@@ -1,6 +1,7 @@
 export * from "./MovableGrid"
 export * from "./SchematicGroup"
 export * from "./SimpleResistor"
+export * from "./SimpleCapacitor"
 export * from "./SVGPathComponent"
 export * from "./ProjectComponent"
 export * from "./SchematicComponent"

@@ -1,6 +1,6 @@
 import { ProjectClass } from "lib/project"
 import * as Type from "lib/types"
-import SimpleResistor from "./SimpleResistor"
+import * as Component from "./"
 
 interface Props {
   component: {
@@ -10,9 +10,13 @@ interface Props {
 }
 
 export const SchematicComponent = ({ component }: Props) => {
-  switch (component.source.ftype) {
+  const { source, schematic } = component
+  switch (source.ftype) {
     case "simple_resistor": {
-      return <SimpleResistor component={component} />
+      return <Component.SimpleResistor component={{ source, schematic }} />
+    }
+    case "simple_capacitor": {
+      return <Component.SimpleCapacitor component={{ source, schematic }} />
     }
     default: {
       return <div>unknown ftype: {component.source.ftype}</div>

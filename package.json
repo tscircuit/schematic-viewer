@@ -34,6 +34,10 @@
     "@chakra-ui/react": "^2.2.4",
     "@emotion/react": "^11",
     "@emotion/styled": "^11",
-    "framer-motion": "^6"
+    "framer-motion": "^6",
+    "parse-svg-path": "^0.1.2",
+    "svg-path-bounds": "^1.0.2",
+    "transformation-matrix": "^2.12.0",
+    "zustand": "^4.0.0"
   }
 }
