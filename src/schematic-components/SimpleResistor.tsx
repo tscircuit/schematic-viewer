@@ -1,6 +1,14 @@
+import * as Type from "lib/types"
 import SVGPathComponent from "./SVGPathComponent"
 
-export const SimpleResistor = () => {
+interface Props {
+  component: {
+    source: Type.SourceComponent
+    schematic: Type.SchematicComponent
+  }
+}
+
+export const SimpleResistor = ({ component }: Props) => {
   return (
     <SVGPathComponent
       size={{ width: 50, height: 50 }}

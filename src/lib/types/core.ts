@@ -140,3 +140,9 @@ export type AnyElement =
   | SchematicTrace
   | SchematicConfig
   | SchematicPort
+
+export type ElementType = AnyElement["type"]
+export type ElementOfType<T extends ElementType> = Extract<
+  AnyElement,
+  { type: T }
+>
