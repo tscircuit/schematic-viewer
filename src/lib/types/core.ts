@@ -52,7 +52,7 @@ export interface SchematicPort {
   type: "schematic_port"
   schematic_port_id: string
   source_port_id: string
-  position: Point
+  center: Point
 }
 
 export interface PCBTrace {

@@ -58,13 +58,13 @@ export const createPortsBuilder = (
           type: "source_port",
           source_port_id,
           source_component_id: internal.source_component_id,
-        },
+        } as Type.SourcePort,
         {
           type: "schematic_port",
           schematic_port_id,
           source_port_id,
-          position: port.schematic_position,
-        },
+          center: port.schematic_position,
+        } as Type.SchematicPort,
       ] as Type.AnyElement[]
     }) as Type.AnyElement[]
   }

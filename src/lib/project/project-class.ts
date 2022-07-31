@@ -42,6 +42,9 @@ export class ProjectClass {
       (c) => c.source_component_id === id
     )
   }
+  getSourcePort(id: string): Type.SourcePort | null {
+    return this.project.source_ports.find((c) => c.source_port_id === id)
+  }
 }
 
 export default ProjectClass

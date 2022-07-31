@@ -3,6 +3,8 @@ import * as Type from "lib/types"
 import { Except, Simplify } from "type-fest"
 import { ProjectBuilder } from "./project-builder"
 import { PortsBuilder, createPortsBuilder } from "./ports-builder"
+import { compose, rotate, transform, translate } from "transformation-matrix"
+import { transformSchematicElements } from "./transform-elements"
 
 export type ComponentBuilderCallback = (cb: ComponentBuilder) => unknown
 export interface ComponentBuilder {
@@ -104,15 +106,23 @@ export const createComponentBuilder = (
     // Ports can usually be determined via the ftype and dimensions
     switch (source_component.ftype) {
       case "simple_capacitor": {
-        builder.ports.add("left", { x: 0, y: 0 })
-        builder.ports.add("right", { x: 1, y: 0 })
+        builder.ports.add("left", { x: -0.5, y: 0 })
+        builder.ports.add("right", { x: 0.5, y: 0 })
       }
       case "simple_resistor": {
-        builder.ports.add("left", { x: 0, y: 0 })
-        builder.ports.add("right", { x: 1, y: 0 })
+        builder.ports.add("left", { x: -0.5, y: 0 })
+        builder.ports.add("right", { x: 0.5, y: 0 })
       }
     }
-    elements.push(...builder.ports.build())
+    elements.push(
+      ...transformSchematicElements(
+        builder.ports.build(),
+        compose(
+          translate(schematic_component.center.x, schematic_component.center.y),
+          rotate(schematic_component.rotation)
+        )
+      )
+    )
 
     elements.push({
       type: "pcb_component",
