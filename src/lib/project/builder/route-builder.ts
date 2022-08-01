@@ -1,7 +1,10 @@
+// TODO rename this to trace-builder
+
 import * as Type from "lib/types"
 import { Except, Simplify } from "type-fest"
 import { ProjectBuilder, GroupBuilder } from "./"
 import { ProjectClass, createProjectFromElements } from "lib/project"
+import { applySelector } from "lib/apply-selector"
 
 export type RouteBuilderCallback = (cb: RouteBuilder) => unknown
 export interface RouteBuilder {
@@ -31,8 +34,9 @@ export const createRouteBuilder = (
     //   (elm) => elm.type === "source_port"
     // ) as Type.SourcePort[]
     // const project = new ProjectClass(createProjectFromElements(elements))
-
-    // applySelector(elements, selector)
+    for (const portSelector of portSelectors) {
+      const port = applySelector(parentElements, selector)?.[0]
+    }
 
     return []
   }
