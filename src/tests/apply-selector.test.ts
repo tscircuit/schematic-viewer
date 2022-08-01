@@ -1,55 +1,7 @@
 import * as Type from "lib/types"
-import { createProjectBuilder, ProjectClass } from "lib/project"
 import test from "ava"
-import parsel from "parsel-js"
-
-const applySelector = (elements: Type.AnyElement[], selectorRaw: string) => {
-  const selectorAST = parsel.parse(selectorRaw)
-  return applySelectorAST(elements, selectorAST)
-}
-
-const applySelectorAST = (
-  elements: Type.AnyElement[],
-  selectorAST: parsel.AST
-): Type.AnyElement[] => {
-  switch (selectorAST.type) {
-    case "complex": {
-      switch (selectorAST.combinator) {
-        case ">": {
-          const { left, right } = selectorAST
-          if (left.type === "class") {
-            // TODO should also check if content matches any element tags
-            const matchElms = elements.filter(
-              (elm) => "name" in elm && elm.name === left.content
-            )
-            const childrenOfMatchingElms = matchElms.flatMap((matchElm) =>
-              elements.filter(
-                (elm) =>
-                  elm[`${matchElm.type}_id`] ===
-                    matchElm[`${matchElm.type}_id`] && elm !== matchElm
-              )
-            )
-            return applySelectorAST(childrenOfMatchingElms, right)
-          }
-        }
-        default: {
-          throw new Error(
-            `Couldn't apply selector AST for complex combinator "${selectorAST.combinator}"`
-          )
-        }
-      }
-      return []
-    }
-    case "compound": {
-      return []
-    }
-    default: {
-      throw new Error(
-        `Couldn't apply selector AST for type: "${selectorAST.type}"`
-      )
-    }
-  }
-}
+import { createProjectBuilder, ProjectClass } from "lib/project"
+import { applySelector } from "lib/apply-selector"
 
 test("applySelector use css selector to select circuit elements", async (t) => {
   const project = new ProjectClass(
@@ -73,46 +25,13 @@ test("applySelector use css selector to select circuit elements", async (t) => {
   )
   const elements = project.getElements()
   const selector = ".R1 > port.right"
-  /*
-  parsel.parse(selector)
-  https://projects.verou.me/parsel/?selector=.R1+%3E+port.right
-  {
-    "type": "complex",
-    "combinator": ">",
-    "left": {
-      "type": "class",
-      "content": ".R1",
-      "name": "R1",
-      "pos": [
-        0,
-        3
-      ]
+
+  t.deepEqual(applySelector(elements, selector), [
+    {
+      type: "source_port",
+      name: "right",
+      source_port_id: "source_port_1",
+      source_component_id: "simple_resistor_0",
     },
-    "right": {
-      "type": "compound",
-      "list": [
-        {
-          "type": "type",
-          "content": "port",
-          "name": "port",
-          "pos": [
-            6,
-            10
-          ]
-        },
-        {
-          "type": "class",
-          "content": ".right",
-          "name": "right",
-          "pos": [
-            10,
-            16
-          ]
-        }
-      ]
-    }
-  }
-  */
-  console.log(applySelector(elements, selector))
-  t.pass()
+  ])
 })
