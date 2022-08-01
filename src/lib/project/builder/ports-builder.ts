@@ -56,6 +56,7 @@ export const createPortsBuilder = (
       return [
         {
           type: "source_port",
+          name: port.name,
           source_port_id,
           source_component_id: internal.source_component_id,
         } as Type.SourcePort,

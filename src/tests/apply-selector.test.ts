@@ -16,7 +16,21 @@ const applySelectorAST = (
     case "complex": {
       switch (selectorAST.combinator) {
         case ">": {
-          return []
+          const { left, right } = selectorAST
+          if (left.type === "class") {
+            // TODO should also check if content matches any element tags
+            const matchElms = elements.filter(
+              (elm) => "name" in elm && elm.name === left.content
+            )
+            const childrenOfMatchingElms = matchElms.flatMap((matchElm) =>
+              elements.filter(
+                (elm) =>
+                  elm[`${matchElm.type}_id`] ===
+                    matchElm[`${matchElm.type}_id`] && elm !== matchElm
+              )
+            )
+            return applySelectorAST(childrenOfMatchingElms, right)
+          }
         }
         default: {
           throw new Error(

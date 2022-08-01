@@ -1,7 +1,6 @@
 import * as Type from "lib/types"
 import { Except, Simplify } from "type-fest"
 import { ProjectBuilder, GroupBuilder } from "./"
-import parsel from "parsel"
 import { ProjectClass, createProjectFromElements } from "lib/project"
 
 export type RouteBuilderCallback = (cb: RouteBuilder) => unknown
@@ -26,14 +25,14 @@ export const createRouteBuilder = (
     return builder
   }
 
-  builder.build = () => {
-    const elements = builder.parent.build()
-    const source_ports = elements.filter(
-      (elm) => elm.type === "source_port"
-    ) as Type.SourcePort[]
-    const project = new ProjectClass(createProjectFromElements(elements))
+  builder.build = (parentElements: Type.AnyElement[] = []) => {
+    // const elements = lastBuild
+    // const source_ports = .filter(
+    //   (elm) => elm.type === "source_port"
+    // ) as Type.SourcePort[]
+    // const project = new ProjectClass(createProjectFromElements(elements))
 
-    applySelector(elements, selector)
+    // applySelector(elements, selector)
 
     return []
   }

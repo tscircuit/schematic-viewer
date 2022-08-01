@@ -107,6 +107,7 @@ export interface SourceGroup {
 
 export interface SourcePort {
   type: "source_port"
+  name: string
   source_port_id: string
   source_component_id: string
 }

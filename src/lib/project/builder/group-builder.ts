@@ -59,7 +59,7 @@ export const createGroupBuilder = (
     const elements = []
     elements.push(...internal.groups.flatMap((g) => g.build()))
     elements.push(...internal.components.flatMap((c) => c.build()))
-    elements.push(...internal.routes.flatMap((c) => c.build()))
+    elements.push(...internal.routes.flatMap((c) => c.build(elements)))
     return elements
   }
 
