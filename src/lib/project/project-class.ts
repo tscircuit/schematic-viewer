@@ -45,6 +45,9 @@ export class ProjectClass {
   getSourcePort(id: string): Type.SourcePort | null {
     return this.project.source_ports.find((c) => c.source_port_id === id)
   }
+  getSourceTrace(id: string): Type.SourceTrace | null {
+    return this.project.source_traces.find((c) => c.source_trace_id === id)
+  }
 }
 
 export default ProjectClass
