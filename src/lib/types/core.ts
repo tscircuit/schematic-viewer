@@ -43,8 +43,7 @@ export interface SchematicTrace {
   route: Array<{
     x: number
     y: number
-    start_schematic_port_id?: string
-    end_schematic_port_id?: string
+    schematic_port_id?: string
   }>
 }
 
@@ -94,8 +93,7 @@ export interface PCBConfig {
 export interface SourceTrace {
   type: "source_trace"
   source_trace_id: string
-  source_component_: string
-  source_component_id_2: string
+  connected_source_port_ids: string[]
 }
 
 export interface SourceGroup {

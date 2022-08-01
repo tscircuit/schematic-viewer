@@ -11,14 +11,13 @@ export interface RouteBuilder {
   project_builder: ProjectBuilder
   parent: GroupBuilder
   addConnections: (portSelectors: Array<string>) => RouteBuilder
-  build(): Type.AnyElement[]
+  build(elements: Type.AnyElement[]): Type.AnyElement[]
 }
 
 export const createRouteBuilder = (
-  project_builder: ProjectBuilder,
-  parent: GroupBuilder
+  project_builder: ProjectBuilder
 ): RouteBuilder => {
-  const builder: RouteBuilder = { project_builder, parent } as any
+  const builder: RouteBuilder = { project_builder } as any
   const internal: any = {
     portSelectors: [] as string[],
   }
@@ -29,16 +28,52 @@ export const createRouteBuilder = (
   }
 
   builder.build = (parentElements: Type.AnyElement[] = []) => {
-    // const elements = lastBuild
-    // const source_ports = .filter(
-    //   (elm) => elm.type === "source_port"
-    // ) as Type.SourcePort[]
-    // const project = new ProjectClass(createProjectFromElements(elements))
-    for (const portSelector of portSelectors) {
-      const port = applySelector(parentElements, selector)?.[0]
+    const sourcePortsInRoute: Type.SourcePort[] = []
+    for (const portSelector of internal.portSelectors) {
+      const selectedElms = applySelector(parentElements, portSelector)
+      for (const selectedElm of selectedElms) {
+        if (selectedElm.type !== "source_port")
+          throw new Error(
+            `non-source_port "${JSON.stringify(
+              selectedElm,
+              null,
+              "  "
+            )}" selected by selector "${portSelector}" `
+          )
+        sourcePortsInRoute.push(selectedElm)
+      }
     }
 
-    return []
+    const source_trace_id = builder.project_builder.getId("source_trace")
+    const source_trace: Type.SourceTrace = {
+      type: "source_trace",
+      source_trace_id,
+      connected_source_port_ids: sourcePortsInRoute.map(
+        (sp) => sp.source_port_id
+      ),
+    }
+    const schematic_trace: Type.SchematicTrace = {
+      type: "schematic_trace",
+      source_trace_id: source_trace_id,
+      route: sourcePortsInRoute.map((sp) => {
+        const schematic_port = parentElements.find(
+          (elm) =>
+            elm.type === "schematic_port" &&
+            elm.source_port_id === sp.source_port_id
+        ) as Type.SchematicPort | null
+        if (!schematic_port)
+          throw new Error(
+            `Missing schematic_port for source_port "${sp.source_port_id}"`
+          )
+        return {
+          x: schematic_port.center.x,
+          y: schematic_port.center.y,
+          schematic_port_id: schematic_port.schematic_port_id,
+        }
+      }),
+    }
+
+    return [source_trace, schematic_trace]
   }
 
   return builder
