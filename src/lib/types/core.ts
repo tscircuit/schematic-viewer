@@ -39,6 +39,7 @@ export interface SchematicComponent {
 
 export interface SchematicTrace {
   type: "schematic_trace"
+  schematic_trace_id: string
   source_trace_id: string
   route: Array<{
     x: number

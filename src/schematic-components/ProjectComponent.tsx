@@ -35,13 +35,13 @@ export const ProjectComponent = ({ project }: Props) => {
         />
       ))}
       {project.schematic_traces.map((schematic_trace) => (
-        <Components.SchematicPort
+        <Components.SchematicTrace
           key={schematic_trace.schematic_trace_id}
-          port={{
+          trace={{
             source: projectClass.getSourceTrace(
               schematic_trace.source_trace_id
             ),
-            schematic: schematic_port,
+            schematic: schematic_trace,
           }}
         />
       ))}

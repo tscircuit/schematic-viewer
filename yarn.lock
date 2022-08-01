@@ -10901,6 +10901,11 @@ svg-path-bounds@^1.0.2:
     normalize-svg-path "^1.0.0"
     parse-svg-path "^0.1.2"
 
+svg-path-generator@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/svg-path-generator/-/svg-path-generator-1.1.0.tgz#058ad4a095eabbc5e2e91b66299e5063e4ac9afb"
+  integrity sha512-eapn3syFa828HJRI3Wv+ceq7K/TUo/wA31w5oyerA3CNz02YkLM8aSjXA851+0qhc1ibihiJHxy54eacm2/euQ==
+
 symbol.prototype.description@^1.0.0:
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/symbol.prototype.description/-/symbol.prototype.description-1.0.5.tgz#d30e01263b6020fbbd2d2884a6276ce4d49ab568"

@@ -1,5 +1,6 @@
 import { useCameraTransform } from "lib/render-context"
-import svgPathBounds from "svg-path-bounds"
+import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
+
 import { applyToPoint } from "transformation-matrix"
 
 interface Props {
@@ -11,24 +12,6 @@ interface Props {
     stroke: string
     d: string
   }>
-}
-
-function getSVGPathBounds(ds: string[]) {
-  let minX = Infinity,
-    maxX = -Infinity,
-    minY = Infinity,
-    maxY = -Infinity
-
-  for (const d of ds) {
-    const [left, top, right, bottom] = svgPathBounds(d)
-
-    minX = Math.min(left, minX)
-    maxX = Math.max(right, maxX)
-    minY = Math.min(top, minY)
-    maxY = Math.max(bottom, maxY)
-  }
-
-  return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY }
 }
 
 export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
@@ -43,10 +26,12 @@ export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
       `Ratio doesn't match for component. ${pathBounds.width}:${pathBounds.height} is not close to ${size.width}:${size.height}`
     )
   }
+  pathBounds.height = Math.max(pathBounds.height, 1)
+  pathBounds.width = Math.max(pathBounds.width, 1)
   const absoluteCenter = applyToPoint(ct, center)
   const absoluteSize = {
-    width: size.width * ct.a,
-    height: size.height * ct.d,
+    width: Math.max(1, size.width * ct.a),
+    height: Math.max(1, size.height * ct.d),
   }
 
   return (
@@ -56,7 +41,7 @@ export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
         transform: rotation === 0 ? "" : `rotate(${rotation}rad)`,
         left: absoluteCenter.x - absoluteSize.width / 2,
         top: absoluteCenter.y - absoluteSize.height / 2,
-        backgroundColor: badRatio ? "rgba(255, 0, 0, 0.5)" : "transparent",
+        // backgroundColor: badRatio ? "rgba(255, 0, 0, 0.5)" : "transparent",
       }}
       overflow="visible"
       width={absoluteSize.width}
