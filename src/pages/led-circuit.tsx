@@ -27,10 +27,13 @@ export default () => {
               cb
                 .setSourceProperties("simple_resistor", {
                   resistance: "10 ohm",
-                  name: "R1",
+                  name: "R2",
                 })
                 .setSchematicCenter(6, 1)
                 .setSchematicRotation("90deg")
+            )
+            .addRoute((rb) =>
+              rb.addConnections([".R1 > port.right", ".C1 > port.left"])
             )
         )
         .build()}

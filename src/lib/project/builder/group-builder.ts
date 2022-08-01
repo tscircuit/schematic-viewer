@@ -49,7 +49,7 @@ export const createGroupBuilder = (
     return builder
   }
   builder.addRoute = (callback) => {
-    const rb = createRouteBuilder(builder.project_builder)
+    const rb = createRouteBuilder(builder.project_builder, builder)
     internal.routes.push(rb)
     callback(rb)
     return builder
