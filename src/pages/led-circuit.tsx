@@ -21,7 +21,8 @@ export default () => {
                   name: "C1",
                   capacitance: "10 uF",
                 })
-                .setSchematicCenter(4, 1)
+                .setSchematicCenter(4, 2)
+                .setSchematicRotation("90deg")
             )
             .addComponent((cb) =>
               cb
@@ -32,9 +33,25 @@ export default () => {
                 .setSchematicCenter(6, 1)
                 .setSchematicRotation("90deg")
             )
-            .addRoute((rb) =>
-              rb.addConnections([".R1 > port.right", ".C1 > port.left"])
+            .addRoute([
+              ".R1 > port.right",
+              ".C1 > port.left",
+              ".R2 > port.left",
+            ])
+            .addComponent((cb) =>
+              cb
+                .setSourceProperties("simple_power_source", {
+                  voltage: "5V",
+                  name: "power",
+                })
+                .setSchematicCenter(1, 2)
             )
+            .addRoute(["power > port.positive", ".R1 > port.left"])
+            .addRoute([
+              "power > port.negative",
+              ".C1 > port.right",
+              ".R2 > port.right",
+            ])
         )
         .build()}
     />

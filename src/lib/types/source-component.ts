@@ -32,6 +32,7 @@ export interface SimpleBug extends SourceComponentBase {
 
 export interface SimplePowerSource extends SourceComponentBase {
   ftype: "simple_power_source"
+  voltage: NumberWithUnit<"volt">
 }
 
 export type SourceComponent =

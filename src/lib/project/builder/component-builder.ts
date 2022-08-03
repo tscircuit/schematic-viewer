@@ -108,10 +108,17 @@ export const createComponentBuilder = (
       case "simple_capacitor": {
         builder.ports.add("left", { x: -0.5, y: 0 })
         builder.ports.add("right", { x: 0.5, y: 0 })
+        break
       }
       case "simple_resistor": {
         builder.ports.add("left", { x: -0.5, y: 0 })
         builder.ports.add("right", { x: 0.5, y: 0 })
+        break
+      }
+      case "simple_power_source": {
+        builder.ports.add("positive", { x: 0, y: -0.5 })
+        builder.ports.add("negative", { x: 0, y: 0.5 })
+        break
       }
     }
     elements.push(

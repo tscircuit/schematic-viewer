@@ -10,7 +10,9 @@ export interface ProjectBuilder {
   addComponent: (
     componentBuilderCallback: ComponentBuilderCallback
   ) => ProjectBuilder
-  addRoute: (routeBuilderCallback: RouteBuilderCallback) => ProjectBuilder
+  addRoute: (
+    routeBuilderCallback: RouteBuilderCallback | string[]
+  ) => ProjectBuilder
   build: () => Type.Project
 }
 

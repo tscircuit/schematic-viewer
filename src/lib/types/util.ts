@@ -32,9 +32,10 @@ export type UnitAbbreviations = {
   ohm: "Ω"
   henry: "H"
   meter: "m"
+  volt: "V"
 }
 
-export type Unit = "ohm" | "farad" | "henry" | "meter"
+export type Unit = "ohm" | "farad" | "henry" | "meter" | "volt"
 
 export type UnitOrAbbreviation = UnitAbbreviations[Unit] | Unit
 

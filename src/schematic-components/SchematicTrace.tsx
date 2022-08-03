@@ -39,7 +39,6 @@ export const SchematicTrace = ({ trace: { source, schematic } }: Props) => {
       ]}
     />
   )
-  return null
 }
 
 export default SchematicTrace

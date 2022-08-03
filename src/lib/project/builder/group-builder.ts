@@ -10,7 +10,6 @@ import {
   RouteBuilder,
   RouteBuilderCallback,
 } from "./route-builder"
-import { Except, Simplify } from "type-fest"
 
 export type GroupBuilderCallback = (gb: GroupBuilder) => unknown
 export interface GroupBuilder {
@@ -19,7 +18,9 @@ export interface GroupBuilder {
   addComponent: (
     componentBuilderCallback: ComponentBuilderCallback
   ) => GroupBuilder
-  addRoute: (routeBuilderCallback: RouteBuilderCallback) => GroupBuilder
+  addRoute: (
+    routeBuilderCallback: RouteBuilderCallback | string[]
+  ) => GroupBuilder
   build(): Type.AnyElement[]
 }
 
@@ -49,6 +50,12 @@ export const createGroupBuilder = (
     return builder
   }
   builder.addRoute = (callback) => {
+    if (typeof callback !== "function") {
+      const portSelectors = callback as string[]
+      callback = (rb) => {
+        rb.addConnections(portSelectors)
+      }
+    }
     const rb = createRouteBuilder(builder.project_builder)
     internal.routes.push(rb)
     callback(rb)

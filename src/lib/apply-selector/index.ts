@@ -1,5 +1,6 @@
 import * as Type from "lib/types"
 import * as parsel from "parsel-js"
+import { convertAbbrToFType } from "./convert-abbr-to-ftype"
 
 /**
  * Filter elements to match the selector, e.g. to access the left port of a
@@ -22,11 +23,20 @@ export const applySelectorAST = (
       switch (selectorAST.combinator) {
         case ">": {
           const { left, right } = selectorAST
-          if (left.type === "class") {
+          if (left.type === "class" || left.type === "type") {
             // TODO should also check if content matches any element tags
-            const matchElms = elements.filter(
-              (elm) => "name" in elm && elm.name === left.name
-            )
+            let matchElms
+            if (left.type === "class") {
+              matchElms = elements.filter(
+                (elm) => "name" in elm && elm.name === left.name
+              )
+            } else if (left.type === "type") {
+              const ftype = convertAbbrToFType(left.name)
+              matchElms = elements.filter(
+                (elm) => "ftype" in elm && elm.ftype === ftype
+              )
+            }
+
             const childrenOfMatchingElms = matchElms.flatMap((matchElm) =>
               elements.filter(
                 (elm) =>
@@ -36,7 +46,7 @@ export const applySelectorAST = (
             )
             return applySelectorAST(childrenOfMatchingElms, right)
           } else {
-            throw new Error(`unsupported selector class "${left.type}"`)
+            throw new Error(`unsupported selector type "${left.type}"`)
           }
         }
         default: {

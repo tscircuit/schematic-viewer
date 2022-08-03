@@ -18,6 +18,15 @@ export const SchematicComponent = ({ component }: Props) => {
     case "simple_capacitor": {
       return <Component.SimpleCapacitor component={{ source, schematic }} />
     }
+    case "simple_power_source": {
+      return <Component.SimplePowerSource component={{ source, schematic }} />
+    }
+    case "simple_inductor": {
+      return <Component.SimpleInductor component={{ source, schematic }} />
+    }
+    case "simple_bug": {
+      return <Component.SchematicBug component={{ source, schematic }} />
+    }
     default: {
       return <div>unknown ftype: {component.source.ftype}</div>
     }
