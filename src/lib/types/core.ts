@@ -35,6 +35,17 @@ export interface SchematicComponent {
   center: Point
   source_component_id: string
   schematic_component_id: string
+
+  // TODO only for schematic-bug
+  port_arrangement?: {
+    left_size: number
+    right_size: number
+    top_size?: number
+    bottom_size?: number
+  }
+  port_labels?: {
+    [port_number: string]: string
+  }
 }
 
 export interface SchematicTrace {

@@ -1,10 +1,14 @@
-import { SchematicComponent } from "./../../types/core"
+import { SchematicComponent } from "lib/types/core"
 import * as Type from "lib/types"
 import { Except, Simplify } from "type-fest"
-import { ProjectBuilder } from "./project-builder"
-import { PortsBuilder, createPortsBuilder } from "./ports-builder"
+import { ProjectBuilder } from "lib/project/builder/project-builder"
+import {
+  PortsBuilder,
+  createPortsBuilder,
+} from "lib/project/builder/ports-builder"
 import { compose, rotate, transform, translate } from "transformation-matrix"
-import { transformSchematicElements } from "./transform-elements"
+import { transformSchematicElements } from "lib/project/builder//transform-elements"
+import getPortPosition from "./get-port-position"
 
 export type ComponentBuilderCallback = (cb: ComponentBuilder) => unknown
 export interface ComponentBuilder {
@@ -23,6 +27,10 @@ export interface ComponentBuilder {
   ): ComponentBuilder
   setSchematicCenter(x: number, y: number): ComponentBuilder
   setSchematicRotation(rotation: number | `${number}deg`): ComponentBuilder
+  setSchematicProperties(
+    properties: Partial<Type.SchematicComponent>
+  ): ComponentBuilder
+  labelPort(position: number, name: string): ComponentBuilder
   build(): Type.AnyElement[]
 }
 
@@ -35,6 +43,8 @@ export const createComponentBuilder = (
   } as any
   const internal: any = {
     tags: [],
+    port_labels: [],
+    schematic_properties: {},
   }
 
   builder.tag = (tag) => {
@@ -63,6 +73,18 @@ export const createComponentBuilder = (
       internal.schematic_rotation =
         (parseFloat(rotation.split("deg")[0]) / 180) * Math.PI
     }
+    return builder
+  }
+  builder.setSchematicProperties = (props) => {
+    internal.schematic_properties = {
+      ...internal.schematic_properties,
+      ...props,
+    }
+    return builder
+  }
+  builder.labelPort = (position, name) => {
+    internal.schematic_properties.port_labels ??= {}
+    internal.schematic_properties.port_labels[position] = name
     return builder
   }
 
@@ -97,6 +119,7 @@ export const createComponentBuilder = (
             }
           : { width: 1, height: 1 },
       center: internal.schematic_position || { x: 0, y: 0 },
+      ...internal.schematic_properties,
     }
     elements.push(schematic_component)
 
@@ -118,6 +141,21 @@ export const createComponentBuilder = (
       case "simple_power_source": {
         builder.ports.add("positive", { x: 0, y: -0.5 })
         builder.ports.add("negative", { x: 0, y: 0.5 })
+        break
+      }
+      case "simple_bug": {
+        // add ports based on port arangement and give appropriate labels
+        const { port_labels, port_arrangement } = internal.schematic_properties
+        for (
+          let i = 0;
+          i < port_arrangement.left_size + port_arrangement.right_size;
+          i++
+        ) {
+          builder.ports.add(
+            port_labels[i + 1],
+            getPortPosition(port_arrangement, i)
+          )
+        }
         break
       }
     }
