@@ -104,6 +104,7 @@ export const createComponentBuilder = (
     }
     elements.push(source_component)
 
+    const port_arrangement = internal.schematic_properties?.port_arrangement
     const schematic_component: SchematicComponent = {
       type: "schematic_component",
       source_component_id,
@@ -116,6 +117,20 @@ export const createComponentBuilder = (
           ? {
               width: 1,
               height: 12 / 40,
+            }
+          : ftype === "simple_bug"
+          ? {
+              width:
+                Math.max(
+                  port_arrangement.top_size ?? 0,
+                  port_arrangement.bottom_size ?? 0,
+                  1
+                ) + 0.5,
+              height: Math.max(
+                (port_arrangement.left_size ?? 0) / 2,
+                (port_arrangement.right_size ?? 0) / 2,
+                1
+              ),
             }
           : { width: 1, height: 1 },
       center: internal.schematic_position || { x: 0, y: 0 },

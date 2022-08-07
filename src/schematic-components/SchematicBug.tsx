@@ -12,10 +12,13 @@ interface Props {
 export const SchematicBug = ({ component: { source, schematic } }: Props) => {
   const ports_arrangement = schematic.port_arrangement!
   const port_labels = schematic.port_labels!
-  const bugw = (ports_arrangement.left_size + ports_arrangement.right_size) * 4
-  const bugh = ports_arrangement.left_size * 10
-  const rowHeight = 10
-  const linePadding = 3
+  const bugw = 30 // bug width
+  const rh = 15 // row height
+  const pd = 7.5 // port distance, the line for each port
+  const bugh =
+    Math.max(ports_arrangement.left_size, ports_arrangement.right_size) * rh
+  // TODO throw if schematic.size doesn't match computed ports_arrangement size
+  console.log(schematic)
   return (
     <SVGPathComponent
       rotation={schematic.rotation}
@@ -31,14 +34,15 @@ export const SchematicBug = ({ component: { source, schematic } }: Props) => {
           0,
           ports_arrangement.left_size + ports_arrangement.right_size
         ).map((i) => {
-          const left = i < ports_arrangement.left_size
-          const rowi = i % ports_arrangement.left_size
+          const ls = ports_arrangement.left_size
+          const left = i < ls
+          const rowi = i % ls
+          const p1 = [left ? 0 : bugw, rh / 2 + rowi * rh]
+          const rd = [left ? -pd : pd, 0]
           return {
             stroke: "red",
             strokeWidth: 1,
-            d: `M ${linePadding + (left ? 0 : bugw)} ${
-              linePadding + rowHeight / 2 + rowHeight * rowi
-            } l ${left ? -15 : 15} 0`,
+            d: `M ${p1.join(" ")} l ${rd.join(" ")}`,
           }
         }),
       ]}
