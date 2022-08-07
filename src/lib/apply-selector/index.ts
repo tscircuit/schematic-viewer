@@ -9,7 +9,7 @@ import { convertAbbrToFType } from "./convert-abbr-to-ftype"
 export const applySelector = (
   elements: Type.AnyElement[],
   selectorRaw: string
-) => {
+): Type.AnyElement[] => {
   const selectorAST = parsel.parse(selectorRaw)
   return applySelectorAST(elements, selectorAST)
 }
@@ -46,7 +46,7 @@ export const applySelectorAST = (
             )
             return applySelectorAST(childrenOfMatchingElms, right)
           } else {
-            throw new Error(`unsupported selector type "${left.type}"`)
+            throw new Error(`unsupported selector type "${left.type}" `)
           }
         }
         default: {
@@ -74,9 +74,25 @@ export const applySelectorAST = (
         conditionsToMatch.every((condFn) => condFn(elm))
       )
     }
+    case "type": {
+      return elements.filter(
+        (elm) =>
+          elm.type === selectorAST.name ||
+          ("ftype" in elm && elm.ftype === convertAbbrToFType(selectorAST.name))
+      )
+    }
+    case "class": {
+      return elements.filter(
+        (elm) =>
+          // TODO switch to tag sysmtem
+          "name" in elm && elm.name === selectorAST.name
+      )
+    }
     default: {
       throw new Error(
-        `Couldn't apply selector AST for type: "${selectorAST.type}"`
+        `Couldn't apply selector AST for type: "${
+          selectorAST.type
+        }" ${JSON.stringify(selectorAST, null, " ")}`
       )
     }
   }

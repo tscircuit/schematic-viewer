@@ -72,7 +72,14 @@ export default () => {
                 .setSchematicCenter(8, 3)
             )
             .addRoute([".B1 > port.PWR", ".R2 > port.left"])
-            .addRoute([".B1 > port.GND", "power > port.negative"])
+            .addComponent((cb) =>
+              cb
+                .setSourceProperties("simple_ground", {
+                  name: "GND",
+                })
+                .setSchematicCenter(12, 4)
+            )
+            .addRoute([".B1 > port.GND", ".gnd"])
         )
         .build()}
     />

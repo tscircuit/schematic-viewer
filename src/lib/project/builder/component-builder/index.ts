@@ -132,6 +132,13 @@ export const createComponentBuilder = (
                 1
               ),
             }
+          : ftype === "simple_ground"
+          ? {
+              width: 0.7,
+              height: (0.7 * 15) / 18,
+            }
+          : ftype === "simple_power_source"
+          ? { width: (1 * 24) / 34, height: 1 }
           : { width: 1, height: 1 },
       center: internal.schematic_position || { x: 0, y: 0 },
       ...internal.schematic_properties,
@@ -151,6 +158,10 @@ export const createComponentBuilder = (
       case "simple_resistor": {
         builder.ports.add("left", { x: -0.5, y: 0 })
         builder.ports.add("right", { x: 0.5, y: 0 })
+        break
+      }
+      case "simple_ground": {
+        builder.ports.add("gnd", { x: 0, y: -0.28 })
         break
       }
       case "simple_power_source": {

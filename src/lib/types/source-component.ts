@@ -35,11 +35,19 @@ export interface SimplePowerSource extends SourceComponentBase {
   voltage: NumberWithUnit<"volt">
 }
 
-export type SourceComponent =
+export interface SimpleGround extends SourceComponentBase {
+  ftype: "simple_ground"
+}
+
+export type AnySourceComponent =
   | SimpleResistor
   | SimpleCapacitor
   | SimpleBug
   | SimpleInductor
   | SimplePowerSource
+  | SimpleGround
 
-export type SourceComponentFType = SourceComponent["ftype"]
+export type SourceComponentFType = AnySourceComponent["ftype"]
+export type SourceComponent<
+  T extends SourceComponentFType = SourceComponentFType
+> = Extract<AnySourceComponent, { ftype: T }>

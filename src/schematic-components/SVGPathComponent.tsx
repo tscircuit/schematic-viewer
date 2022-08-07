@@ -41,7 +41,7 @@ export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
         transform: rotation === 0 ? "" : `rotate(${rotation}rad)`,
         left: absoluteCenter.x - absoluteSize.width / 2,
         top: absoluteCenter.y - absoluteSize.height / 2,
-        // backgroundColor: badRatio ? "rgba(255, 0, 0, 0.5)" : "transparent",
+        backgroundColor: badRatio ? "rgba(255, 0, 0, 0.5)" : "transparent",
       }}
       overflow="visible"
       width={absoluteSize.width}

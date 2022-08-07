@@ -21,6 +21,9 @@ export const SchematicComponent = ({ component }: Props) => {
     case "simple_power_source": {
       return <Component.SimplePowerSource component={{ source, schematic }} />
     }
+    case "simple_ground": {
+      return <Component.SimpleGround component={{ source, schematic }} />
+    }
     case "simple_inductor": {
       return <Component.SimpleInductor component={{ source, schematic }} />
     }
