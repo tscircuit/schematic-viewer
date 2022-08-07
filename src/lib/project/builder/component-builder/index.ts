@@ -183,12 +183,17 @@ export const createComponentBuilder = (
           builder.ports.add(port_labels[i + 1], portPosition)
           const schematic_text_id =
             builder.project_builder.getId("schematic_text")
+          const is_left = i < port_arrangement.left_size
           const portText: Type.SchematicText = {
             type: "schematic_text",
             schematic_text_id,
             schematic_component_id,
             text: port_labels[i + 1],
-            center: { x: portPosition.x, y: portPosition.y },
+            anchor: is_left ? "left" : "right",
+            position: {
+              x: portPosition.x + (is_left ? 0.3 : -0.3),
+              y: portPosition.y,
+            },
           }
           textElements.push(portText)
         }

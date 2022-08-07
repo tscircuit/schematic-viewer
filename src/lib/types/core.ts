@@ -64,7 +64,8 @@ export interface SchematicText {
   schematic_component_id: string
   schematic_text_id: string
   text: string
-  center: Point
+  position: Point
+  anchor: "center" | "left" | "right" | "top" | "bottom"
 }
 
 export interface SchematicPort {

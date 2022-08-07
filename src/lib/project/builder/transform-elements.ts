@@ -12,7 +12,7 @@ export const transformSchematicElement = (
   } else if (elm.type === "schematic_port") {
     elm.center = applyToPoint(matrix, elm.center)
   } else if (elm.type === "schematic_text") {
-    elm.center = applyToPoint(matrix, elm.center)
+    elm.position = applyToPoint(matrix, elm.position)
   } else if (elm.type === "schematic_group") {
   } else if (elm.type === "schematic_trace") {
   }
