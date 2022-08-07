@@ -59,6 +59,14 @@ export interface SchematicTrace {
   }>
 }
 
+export interface SchematicText {
+  type: "schematic_text"
+  schematic_component_id: string
+  schematic_text_id: string
+  text: string
+  center: Point
+}
+
 export interface SchematicPort {
   type: "schematic_port"
   schematic_port_id: string
@@ -128,6 +136,7 @@ export interface Project {
   schematic_components: SchematicComponent[]
   schematic_groups: SchematicGroup[]
   schematic_traces: SchematicTrace[]
+  schematic_texts: SchematicText[]
   schematic_ports: SchematicPort[]
   pcb_config: PCBConfig
   pcb_groups: PCBGroup[]
@@ -158,6 +167,7 @@ export type AnyElement =
   | SchematicTrace
   | SchematicConfig
   | SchematicPort
+  | SchematicText
 
 export type ElementType = AnyElement["type"]
 export type ElementOfType<T extends ElementType> = Extract<

@@ -26,6 +26,9 @@ export const createProjectFromElements = (
     schematic_ports: objects.filter(
       (o) => o.type === "schematic_port"
     ) as Type.SchematicPort[],
+    schematic_texts: objects.filter(
+      (o) => o.type === "schematic_text"
+    ) as Type.SchematicText[],
     pcb_config:
       (objects.find((o) => o.type === "pcb_config") as Type.PCBConfig) ||
       defaultPCBConfig,

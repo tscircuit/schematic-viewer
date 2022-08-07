@@ -11,6 +11,8 @@ export const transformSchematicElement = (
     // elm.size
   } else if (elm.type === "schematic_port") {
     elm.center = applyToPoint(matrix, elm.center)
+  } else if (elm.type === "schematic_text") {
+    elm.center = applyToPoint(matrix, elm.center)
   } else if (elm.type === "schematic_group") {
   } else if (elm.type === "schematic_trace") {
   }

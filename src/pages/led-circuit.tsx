@@ -77,7 +77,7 @@ export default () => {
                 .setSourceProperties("simple_ground", {
                   name: "GND",
                 })
-                .setSchematicCenter(12, 4)
+                .setSchematicCenter(11, 3)
             )
             .addRoute([".B1 > port.GND", ".gnd"])
         )

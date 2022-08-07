@@ -45,6 +45,12 @@ export const ProjectComponent = ({ project }: Props) => {
           }}
         />
       ))}
+      {project.schematic_texts.map((schematic_text) => (
+        <Components.SchematicText
+          key={schematic_text.schematic_text_id}
+          schematic_text={schematic_text}
+        />
+      ))}
     </>
   )
 }

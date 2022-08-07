@@ -134,8 +134,8 @@ export const createComponentBuilder = (
             }
           : ftype === "simple_ground"
           ? {
-              width: 0.7,
-              height: (0.7 * 15) / 18,
+              width: 0.5,
+              height: (0.5 * 15) / 18,
             }
           : ftype === "simple_power_source"
           ? { width: (1 * 24) / 34, height: 1 }
@@ -147,6 +147,8 @@ export const createComponentBuilder = (
 
     builder.ports.setSchematicComponent(schematic_component_id)
     builder.ports.setSourceComponent(source_component_id)
+
+    const textElements = []
 
     // Ports can usually be determined via the ftype and dimensions
     switch (source_component.ftype) {
@@ -161,7 +163,7 @@ export const createComponentBuilder = (
         break
       }
       case "simple_ground": {
-        builder.ports.add("gnd", { x: 0, y: -0.28 })
+        builder.ports.add("gnd", { x: 0, y: -0.2 })
         break
       }
       case "simple_power_source": {
@@ -177,17 +179,25 @@ export const createComponentBuilder = (
           i < port_arrangement.left_size + port_arrangement.right_size;
           i++
         ) {
-          builder.ports.add(
-            port_labels[i + 1],
-            getPortPosition(port_arrangement, i)
-          )
+          const portPosition = getPortPosition(port_arrangement, i)
+          builder.ports.add(port_labels[i + 1], portPosition)
+          const schematic_text_id =
+            builder.project_builder.getId("schematic_text")
+          const portText: Type.SchematicText = {
+            type: "schematic_text",
+            schematic_text_id,
+            schematic_component_id,
+            text: port_labels[i + 1],
+            center: { x: portPosition.x, y: portPosition.y },
+          }
+          textElements.push(portText)
         }
         break
       }
     }
     elements.push(
       ...transformSchematicElements(
-        builder.ports.build(),
+        [...builder.ports.build(), ...textElements],
         compose(
           translate(schematic_component.center.x, schematic_component.center.y),
           rotate(schematic_component.rotation)

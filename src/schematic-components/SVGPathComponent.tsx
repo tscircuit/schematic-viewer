@@ -20,7 +20,7 @@ export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
   // Margin in SVG Space
   const badRatio =
     Math.abs(pathBounds.width / pathBounds.height - size.width / size.height) >
-    0.001
+    0.01
   if (badRatio) {
     console.warn(
       `Ratio doesn't match for component. ${pathBounds.width}:${pathBounds.height} is not close to ${size.width}:${size.height}`
@@ -41,7 +41,7 @@ export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
         transform: rotation === 0 ? "" : `rotate(${rotation}rad)`,
         left: absoluteCenter.x - absoluteSize.width / 2,
         top: absoluteCenter.y - absoluteSize.height / 2,
-        backgroundColor: badRatio ? "rgba(255, 0, 0, 0.5)" : "transparent",
+        // backgroundColor: badRatio ? "rgba(255, 0, 0, 0.5)" : "transparent",
       }}
       overflow="visible"
       width={absoluteSize.width}
