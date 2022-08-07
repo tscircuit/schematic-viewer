@@ -31,6 +31,9 @@ export const createRouteBuilder = (
     const sourcePortsInRoute: Type.SourcePort[] = []
     for (const portSelector of internal.portSelectors) {
       const selectedElms = applySelector(parentElements, portSelector)
+      if (selectedElms.length === 0) {
+        throw new Error(`No elements found for selector: ${portSelector}`)
+      }
       for (const selectedElm of selectedElms) {
         if (selectedElm.type !== "source_port")
           throw new Error(
@@ -52,9 +55,11 @@ export const createRouteBuilder = (
         (sp) => sp.source_port_id
       ),
     }
+    const schematic_trace_id = builder.project_builder.getId("schematic_trace")
     const schematic_trace: Type.SchematicTrace = {
       type: "schematic_trace",
       source_trace_id: source_trace_id,
+      schematic_trace_id,
       route: sourcePortsInRoute.map((sp) => {
         const schematic_port = parentElements.find(
           (elm) =>

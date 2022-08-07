@@ -2,6 +2,7 @@ import * as Type from "lib/types"
 import SVGPathComponent from "./SVGPathComponent"
 import Path from "svg-path-generator"
 import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
+import RenderError from "./RenderError"
 
 interface Props {
   trace: {
@@ -12,6 +13,9 @@ interface Props {
 
 export const SchematicTrace = ({ trace: { source, schematic } }: Props) => {
   const route = schematic.route
+  if (route.length === 0) {
+    return <RenderError text="Route with 0 segments" />
+  }
   const path = Path()
   path.moveTo(route[0].x, route[0].y)
   for (let i = 1; i < route.length; i++) {

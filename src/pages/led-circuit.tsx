@@ -71,6 +71,8 @@ export default () => {
                 .labelPort(6, "GND")
                 .setSchematicCenter(8, 3)
             )
+            .addRoute([".B1 > port.PWR", ".R2 > port.left"])
+            .addRoute([".B1 > port.GND", "power > port.negative"])
         )
         .build()}
     />
