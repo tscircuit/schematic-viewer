@@ -155,11 +155,43 @@ export const createComponentBuilder = (
       case "simple_capacitor": {
         builder.ports.add("left", { x: -0.5, y: 0 })
         builder.ports.add("right", { x: 0.5, y: 0 })
+        textElements.push({
+          type: "schematic_text",
+          text: source_component.name,
+          schematic_text_id: project_builder.getId("schematic_text"),
+          schematic_component_id,
+          anchor: "left",
+          position: { x: -0.5, y: -0.3 },
+        })
+        textElements.push({
+          type: "schematic_text",
+          text: source_component.capacitance,
+          schematic_text_id: project_builder.getId("schematic_text"),
+          schematic_component_id,
+          anchor: "left",
+          position: { x: -0.3, y: -0.3 },
+        })
         break
       }
       case "simple_resistor": {
         builder.ports.add("left", { x: -0.5, y: 0 })
         builder.ports.add("right", { x: 0.5, y: 0 })
+        textElements.push({
+          type: "schematic_text",
+          text: source_component.name,
+          schematic_text_id: project_builder.getId("schematic_text"),
+          schematic_component_id,
+          anchor: "left",
+          position: { x: -0.2, y: -0.5 },
+        })
+        textElements.push({
+          type: "schematic_text",
+          text: source_component.resistance,
+          schematic_text_id: project_builder.getId("schematic_text"),
+          schematic_component_id,
+          anchor: "left",
+          position: { x: -0.2, y: -0.3 },
+        })
         break
       }
       case "simple_ground": {
