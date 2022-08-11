@@ -176,13 +176,25 @@ export const createComponentBuilder = (
       case "simple_resistor": {
         builder.ports.add("left", { x: -0.5, y: 0 })
         builder.ports.add("right", { x: 0.5, y: 0 })
+        const [text_pos1, text_pos2] =
+          schematic_component.rotation === Math.PI / 2 ||
+          schematic_component.rotation === -Math.PI / 2
+            ? [
+                { x: -0.2, y: -0.3 },
+                { x: 0, y: -0.3 },
+              ]
+            : [
+                { x: -0.2, y: -0.5 },
+                { x: -0.2, y: -0.3 },
+              ]
+
         textElements.push({
           type: "schematic_text",
           text: source_component.name,
           schematic_text_id: project_builder.getId("schematic_text"),
           schematic_component_id,
           anchor: "left",
-          position: { x: -0.2, y: -0.5 },
+          position: text_pos1,
         })
         textElements.push({
           type: "schematic_text",
@@ -190,7 +202,7 @@ export const createComponentBuilder = (
           schematic_text_id: project_builder.getId("schematic_text"),
           schematic_component_id,
           anchor: "left",
-          position: { x: -0.2, y: -0.3 },
+          position: text_pos2,
         })
         break
       }
