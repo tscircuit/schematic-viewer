@@ -2,7 +2,10 @@ import * as Type from "lib/types"
 import {
   ComponentBuilder,
   ComponentBuilderCallback,
+  ResistorBuilder,
+  ResistorBuilderCallback,
   createComponentBuilder,
+  createResistorBuilder,
 } from "./component-builder"
 import { ProjectBuilder } from "./project-builder"
 import {
@@ -18,6 +21,9 @@ export interface GroupBuilder {
   addComponent: (
     componentBuilderCallback: ComponentBuilderCallback
   ) => GroupBuilder
+  addResistor: (
+    resistorBuilderCallback: ResistorBuilderCallback
+  ) => ResistorBuilder
   addRoute: (
     routeBuilderCallback: RouteBuilderCallback | string[]
   ) => GroupBuilder
@@ -47,6 +53,12 @@ export const createGroupBuilder = (
     const cb = createComponentBuilder(builder.project_builder)
     internal.components.push(cb)
     callback(cb)
+    return builder
+  }
+  builder.addResistor = (callback) => {
+    const rb = createResistorBuilder(builder.project_builder)
+    internal.components.push(rb)
+    callback(rb)
     return builder
   }
   builder.addRoute = (callback) => {
