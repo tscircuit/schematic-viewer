@@ -9,30 +9,7 @@ import {
 import { compose, rotate, transform, translate } from "transformation-matrix"
 import { transformSchematicElements } from "lib/project/builder//transform-elements"
 import getPortPosition from "./get-port-position"
-
-export type ComponentBuilderCallback = (cb: ComponentBuilder) => unknown
-export interface ComponentBuilder {
-  project_builder: ProjectBuilder
-  ports: PortsBuilder
-  setName: (name: string) => ComponentBuilder
-  tag: (tag: string) => ComponentBuilder
-  setSourceProperties<T extends Type.SourceComponentFType>(
-    ftype: T,
-    properties: Simplify<
-      Except<
-        Extract<Type.SourceComponent, { ftype: T }>,
-        "type" | "source_component_id" | "ftype" | "name"
-      >
-    > & { name?: string }
-  ): ComponentBuilder
-  setSchematicCenter(x: number, y: number): ComponentBuilder
-  setSchematicRotation(rotation: number | `${number}deg`): ComponentBuilder
-  setSchematicProperties(
-    properties: Partial<Type.SchematicComponent>
-  ): ComponentBuilder
-  labelPort(position: number, name: string): ComponentBuilder
-  build(): Type.AnyElement[]
-}
+import { ComponentBuilder } from "./ComponentBuilder"
 
 export const createComponentBuilder = (
   project_builder: ProjectBuilder
