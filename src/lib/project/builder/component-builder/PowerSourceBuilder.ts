@@ -75,6 +75,16 @@ export class PowerSourceBuilderClass
     this.ports.add("positive", { x: 0, y: -0.5 })
     this.ports.add("negative", { x: 0, y: 0.5 })
 
+    elements.push(
+      ...transformSchematicElements(
+        [...this.ports.build(), ...textElements],
+        compose(
+          translate(schematic_component.center.x, schematic_component.center.y),
+          rotate(schematic_component.rotation)
+        )
+      )
+    )
+
     elements.push({
       type: "pcb_component",
       source_component_id,

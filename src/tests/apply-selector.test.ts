@@ -8,14 +8,14 @@ test("applySelector use css selector to select circuit elements", async (t) => {
     createProjectBuilder()
       .addGroup((gb) =>
         gb
-          .addComponent((cb) =>
-            cb.setSourceProperties("simple_resistor", {
+          .addResistor((cb) =>
+            cb.setSourceProperties({
               resistance: "10 ohm",
               name: "R1",
             })
           )
-          .addComponent((cb) =>
-            cb.setSourceProperties("simple_capacitor", {
+          .addCapacitor((cb) =>
+            cb.setSourceProperties({
               name: "C1",
               capacitance: "10 uF",
             })

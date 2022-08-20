@@ -1,19 +1,17 @@
 import * as Type from "lib/types"
-import { createGroupBuilder, GroupBuilderCallback } from "./group-builder"
-import { ComponentBuilderCallback } from "./component-builder"
+import {
+  createGroupBuilder,
+  GroupBuilder,
+  GroupBuilderCallback,
+} from "./group-builder"
+import { GenericComponentBuilderCallback } from "./component-builder"
 import { createProjectFromElements } from "../create-project-from-elements"
 import { RouteBuilderCallback } from "./route-builder"
 
-export interface ProjectBuilder {
+export interface ProjectBuilder extends GroupBuilder {
   getId: (prefix: string) => string
   addGroup: (groupBuilderCallback: GroupBuilderCallback) => ProjectBuilder
-  addComponent: (
-    componentBuilderCallback: ComponentBuilderCallback
-  ) => ProjectBuilder
-  addRoute: (
-    routeBuilderCallback: RouteBuilderCallback | string[]
-  ) => ProjectBuilder
-  build: () => Type.Project
+  buildProject: () => Type.Project
 }
 
 export const createProjectBuilder = (): ProjectBuilder => {
@@ -26,9 +24,9 @@ export const createProjectBuilder = (): ProjectBuilder => {
     return `${prefix}_${idCount[prefix]++}`
   }
   builder.build_group = builder.build
-  builder.build = () => {
+  builder.buildProject = () => {
     resetIdCount()
-    return createProjectFromElements(builder.build_group())
+    return createProjectFromElements(builder.build())
   }
   return builder
 }

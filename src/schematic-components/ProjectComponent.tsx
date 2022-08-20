@@ -7,7 +7,6 @@ interface Props {
 }
 
 export const ProjectComponent = ({ project }: Props) => {
-  console.log({ project })
   const projectClass = new ProjectClass(project)
 
   return (

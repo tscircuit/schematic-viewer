@@ -2,9 +2,10 @@
 
 import * as Type from "lib/types"
 import { Except, Simplify } from "type-fest"
-import { ProjectBuilder, GroupBuilder } from "./"
+import { ProjectBuilder, GroupBuilder } from ".."
 import { ProjectClass, createProjectFromElements } from "lib/project"
 import { applySelector } from "lib/apply-selector"
+export { convertToReadableRouteTree } from "./convert-to-readable-route-tree"
 
 export type RouteBuilderCallback = (cb: RouteBuilder) => unknown
 export interface RouteBuilder {

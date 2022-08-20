@@ -3,6 +3,7 @@ import * as CB from "./component-builder"
 import { ProjectBuilder } from "./project-builder"
 import {
   createRouteBuilder,
+  convertToReadableRouteTree,
   RouteBuilder,
   RouteBuilderCallback,
 } from "./route-builder"
@@ -28,6 +29,7 @@ export interface GroupBuilder {
   addInductor: (
     powerSourceBuilderCallback: CB.InductorBuilderCallback
   ) => GroupBuilder
+  addGround: (groundBuilderCallback: CB.GroundBuilderCallback) => GroupBuilder
   addRoute: (
     routeBuilderCallback: RouteBuilderCallback | string[]
   ) => GroupBuilder
@@ -84,6 +86,12 @@ export const createGroupBuilder = (
     callback(cb)
     return builder
   }
+  builder.addGround = (callback) => {
+    const cb = CB.createGroundBuilder(builder.project_builder)
+    internal.components.push(cb)
+    callback(cb)
+    return builder
+  }
   builder.addPowerSource = (callback) => {
     const cb = CB.createPowerSourceBuilder(builder.project_builder)
     internal.components.push(cb)
@@ -96,17 +104,6 @@ export const createGroupBuilder = (
     callback(cb)
     return builder
   }
-
-  // Add methods like "addResistor", "addComponent", "addBug" etc.
-  // for (const name in CB.componentBuilderCreators) {
-  //   const nameAsKey: keyof typeof CB.componentBuilderCreators = name as any
-  //   builder[`add${nameAsKey}`] = (callback) => {
-  //     const cb = CB.componentBuilderCreators[nameAsKey](builder.project_builder)
-  //     internal.components.push(cb)
-  //     callback(cb)
-  //     return builder
-  //   }
-  // }
 
   builder.addRoute = (callback) => {
     if (typeof callback !== "function") {
@@ -125,6 +122,7 @@ export const createGroupBuilder = (
     const elements = []
     elements.push(...internal.groups.flatMap((g) => g.build()))
     elements.push(...internal.components.flatMap((c) => c.build()))
+    console.log("readable route tree", convertToReadableRouteTree(elements))
     elements.push(...internal.routes.flatMap((c) => c.build(elements)))
     return elements
   }
