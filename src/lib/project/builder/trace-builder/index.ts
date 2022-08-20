@@ -5,20 +5,20 @@ import { Except, Simplify } from "type-fest"
 import { ProjectBuilder, GroupBuilder } from ".."
 import { ProjectClass, createProjectFromElements } from "lib/project"
 import { applySelector } from "lib/apply-selector"
-export { convertToReadableRouteTree } from "./convert-to-readable-route-tree"
+export { convertToReadableTraceTree } from "./convert-to-readable-route-tree"
 
-export type RouteBuilderCallback = (cb: RouteBuilder) => unknown
-export interface RouteBuilder {
+export type TraceBuilderCallback = (cb: TraceBuilder) => unknown
+export interface TraceBuilder {
   project_builder: ProjectBuilder
   parent: GroupBuilder
-  addConnections: (portSelectors: Array<string>) => RouteBuilder
+  addConnections: (portSelectors: Array<string>) => TraceBuilder
   build(elements: Type.AnyElement[]): Type.AnyElement[]
 }
 
-export const createRouteBuilder = (
+export const createTraceBuilder = (
   project_builder: ProjectBuilder
-): RouteBuilder => {
-  const builder: RouteBuilder = { project_builder } as any
+): TraceBuilder => {
+  const builder: TraceBuilder = { project_builder } as any
   const internal: any = {
     portSelectors: [] as string[],
   }

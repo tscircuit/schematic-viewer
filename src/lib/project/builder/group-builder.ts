@@ -2,11 +2,11 @@ import * as Type from "lib/types"
 import * as CB from "./component-builder"
 import { ProjectBuilder } from "./project-builder"
 import {
-  createRouteBuilder,
-  convertToReadableRouteTree,
-  RouteBuilder,
-  RouteBuilderCallback,
-} from "./route-builder"
+  createTraceBuilder,
+  convertToReadableTraceTree,
+  TraceBuilder,
+  TraceBuilderCallback,
+} from "./trace-builder"
 
 export type GroupBuilderCallback = (gb: GroupBuilder) => unknown
 export interface GroupBuilder {
@@ -30,8 +30,8 @@ export interface GroupBuilder {
     powerSourceBuilderCallback: CB.InductorBuilderCallback
   ) => GroupBuilder
   addGround: (groundBuilderCallback: CB.GroundBuilderCallback) => GroupBuilder
-  addRoute: (
-    routeBuilderCallback: RouteBuilderCallback | string[]
+  addTrace: (
+    traceBuiderCallback: TraceBuilderCallback | string[]
   ) => GroupBuilder
   build(): Type.AnyElement[]
 }
@@ -45,7 +45,7 @@ export const createGroupBuilder = (
   const internal = {
     groups: [] as GroupBuilder[],
     components: [] as CB.BaseComponentBuilder<any>[],
-    routes: [] as RouteBuilder[],
+    traces: [] as TraceBuilder[],
   }
 
   builder.addGroup = (callback) => {
@@ -105,15 +105,15 @@ export const createGroupBuilder = (
     return builder
   }
 
-  builder.addRoute = (callback) => {
+  builder.addTrace = (callback) => {
     if (typeof callback !== "function") {
       const portSelectors = callback as string[]
       callback = (rb) => {
         rb.addConnections(portSelectors)
       }
     }
-    const rb = createRouteBuilder(builder.project_builder)
-    internal.routes.push(rb)
+    const rb = createTraceBuilder(builder.project_builder)
+    internal.traces.push(rb)
     callback(rb)
     return builder
   }
@@ -122,8 +122,8 @@ export const createGroupBuilder = (
     const elements = []
     elements.push(...internal.groups.flatMap((g) => g.build()))
     elements.push(...internal.components.flatMap((c) => c.build()))
-    console.log("readable route tree", convertToReadableRouteTree(elements))
-    elements.push(...internal.routes.flatMap((c) => c.build(elements)))
+    // console.log("readable trace tree", convertToReadableTraceTree(elements))
+    elements.push(...internal.traces.flatMap((c) => c.build(elements)))
     return elements
   }
 

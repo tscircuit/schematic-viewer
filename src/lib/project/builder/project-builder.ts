@@ -6,7 +6,7 @@ import {
 } from "./group-builder"
 import { GenericComponentBuilderCallback } from "./component-builder"
 import { createProjectFromElements } from "../create-project-from-elements"
-import { RouteBuilderCallback } from "./route-builder"
+import { TraceBuilderCallback } from "./trace-builder"
 
 export interface ProjectBuilder extends GroupBuilder {
   getId: (prefix: string) => string

@@ -33,7 +33,7 @@ export default () => {
                 .setSchematicCenter(6, 1)
                 .setSchematicRotation("90deg")
             )
-            .addRoute([
+            .addTrace([
               ".R1 > port.right",
               ".C1 > port.left",
               ".R2 > port.left",
@@ -46,8 +46,8 @@ export default () => {
                 })
                 .setSchematicCenter(1, 2)
             )
-            .addRoute(["power > port.positive", ".R1 > port.left"])
-            .addRoute([
+            .addTrace(["power > port.positive", ".R1 > port.left"])
+            .addTrace([
               "power > port.negative",
               ".C1 > port.right",
               ".R2 > port.right",
@@ -69,7 +69,7 @@ export default () => {
                 .labelPort(6, "GND")
                 .setSchematicCenter(8, 3)
             )
-            .addRoute([".B1 > port.PWR", ".R2 > port.left"])
+            .addTrace([".B1 > port.PWR", ".R2 > port.left"])
             .addGround((cb) =>
               cb
                 .setSourceProperties({
@@ -77,7 +77,7 @@ export default () => {
                 })
                 .setSchematicCenter(11, 3)
             )
-            .addRoute([".B1 > port.GND", ".gnd"])
+            .addTrace([".B1 > port.GND", ".gnd"])
         )
         .buildProject()}
     />
