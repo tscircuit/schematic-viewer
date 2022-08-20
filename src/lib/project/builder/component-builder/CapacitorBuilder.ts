@@ -5,30 +5,32 @@ import { transformSchematicElements } from "../transform-elements"
 import { compose, rotate, translate } from "transformation-matrix"
 import { PortsBuilder } from "../ports-builder"
 import { Except } from "type-fest"
+import getPortPosition from "./get-port-position"
 
-export type ResistorBuilderCallback = (rb: ResistorBuilder) => unknown
-export interface ResistorBuilder extends BaseComponentBuilder<ResistorBuilder> {
+export type CapacitorBuilderCallback = (rb: CapacitorBuilder) => unknown
+export interface CapacitorBuilder
+  extends BaseComponentBuilder<CapacitorBuilder> {
   setSourceProperties(
     properties: Except<
-      Type.SimpleResistor,
+      Type.SimpleCapacitor,
       "type" | "source_component_id" | "ftype" | "name"
     > & { name?: string }
-  ): ResistorBuilder
+  ): CapacitorBuilder
 }
 
-export class ResistorBuilderClass
+export class CapacitorBuilderClass
   extends ComponentBuilderClass
-  implements ResistorBuilder
+  implements CapacitorBuilder
 {
   constructor(project_builder: ProjectBuilder) {
     super(project_builder)
     this.source_properties = {
       ...this.source_properties,
-      ftype: "simple_resistor",
+      ftype: "simple_capacitor",
     }
   }
 
-  setSourceProperties(props: Type.SimpleResistor) {
+  setSourceProperties(props: Type.SimpleCapacitor) {
     this.source_properties = {
       ...this.source_properties,
       ...props,
@@ -38,8 +40,8 @@ export class ResistorBuilderClass
 
   build() {
     const elements: Type.AnyElement[] = []
-    const { ftype } = this.source_properties
     const { project_builder } = this
+    const { ftype } = this.source_properties
     const source_component_id = project_builder.getId(ftype)
     const schematic_component_id = project_builder.getId(
       `schematic_component_${ftype}`
@@ -58,11 +60,8 @@ export class ResistorBuilderClass
       type: "schematic_component",
       source_component_id,
       schematic_component_id,
-      rotation: this.schematic_rotation,
-      size: {
-        width: 1,
-        height: 12 / 40,
-      },
+      rotation: this.schematic_rotation ?? 0,
+      size: { width: 3 / 4, height: 3 / 4 },
       center: this.schematic_position || { x: 0, y: 0 },
       ...this.schematic_properties,
     }
@@ -73,35 +72,24 @@ export class ResistorBuilderClass
 
     const textElements = []
 
+    // Ports can usually be determined via the ftype and dimensions
     this.ports.add("left", { x: -0.5, y: 0 })
     this.ports.add("right", { x: 0.5, y: 0 })
-    const [text_pos1, text_pos2] =
-      schematic_component.rotation === Math.PI / 2 ||
-      schematic_component.rotation === -Math.PI / 2
-        ? [
-            { x: -0.2, y: -0.3 },
-            { x: 0, y: -0.3 },
-          ]
-        : [
-            { x: -0.2, y: -0.5 },
-            { x: -0.2, y: -0.3 },
-          ]
-
     textElements.push({
       type: "schematic_text",
       text: source_component.name,
       schematic_text_id: project_builder.getId("schematic_text"),
       schematic_component_id,
       anchor: "left",
-      position: text_pos1,
+      position: { x: -0.5, y: -0.3 },
     })
     textElements.push({
       type: "schematic_text",
-      text: source_component.resistance,
+      text: source_component.capacitance,
       schematic_text_id: project_builder.getId("schematic_text"),
       schematic_component_id,
       anchor: "left",
-      position: text_pos2,
+      position: { x: -0.3, y: -0.3 },
     })
 
     elements.push(
@@ -119,13 +107,12 @@ export class ResistorBuilderClass
       source_component_id,
       pcb_component_id,
     })
-
     return elements
   }
 }
 
-export const createResistorBuilder = (
+export const createCapacitorBuilder = (
   project_builder: ProjectBuilder
-): ResistorBuilder => {
-  return new ResistorBuilderClass(project_builder)
+): CapacitorBuilder => {
+  return new CapacitorBuilderClass(project_builder)
 }

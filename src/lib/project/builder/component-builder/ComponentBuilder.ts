@@ -10,32 +10,40 @@ import { transformSchematicElements } from "lib/project/builder//transform-eleme
 import getPortPosition from "./get-port-position"
 import { Point, SchematicComponent } from "lib/types"
 
-export type ComponentBuilderCallback = (cb: ComponentBuilder) => unknown
-export interface ComponentBuilder {
+export interface BaseComponentBuilder<T> {
   project_builder: ProjectBuilder
   ports: PortsBuilder
-  setName: (name: string) => ComponentBuilder
-  setTag: (tag: string) => ComponentBuilder
-  setTags: (tags: string[]) => ComponentBuilder
-  setSourceProperties<T extends Type.SourceComponentFType>(
-    ftype: T,
+  setName: (name: string) => BaseComponentBuilder<T>
+  setTag: (tag: string) => BaseComponentBuilder<T>
+  setTags: (tags: string[]) => BaseComponentBuilder<T>
+  setSourceProperties(
     properties: Simplify<
       Except<
-        Extract<Type.SourceComponent, { ftype: T }>,
+        Type.SourceComponent,
         "type" | "source_component_id" | "ftype" | "name"
       >
     > & { name?: string }
-  ): ComponentBuilder
-  setSchematicCenter(x: number, y: number): ComponentBuilder
-  setSchematicRotation(rotation: number | `${number}deg`): ComponentBuilder
+  ): BaseComponentBuilder<T>
+  setSchematicCenter(x: number, y: number): BaseComponentBuilder<T>
+  setSchematicRotation(
+    rotation: number | `${number}deg`
+  ): BaseComponentBuilder<T>
   setSchematicProperties(
     properties: Partial<Type.SchematicComponent>
-  ): ComponentBuilder
-  labelPort(position: number, name: string): ComponentBuilder
+  ): BaseComponentBuilder<T>
+  labelPort(position: number, name: string): BaseComponentBuilder<T>
   build(): Type.AnyElement[]
 }
 
-export class ComponentBuilderClass implements ComponentBuilder {
+export type GenericComponentBuilder =
+  BaseComponentBuilder<GenericComponentBuilder> & {
+    setFType: (ftype: string) => GenericComponentBuilder
+  }
+export type GenericComponentBuilderCallback = (
+  cb: GenericComponentBuilder
+) => unknown
+
+export class ComponentBuilderClass implements GenericComponentBuilder {
   name: string = null
   tags: string[] = []
   source_properties: any = {}
@@ -62,9 +70,14 @@ export class ComponentBuilderClass implements ComponentBuilder {
     return this
   }
 
-  setSourceProperties(ftype, props) {
+  setFType(ftype: string) {
+    this.source_properties.ftype = ftype
+    return this
+  }
+
+  setSourceProperties(props) {
     this.source_properties = {
-      ftype,
+      ...this.source_properties,
       ...props,
     }
     return this

@@ -1,12 +1,5 @@
 import * as Type from "lib/types"
-import {
-  ComponentBuilder,
-  ComponentBuilderCallback,
-  ResistorBuilder,
-  ResistorBuilderCallback,
-  createComponentBuilder,
-  createResistorBuilder,
-} from "./component-builder"
+import * as CB from "./component-builder"
 import { ProjectBuilder } from "./project-builder"
 import {
   createRouteBuilder,
@@ -19,11 +12,22 @@ export interface GroupBuilder {
   project_builder: ProjectBuilder
   addGroup: (groupBuilderCallback: GroupBuilderCallback) => GroupBuilder
   addComponent: (
-    componentBuilderCallback: ComponentBuilderCallback
+    componentBuilderCallback: CB.GenericComponentBuilderCallback
   ) => GroupBuilder
   addResistor: (
-    resistorBuilderCallback: ResistorBuilderCallback
-  ) => ResistorBuilder
+    resistorBuilderCallback: CB.ResistorBuilderCallback
+  ) => GroupBuilder
+  addCapacitor: (
+    capacitorBuilderCallback: CB.CapacitorBuilderCallback
+  ) => GroupBuilder
+  addDiode: (capacitorBuilderCallback: CB.DiodeBuilderCallback) => GroupBuilder
+  addBug: (bugBuilderCallback: CB.BugBuilderCallback) => GroupBuilder
+  addPowerSource: (
+    powerSourceBuilderCallback: CB.PowerSourceBuilderCallback
+  ) => GroupBuilder
+  addInductor: (
+    powerSourceBuilderCallback: CB.InductorBuilderCallback
+  ) => GroupBuilder
   addRoute: (
     routeBuilderCallback: RouteBuilderCallback | string[]
   ) => GroupBuilder
@@ -38,7 +42,7 @@ export const createGroupBuilder = (
   } as any
   const internal = {
     groups: [] as GroupBuilder[],
-    components: [] as ComponentBuilder[],
+    components: [] as CB.BaseComponentBuilder<any>[],
     routes: [] as RouteBuilder[],
   }
 
@@ -49,18 +53,61 @@ export const createGroupBuilder = (
     callback(gb)
     return builder
   }
+
   builder.addComponent = (callback) => {
-    const cb = createComponentBuilder(builder.project_builder)
+    const cb = CB.createComponentBuilder(builder.project_builder)
     internal.components.push(cb)
     callback(cb)
     return builder
   }
   builder.addResistor = (callback) => {
-    const rb = createResistorBuilder(builder.project_builder)
-    internal.components.push(rb)
-    callback(rb)
+    const cb = CB.createResistorBuilder(builder.project_builder)
+    internal.components.push(cb)
+    callback(cb)
     return builder
   }
+  builder.addCapacitor = (callback) => {
+    const cb = CB.createCapacitorBuilder(builder.project_builder)
+    internal.components.push(cb)
+    callback(cb)
+    return builder
+  }
+  builder.addInductor = (callback) => {
+    const cb = CB.createInductorBuilder(builder.project_builder)
+    internal.components.push(cb)
+    callback(cb)
+    return builder
+  }
+  builder.addBug = (callback) => {
+    const cb = CB.createBugBuilder(builder.project_builder)
+    internal.components.push(cb)
+    callback(cb)
+    return builder
+  }
+  builder.addPowerSource = (callback) => {
+    const cb = CB.createPowerSourceBuilder(builder.project_builder)
+    internal.components.push(cb)
+    callback(cb)
+    return builder
+  }
+  builder.addDiode = (callback) => {
+    const cb = CB.createDiodeBuilder(builder.project_builder)
+    internal.components.push(cb)
+    callback(cb)
+    return builder
+  }
+
+  // Add methods like "addResistor", "addComponent", "addBug" etc.
+  // for (const name in CB.componentBuilderCreators) {
+  //   const nameAsKey: keyof typeof CB.componentBuilderCreators = name as any
+  //   builder[`add${nameAsKey}`] = (callback) => {
+  //     const cb = CB.componentBuilderCreators[nameAsKey](builder.project_builder)
+  //     internal.components.push(cb)
+  //     callback(cb)
+  //     return builder
+  //   }
+  // }
+
   builder.addRoute = (callback) => {
     if (typeof callback !== "function") {
       const portSelectors = callback as string[]

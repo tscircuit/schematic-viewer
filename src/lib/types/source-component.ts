@@ -26,6 +26,10 @@ export interface SimpleInductor extends SourceComponentBase {
   inductance: NumberWithUnit<"henry">
 }
 
+export interface SimpleDiode extends SourceComponentBase {
+  ftype: "simple_diode"
+}
+
 export interface SimpleBug extends SourceComponentBase {
   ftype: "simple_bug"
 }
@@ -46,6 +50,7 @@ export type AnySourceComponent =
   | SimpleInductor
   | SimplePowerSource
   | SimpleGround
+  | SimpleDiode
 
 export type SourceComponentFType = AnySourceComponent["ftype"]
 export type SourceComponent<

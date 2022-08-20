@@ -64,8 +64,8 @@ export const applySelectorAST = (
             return (elm) => "name" in elm && elm.name === part.name
           }
           case "type": {
-            if (part.name === "port") part.name = "source_port"
-            return (elm) => elm.type === part.name
+            const name = convertAbbrToFType(part.name)
+            return (elm) => elm.type === name
           }
         }
       })

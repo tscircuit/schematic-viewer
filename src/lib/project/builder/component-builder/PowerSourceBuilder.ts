@@ -5,30 +5,32 @@ import { transformSchematicElements } from "../transform-elements"
 import { compose, rotate, translate } from "transformation-matrix"
 import { PortsBuilder } from "../ports-builder"
 import { Except } from "type-fest"
+import getPortPosition from "./get-port-position"
 
-export type ResistorBuilderCallback = (rb: ResistorBuilder) => unknown
-export interface ResistorBuilder extends BaseComponentBuilder<ResistorBuilder> {
+export type PowerSourceBuilderCallback = (rb: PowerSourceBuilder) => unknown
+export interface PowerSourceBuilder
+  extends BaseComponentBuilder<PowerSourceBuilder> {
   setSourceProperties(
     properties: Except<
-      Type.SimpleResistor,
+      Type.SimplePowerSource,
       "type" | "source_component_id" | "ftype" | "name"
     > & { name?: string }
-  ): ResistorBuilder
+  ): PowerSourceBuilder
 }
 
-export class ResistorBuilderClass
+export class PowerSourceBuilderClass
   extends ComponentBuilderClass
-  implements ResistorBuilder
+  implements PowerSourceBuilder
 {
   constructor(project_builder: ProjectBuilder) {
     super(project_builder)
     this.source_properties = {
       ...this.source_properties,
-      ftype: "simple_resistor",
+      ftype: "simple_power_source",
     }
   }
 
-  setSourceProperties(props: Type.SimpleResistor) {
+  setSourceProperties(props: Type.SimplePowerSource) {
     this.source_properties = {
       ...this.source_properties,
       ...props,
@@ -38,8 +40,8 @@ export class ResistorBuilderClass
 
   build() {
     const elements: Type.AnyElement[] = []
-    const { ftype } = this.source_properties
     const { project_builder } = this
+    const { ftype } = this.source_properties
     const source_component_id = project_builder.getId(ftype)
     const schematic_component_id = project_builder.getId(
       `schematic_component_${ftype}`
@@ -58,11 +60,8 @@ export class ResistorBuilderClass
       type: "schematic_component",
       source_component_id,
       schematic_component_id,
-      rotation: this.schematic_rotation,
-      size: {
-        width: 1,
-        height: 12 / 40,
-      },
+      rotation: this.schematic_rotation ?? 0,
+      size: { width: (1 * 24) / 34, height: 1 },
       center: this.schematic_position || { x: 0, y: 0 },
       ...this.schematic_properties,
     }
@@ -73,46 +72,8 @@ export class ResistorBuilderClass
 
     const textElements = []
 
-    this.ports.add("left", { x: -0.5, y: 0 })
-    this.ports.add("right", { x: 0.5, y: 0 })
-    const [text_pos1, text_pos2] =
-      schematic_component.rotation === Math.PI / 2 ||
-      schematic_component.rotation === -Math.PI / 2
-        ? [
-            { x: -0.2, y: -0.3 },
-            { x: 0, y: -0.3 },
-          ]
-        : [
-            { x: -0.2, y: -0.5 },
-            { x: -0.2, y: -0.3 },
-          ]
-
-    textElements.push({
-      type: "schematic_text",
-      text: source_component.name,
-      schematic_text_id: project_builder.getId("schematic_text"),
-      schematic_component_id,
-      anchor: "left",
-      position: text_pos1,
-    })
-    textElements.push({
-      type: "schematic_text",
-      text: source_component.resistance,
-      schematic_text_id: project_builder.getId("schematic_text"),
-      schematic_component_id,
-      anchor: "left",
-      position: text_pos2,
-    })
-
-    elements.push(
-      ...transformSchematicElements(
-        [...this.ports.build(), ...textElements],
-        compose(
-          translate(schematic_component.center.x, schematic_component.center.y),
-          rotate(schematic_component.rotation)
-        )
-      )
-    )
+    this.ports.add("positive", { x: 0, y: -0.5 })
+    this.ports.add("negative", { x: 0, y: 0.5 })
 
     elements.push({
       type: "pcb_component",
@@ -124,8 +85,8 @@ export class ResistorBuilderClass
   }
 }
 
-export const createResistorBuilder = (
+export const createPowerSourceBuilder = (
   project_builder: ProjectBuilder
-): ResistorBuilder => {
-  return new ResistorBuilderClass(project_builder)
+): PowerSourceBuilder => {
+  return new PowerSourceBuilderClass(project_builder)
 }
