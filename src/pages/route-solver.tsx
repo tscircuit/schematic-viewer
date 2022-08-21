@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react"
+import { Graph } from "graphlib"
+import rsmt from "rsmt-ts"
+// import glpk from "glpk.js"
+
 const points = [
   { x: 0, y: 400, d: "h" },
+  { x: 0, y: 200, d: "h" },
   { x: 300, y: 0, d: "v" },
-  { x: 800, y: 1000, d: "h" },
+  { x: 800, y: 800, d: "h" },
+  { x: 600, y: 1000, d: "h" },
 ]
 
 const interceptPoints = [...points]
@@ -57,16 +63,64 @@ const createSolver = () => {
   }
 
   const tick = () => {
-    for 
-    s.paths.push()
+    // for
+    // s.paths.push()
+    // return s
     return s
   }
 
   return { tick }
 }
 
+function getEdgesFromSolution({ steiners = [], terminals = [] }) {
+  const points = steiners.concat(terminals)
+  const edges = []
+  const addEdge = (p1, p2) => {
+    // add edge if not already present
+    if (
+      edges.some(
+        ([p3, p4]) => (p3 === p1 && p4 === p2) || (p3 === p2 && p4 === p1)
+      )
+    )
+      return
+    edges.push([p1, p2])
+  }
+  for (const p1 of points) {
+    const nearest = {
+      xp: null,
+      xd: Infinity,
+      yp: null,
+      yd: Infinity,
+    }
+    for (const p2 of points) {
+      if (p1 === p2) continue
+      if (p1[0] === p2[0]) {
+        // same x
+        const yd = Math.abs(p1[1] - p2[1])
+        if (yd < nearest.yd) {
+          nearest.yp = p2
+          nearest.yd = yd
+        }
+      }
+      if (p1[1] === p2[1]) {
+        // same y
+        const xd = Math.abs(p1[0] - p2[0])
+        if (xd < nearest.xd) {
+          nearest.xp = p2
+          nearest.xd = xd
+        }
+      }
+    }
+    if (nearest.xp) addEdge(p1, nearest.xp)
+    if (nearest.yp) addEdge(p1, nearest.yp)
+  }
+  return Object.values(edges)
+}
+
 export default () => {
   const [s, setS] = useState(null)
+
+  const [solution, setSolution] = useState(null)
 
   useEffect(() => {
     const solver = createSolver()
@@ -77,6 +131,16 @@ export default () => {
 
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    async function compute() {
+      setSolution(await rsmt(points.map((p) => [p.x, p.y])))
+    }
+    compute()
+  }, [])
+
+  const edges = solution ? getEdgesFromSolution(solution) : []
+  console.log({ solution })
 
   return (
     <svg width="1000" height="1000" viewBox="-50 -50 1100 1100">
@@ -100,6 +164,58 @@ export default () => {
           stroke={"green"}
         />
       ))}
+      {solution &&
+        solution.steiners.map((point, index) => (
+          <circle
+            key={index}
+            cx={point[0]}
+            cy={point[1]}
+            r="20"
+            fill="none"
+            stroke={"yellow"}
+          />
+        ))}
+      {/* {solution &&
+        solution.edges.map(([p1, p2], index) => (
+          <line
+            stroke="rgba(255,0,0,0.5)"
+            strokeWidth="5"
+            key={index}
+            x1={p1[0]}
+            y1={p1[1]}
+            x2={p2[0]}
+            y2={p2[1]}
+          />
+        ))} */}
+      {solution &&
+        edges.map(([p1, p2], index) => (
+          <line
+            stroke="rgba(0,255,0,0.5)"
+            strokeWidth="5"
+            key={index}
+            x1={p1[0]}
+            y1={p1[1]}
+            x2={p2[0]}
+            y2={p2[1]}
+          />
+        ))}
+      {/* {solution &&
+        solution.edgeIds
+          .map(([e1, e2]) => [
+            e1 > 0 ? solution.terminals[e1 - 1] : points[e1 * -1 - 1],
+            e2 > 0 ? solution.terminals[e2 - 1] : points[e2 * -1 - 1],
+          ])
+          .map(([p1, p2], index) => (
+            <line
+              stroke="rgba(0,0,255,0.5)"
+              strokeWidth="5"
+              key={index}
+              x1={p1[0]}
+              y1={p1[1]}
+              x2={p2[0]}
+              y2={p2[1]}
+            />
+          ))} */}
       {/* <line stroke="red" strokeWidth="5" x1="0" y1="0" x2="1000" y2="1000" /> */}
     </svg>
   )

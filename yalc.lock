@@ -1,0 +1,10 @@
+{
+  "version": "v1",
+  "packages": {
+    "rsmt-ts": {
+      "signature": "c2abd07810805f8959fddc5fb4d34510",
+      "file": true,
+      "replaced": "^1.1.0"
+    }
+  }
+}
