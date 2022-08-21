@@ -52,10 +52,11 @@ export interface SchematicTrace {
   type: "schematic_trace"
   schematic_trace_id: string
   source_trace_id: string
-  route: Array<{
-    x: number
-    y: number
-    schematic_port_id?: string
+  edges: Array<{
+    from: { x: number; y: number }
+    to: { x: number; y: number }
+    from_schematic_port_id?: string
+    to_schematic_port_id?: string
   }>
 }
 
