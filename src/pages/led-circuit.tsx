@@ -7,26 +7,26 @@ export default () => {
       project={createProjectBuilder()
         .addGroup((gb) =>
           gb
-            .addComponent((cb) =>
-              cb
-                .setSourceProperties("simple_resistor", {
+            .addResistor((rb) =>
+              rb
+                .setSourceProperties({
                   resistance: "10 ohm",
                   name: "R1",
                 })
                 .setSchematicCenter(2, 1)
             )
-            .addComponent((cb) =>
+            .addCapacitor((cb) =>
               cb
-                .setSourceProperties("simple_capacitor", {
+                .setSourceProperties({
                   name: "C1",
                   capacitance: "10 uF",
                 })
                 .setSchematicCenter(4, 2)
                 .setSchematicRotation("90deg")
             )
-            .addComponent((cb) =>
+            .addResistor((cb) =>
               cb
-                .setSourceProperties("simple_resistor", {
+                .setSourceProperties({
                   resistance: "10 ohm",
                   name: "R2",
                 })
@@ -38,11 +38,11 @@ export default () => {
               ".C1 > port.left",
               ".R2 > port.left",
             ])
-            .addComponent((cb) =>
+            .addPowerSource((cb) =>
               cb
-                .setSourceProperties("simple_power_source", {
+                .setSourceProperties({
                   voltage: "5V",
-                  name: "power",
+                  name: "main_power",
                 })
                 .setSchematicCenter(1, 2)
             )
@@ -52,11 +52,9 @@ export default () => {
               ".C1 > port.right",
               ".R2 > port.right",
             ])
-            .addComponent((cb) =>
+            .addBug((cb) =>
               cb
-                .setSourceProperties("simple_bug", {
-                  name: "B1",
-                })
+                .setSourceProperties({ name: "B1" })
                 .setSchematicProperties({
                   port_arrangement: {
                     left_size: 3,
@@ -72,16 +70,16 @@ export default () => {
                 .setSchematicCenter(8, 3)
             )
             .addTrace([".B1 > port.PWR", ".R2 > port.left"])
-            .addComponent((cb) =>
+            .addGround((cb) =>
               cb
-                .setSourceProperties("simple_ground", {
+                .setSourceProperties({
                   name: "GND",
                 })
                 .setSchematicCenter(11, 3)
             )
             .addTrace([".B1 > port.GND", ".gnd"])
         )
-        .build()}
+        .buildProject()}
     />
   )
 }
