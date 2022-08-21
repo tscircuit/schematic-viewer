@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 const points = [
   { x: 0, y: 400, d: "h" },
   { x: 300, y: 0, d: "v" },
@@ -5,28 +6,28 @@ const points = [
 ]
 
 const interceptPoints = [...points]
-for (const p1 of points) {
-  const haps = []
-  for (const p2 of points) {
-    const dx = p2.x - p1.x
-    const dy = p2.y - p1.y
-    const d1 = {
-      x: p1.d === "h" ? 0 : dx / 2,
-      y: p1.d === "v" ? 0 : dy / 2,
-    }
-    haps.push({
-      x: p1.x + d1.x,
-      y: p1.y + d1.y,
-      halfAdjacent: true,
-    })
-  }
-  for (const hap of haps) {
-    const alreadyExists = interceptPoints.some(
-      (ip) => ip.x === hap.x && ip.y === hap.y
-    )
-    if (!alreadyExists) interceptPoints.push(hap)
-  }
-}
+// for (const p1 of points) {
+//   const haps = []
+//   for (const p2 of points) {
+//     const dx = p2.x - p1.x
+//     const dy = p2.y - p1.y
+//     const d1 = {
+//       x: p1.d === "h" ? 0 : dx / 2,
+//       y: p1.d === "v" ? 0 : dy / 2,
+//     }
+//     haps.push({
+//       x: p1.x + d1.x,
+//       y: p1.y + d1.y,
+//       halfAdjacent: true,
+//     })
+//   }
+//   for (const hap of haps) {
+//     const alreadyExists = interceptPoints.some(
+//       (ip) => ip.x === hap.x && ip.y === hap.y
+//     )
+//     if (!alreadyExists) interceptPoints.push(hap)
+//   }
+// }
 for (const ap of points) {
   // ap = point to add
   const newIntercepts = []
@@ -50,7 +51,33 @@ for (const ap of points) {
   }
 }
 
+const createSolver = () => {
+  const s = {
+    paths: [[points[0]]],
+  }
+
+  const tick = () => {
+    for 
+    s.paths.push()
+    return s
+  }
+
+  return { tick }
+}
+
 export default () => {
+  const [s, setS] = useState(null)
+
+  useEffect(() => {
+    const solver = createSolver()
+
+    const interval = setInterval(() => {
+      setS(solver.tick())
+    }, 100)
+
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <svg width="1000" height="1000" viewBox="-50 -50 1100 1100">
       {points.map((point, index) => (
@@ -70,7 +97,7 @@ export default () => {
           cy={point.y}
           r="15"
           fill="none"
-          stroke={point.halfAdjacent ? "yellow" : "green"}
+          stroke={"green"}
         />
       ))}
       {/* <line stroke="red" strokeWidth="5" x1="0" y1="0" x2="1000" y2="1000" /> */}
