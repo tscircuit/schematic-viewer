@@ -1,5 +1,6 @@
 import * as Type from "lib/types"
 import * as CB from "./component-builder"
+import flatten from "lodash/flatten"
 import { ProjectBuilder } from "./project-builder"
 import {
   createTraceBuilder,
@@ -120,12 +121,16 @@ export const createGroupBuilder = (
 
   builder.build = async () => {
     const elements = []
-    elements.push(...(await Promise.all(internal.groups.map((g) => g.build()))))
     elements.push(
-      ...(await Promise.all(internal.components.map((c) => c.build())))
+      ...flatten(await Promise.all(internal.groups.map((g) => g.build())))
     )
     elements.push(
-      ...(await Promise.all(internal.traces.map((c) => c.build(elements))))
+      ...flatten(await Promise.all(internal.components.map((c) => c.build())))
+    )
+    elements.push(
+      ...flatten(
+        await Promise.all(internal.traces.map((c) => c.build(elements)))
+      )
     )
     return elements
   }
