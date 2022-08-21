@@ -59,36 +59,10 @@ export class GroundBuilderClass
       source_component_id,
       schematic_component_id,
       rotation: this.schematic_rotation ?? 0,
-      size:
-        ftype === "simple_capacitor"
-          ? { width: 3 / 4, height: 3 / 4 }
-          : ftype === "simple_resistor"
-          ? {
-              width: 1,
-              height: 12 / 40,
-            }
-          : ftype === "simple_bug"
-          ? {
-              width:
-                Math.max(
-                  port_arrangement.top_size ?? 0,
-                  port_arrangement.bottom_size ?? 0,
-                  1
-                ) + 0.5,
-              height: Math.max(
-                (port_arrangement.left_size ?? 0) / 2,
-                (port_arrangement.right_size ?? 0) / 2,
-                1
-              ),
-            }
-          : ftype === "simple_ground"
-          ? {
-              width: 0.5,
-              height: (0.5 * 15) / 18,
-            }
-          : ftype === "simple_power_source"
-          ? { width: (1 * 24) / 34, height: 1 }
-          : { width: 1, height: 1 },
+      size: {
+        width: 0.5,
+        height: (0.5 * 15) / 18,
+      },
       center: this.schematic_position || { x: 0, y: 0 },
       ...this.schematic_properties,
     }
@@ -99,7 +73,11 @@ export class GroundBuilderClass
 
     const textElements = []
 
-    this.ports.add("gnd", { x: 0, y: -0.2 })
+    this.ports.add({
+      name: "gnd",
+      center: { x: 0, y: -0.2 },
+      facing_direction: "up",
+    })
 
     elements.push(
       ...transformSchematicElements(

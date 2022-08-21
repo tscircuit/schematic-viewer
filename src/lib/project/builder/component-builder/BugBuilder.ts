@@ -173,10 +173,14 @@ export class BugBuilderClass
           i < port_arrangement.left_size + port_arrangement.right_size;
           i++
         ) {
-          const portPosition = getPortPosition(port_arrangement, i)
-          this.ports.add(port_labels[i + 1], portPosition)
-          const schematic_text_id = this.project_builder.getId("schematic_text")
           const is_left = i < port_arrangement.left_size
+          const portPosition = getPortPosition(port_arrangement, i)
+          this.ports.add({
+            name: port_labels[i + 1],
+            center: portPosition,
+            facing_direction: is_left ? "left" : "right",
+          })
+          const schematic_text_id = this.project_builder.getId("schematic_text")
           const portText: Type.SchematicText = {
             type: "schematic_text",
             schematic_text_id,

@@ -73,8 +73,16 @@ export class ResistorBuilderClass
 
     const textElements = []
 
-    this.ports.add("left", { x: -0.5, y: 0 })
-    this.ports.add("right", { x: 0.5, y: 0 })
+    this.ports.add({
+      name: "left",
+      center: { x: -0.5, y: 0 },
+      facing_direction: "left",
+    })
+    this.ports.add({
+      name: "right",
+      center: { x: 0.5, y: 0 },
+      facing_direction: "right",
+    })
     const [text_pos1, text_pos2] =
       schematic_component.rotation === Math.PI / 2 ||
       schematic_component.rotation === -Math.PI / 2

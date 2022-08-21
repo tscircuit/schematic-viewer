@@ -72,8 +72,16 @@ export class PowerSourceBuilderClass
 
     const textElements = []
 
-    this.ports.add("positive", { x: 0, y: -0.5 })
-    this.ports.add("negative", { x: 0, y: 0.5 })
+    this.ports.add({
+      name: "positive",
+      center: { x: 0, y: -0.5 },
+      facing_direction: "up",
+    })
+    this.ports.add({
+      name: "negative",
+      center: { x: 0, y: 0.5 },
+      facing_direction: "down",
+    })
 
     elements.push(
       ...transformSchematicElements(

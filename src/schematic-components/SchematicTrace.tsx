@@ -16,14 +16,12 @@ export const SchematicTrace = ({ trace: { source, schematic } }: Props) => {
   if (edges.length === 0) {
     return <RenderError text="Route with 0 edges" />
   }
-  console.log({ edges })
   const path = Path()
   for (let i = 0; i < edges.length; i++) {
     path.moveTo(edges[i].from.x, edges[i].from.y)
     path.lineTo(edges[i].to.x, edges[i].to.y)
   }
   const d = path.toString()
-  console.log({ d })
   const pathBounds = getSVGPathBounds(d)
   pathBounds.height = Math.max(pathBounds.height, 1)
   pathBounds.width = Math.max(pathBounds.width, 1)

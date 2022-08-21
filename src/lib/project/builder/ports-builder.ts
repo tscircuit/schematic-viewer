@@ -5,7 +5,12 @@ import { ProjectBuilder } from "./project-builder"
 export type PortBuilderCallback = (cb: PortsBuilder) => unknown
 export interface PortsBuilder {
   project_builder: ProjectBuilder
-  add: (portName: string, schematicPosition: Type.Point) => PortsBuilder
+  add: ((portName: string, schematicPosition: Type.Point) => PortsBuilder) &
+    ((params: {
+      name: string
+      center: { x: number; y: number }
+      facing_direction: "up" | "down" | "left" | "right"
+    }) => PortsBuilder)
   setSourceComponent: (source_component_id: string) => PortsBuilder
   setSchematicComponent: (schematic_component_id: string) => PortsBuilder
   setPCBComponent: (pcb_component_id: string) => PortsBuilder
@@ -24,14 +29,23 @@ export const createPortsBuilder = (
     ports: [] as Array<{
       name: string
       schematic_position: Type.Point
+      facing_direction?: "up" | "down" | "left" | "right"
     }>,
   }
 
-  builder.add = (name, schematic_position) => {
-    internal.ports.push({
-      name,
-      schematic_position,
-    })
+  builder.add = (...params) => {
+    if (params.length === 1) {
+      internal.ports.push({
+        schematic_position: params[0].center,
+        ...params[0],
+      })
+    } else {
+      const [name, schematic_position] = params
+      internal.ports.push({
+        name,
+        schematic_position,
+      })
+    }
     return builder
   }
 
@@ -65,6 +79,7 @@ export const createPortsBuilder = (
           schematic_port_id,
           source_port_id,
           center: port.schematic_position,
+          facing_direction: port.facing_direction,
         } as Type.SchematicPort,
       ] as Type.AnyElement[]
     }) as Type.AnyElement[]

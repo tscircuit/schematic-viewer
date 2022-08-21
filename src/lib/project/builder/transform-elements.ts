@@ -1,4 +1,9 @@
 import * as Type from "lib/types"
+import {
+  directionToVec,
+  rotateDirection,
+  vecToDirection,
+} from "lib/utils/direction-to-vec"
 import { Matrix, applyToPoint } from "transformation-matrix"
 
 export const transformSchematicElement = (
@@ -11,6 +16,13 @@ export const transformSchematicElement = (
     // elm.size
   } else if (elm.type === "schematic_port") {
     elm.center = applyToPoint(matrix, elm.center)
+
+    if (elm.facing_direction) {
+      elm.facing_direction = rotateDirection(
+        elm.facing_direction,
+        (Math.acos(matrix.a) / Math.PI) * 2
+      )
+    }
   } else if (elm.type === "schematic_text") {
     elm.position = applyToPoint(matrix, elm.position)
   } else if (elm.type === "schematic_group") {

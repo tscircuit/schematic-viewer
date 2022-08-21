@@ -55,7 +55,6 @@ export class CapacitorBuilderClass
     }
     elements.push(source_component)
 
-    const port_arrangement = this.schematic_properties?.port_arrangement
     const schematic_component: Type.SchematicComponent = {
       type: "schematic_component",
       source_component_id,
@@ -72,9 +71,16 @@ export class CapacitorBuilderClass
 
     const textElements = []
 
-    // Ports can usually be determined via the ftype and dimensions
-    this.ports.add("left", { x: -0.5, y: 0 })
-    this.ports.add("right", { x: 0.5, y: 0 })
+    this.ports.add({
+      name: "left",
+      center: { x: -0.5, y: 0 },
+      facing_direction: "left",
+    })
+    this.ports.add({
+      name: "right",
+      center: { x: 0.5, y: 0 },
+      facing_direction: "right",
+    })
     textElements.push({
       type: "schematic_text",
       text: source_component.name,

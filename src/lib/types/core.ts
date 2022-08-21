@@ -74,6 +74,7 @@ export interface SchematicPort {
   schematic_port_id: string
   source_port_id: string
   center: Point
+  facing_direction?: "up" | "down" | "left" | "right"
 }
 
 export interface PCBTrace {
