@@ -4,11 +4,14 @@ import rsmt from "rsmt-ts"
 // import glpk from "glpk.js"
 
 const points = [
-  { x: 0, y: 400, d: "h" },
-  { x: 0, y: 200, d: "h" },
-  { x: 300, y: 0, d: "v" },
-  { x: 800, y: 800, d: "h" },
-  { x: 600, y: 1000, d: "h" },
+  { x: 0, y: 400 },
+  { x: 0, y: 200 },
+  { x: 300, y: 0 },
+  { x: 800, y: 800 },
+  { x: 600, y: 1000 },
+  { x: 500, y: 500 },
+  { x: 200, y: 700 },
+  { x: 700, y: 300 },
 ]
 
 const interceptPoints = [...points]
@@ -175,7 +178,7 @@ export default () => {
             stroke={"yellow"}
           />
         ))}
-      {/* {solution &&
+      {solution &&
         solution.edges.map(([p1, p2], index) => (
           <line
             stroke="rgba(255,0,0,0.5)"
@@ -186,7 +189,7 @@ export default () => {
             x2={p2[0]}
             y2={p2[1]}
           />
-        ))} */}
+        ))}
       {solution &&
         edges.map(([p1, p2], index) => (
           <line
