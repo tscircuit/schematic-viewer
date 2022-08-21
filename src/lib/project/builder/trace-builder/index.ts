@@ -12,7 +12,7 @@ export interface TraceBuilder {
   project_builder: ProjectBuilder
   parent: GroupBuilder
   addConnections: (portSelectors: Array<string>) => TraceBuilder
-  build(elements: Type.AnyElement[]): Type.AnyElement[]
+  build(elements: Type.AnyElement[]): Promise<Type.AnyElement[]>
 }
 
 export const createTraceBuilder = (
@@ -28,7 +28,8 @@ export const createTraceBuilder = (
     return builder
   }
 
-  builder.build = (parentElements: Type.AnyElement[] = []) => {
+  builder.build = async (parentElements: Type.AnyElement[] = []) => {
+    console.log({ parentElements })
     const sourcePortsInRoute: Type.SourcePort[] = []
     for (const portSelector of internal.portSelectors) {
       const selectedElms = applySelector(parentElements, portSelector)

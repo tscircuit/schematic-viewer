@@ -1,12 +1,17 @@
+import { useMaybePromise } from "lib/hooks"
 import { ProjectClass } from "lib/project"
 import * as Types from "lib/types"
 import * as Components from "./"
 
 interface Props {
-  project: Types.Project
+  project: Types.Project | Promise<Types.Project>
 }
 
-export const ProjectComponent = ({ project }: Props) => {
+export const ProjectComponent = ({ project: $project }: Props) => {
+  const project = useMaybePromise($project)
+
+  if (!project) return "loading"
+
   const projectClass = new ProjectClass(project)
 
   return (

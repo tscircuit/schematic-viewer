@@ -37,7 +37,7 @@ export class BugBuilderClass
     return this
   }
 
-  build() {
+  async build() {
     const elements: Type.AnyElement[] = []
     const { project_builder } = this
     const { ftype } = this.source_properties

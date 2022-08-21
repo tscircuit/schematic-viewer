@@ -148,7 +148,6 @@ export default () => {
   }, [])
 
   const edges = solution ? getEdgesFromSolution(solution) : []
-  console.log({ solution })
 
   return (
     <svg width="1000" height="1000" viewBox="-50 -50 1100 1100">

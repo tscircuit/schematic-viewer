@@ -18,7 +18,6 @@ export const SchematicBug = ({ component: { source, schematic } }: Props) => {
   const bugh =
     Math.max(ports_arrangement.left_size, ports_arrangement.right_size) * rh
   // TODO throw if schematic.size doesn't match computed ports_arrangement size
-  console.log(schematic)
   return (
     <SVGPathComponent
       rotation={schematic.rotation}

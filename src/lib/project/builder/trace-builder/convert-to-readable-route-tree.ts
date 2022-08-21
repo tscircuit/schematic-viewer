@@ -47,7 +47,6 @@ export const convertToReadableTraceTree = (allElms: Type.AnyElement[]): any => {
       componentsWithoutParent.push(elm)
     }
   }
-  console.log({ componentsWithoutParent })
   const tree = {}
   for (const elm of componentsWithoutParent) {
     tree[getReadableName(elm)] = convertToReadableTreeUsingRoot(elm, allElms)

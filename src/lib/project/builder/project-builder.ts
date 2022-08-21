@@ -11,7 +11,7 @@ import { TraceBuilderCallback } from "./trace-builder"
 export interface ProjectBuilder extends GroupBuilder {
   getId: (prefix: string) => string
   addGroup: (groupBuilderCallback: GroupBuilderCallback) => ProjectBuilder
-  buildProject: () => Type.Project
+  buildProject: () => Promise<Type.Project>
 }
 
 export const createProjectBuilder = (): ProjectBuilder => {
@@ -24,9 +24,9 @@ export const createProjectBuilder = (): ProjectBuilder => {
     return `${prefix}_${idCount[prefix]++}`
   }
   builder.build_group = builder.build
-  builder.buildProject = () => {
+  builder.buildProject = async () => {
     resetIdCount()
-    return createProjectFromElements(builder.build())
+    return createProjectFromElements(await builder.build())
   }
   return builder
 }

@@ -32,7 +32,7 @@ export interface BaseComponentBuilder<T> {
     properties: Partial<Type.SchematicComponent>
   ): BaseComponentBuilder<T>
   labelPort(position: number, name: string): BaseComponentBuilder<T>
-  build(): Type.AnyElement[]
+  build(): Promise<Type.AnyElement[]>
 }
 
 export type GenericComponentBuilder =
@@ -112,7 +112,7 @@ export class ComponentBuilderClass implements GenericComponentBuilder {
     return this
   }
 
-  build() {
+  async build() {
     return []
   }
 }

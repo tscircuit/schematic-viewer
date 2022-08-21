@@ -36,7 +36,7 @@ export class ResistorBuilderClass
     return this
   }
 
-  build() {
+  async build() {
     const elements: Type.AnyElement[] = []
     const { ftype } = this.source_properties
     const { project_builder } = this

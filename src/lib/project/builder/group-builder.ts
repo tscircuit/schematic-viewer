@@ -33,7 +33,7 @@ export interface GroupBuilder {
   addTrace: (
     traceBuiderCallback: TraceBuilderCallback | string[]
   ) => GroupBuilder
-  build(): Type.AnyElement[]
+  build(): Promise<Type.AnyElement[]>
 }
 
 export const createGroupBuilder = (
@@ -118,12 +118,15 @@ export const createGroupBuilder = (
     return builder
   }
 
-  builder.build = () => {
+  builder.build = async () => {
     const elements = []
-    elements.push(...internal.groups.flatMap((g) => g.build()))
-    elements.push(...internal.components.flatMap((c) => c.build()))
-    // console.log("readable trace tree", convertToReadableTraceTree(elements))
-    elements.push(...internal.traces.flatMap((c) => c.build(elements)))
+    elements.push(...(await Promise.all(internal.groups.map((g) => g.build()))))
+    elements.push(
+      ...(await Promise.all(internal.components.map((c) => c.build())))
+    )
+    elements.push(
+      ...(await Promise.all(internal.traces.map((c) => c.build(elements))))
+    )
     return elements
   }
 
