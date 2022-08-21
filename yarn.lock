@@ -9951,6 +9951,13 @@ readdirp@~3.6.0:
   dependencies:
     picomatch "^2.2.1"
 
+rectilinear-router@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/rectilinear-router/-/rectilinear-router-1.0.0.tgz#028de734a43f68f9df8ebf69593bf2137e9a5eed"
+  integrity sha512-ei1hYTPs+tdQVxS12134oFLQlroRRNtHYDRXu/mtz5CQEfXDnnKuLCfFvSotrhpHKgcxTsLlRaz4N4xGuDftCw==
+  dependencies:
+    rsmt-ts "^1.1.4"
+
 redent@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/redent/-/redent-1.0.0.tgz#cf916ab1fd5f1f16dfb20822dd6ec7f730c2afde"
@@ -10227,6 +10234,13 @@ rsmt-ts@^1.1.3:
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/rsmt-ts/-/rsmt-ts-1.1.3.tgz#e1068ee4ce89cc8e5aaf93adb869f3a24f5f4a27"
   integrity sha512-L0TjnPbqqQi7E0rbTZla/kG2Njkpu/x/AVzalgvDb9E0vsZvUJblCE2G3SXeQ1HLnQ/li+bfyLvCMKu5HDjJJQ==
+  dependencies:
+    glpk.js "^4.0.1"
+
+rsmt-ts@^1.1.4:
+  version "1.1.6"
+  resolved "https://registry.yarnpkg.com/rsmt-ts/-/rsmt-ts-1.1.6.tgz#f164f9b9629322d1adee3026b559e78e6b63bb99"
+  integrity sha512-SKq3nla9/X4YUJX+DkInHbdZ/iEfVkGnpvP8zaF9/vv09vpHHmpiHv129zpKkVjVr7dML9lBGBdTok41Z3rQnQ==
   dependencies:
     glpk.js "^4.0.1"
 

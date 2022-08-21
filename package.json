@@ -41,6 +41,7 @@
     "parsel-js": "^1.0.2",
     "react-no-ssr": "^1.1.0",
     "react-use-measure": "^2.1.1",
+    "rectilinear-router": "^1.0.0",
     "rsmt-ts": "^1.1.3",
     "svg-path-bounds": "^1.0.2",
     "svg-path-generator": "^1.1.0",

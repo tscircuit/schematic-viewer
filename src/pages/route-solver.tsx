@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Graph } from "graphlib"
 import rsmt from "rsmt-ts"
+import { findRectilinearRoute } from "rectilinear-router"
 // import glpk from "glpk.js"
 
 const points = [
@@ -137,7 +138,11 @@ export default () => {
 
   useEffect(() => {
     async function compute() {
-      setSolution(await rsmt(points.map((p) => [p.x, p.y])))
+      setSolution(
+        await findRectilinearRoute({
+          terminals: points.map((p) => [p.x, p.y]),
+        })
+      )
     }
     compute()
   }, [])
@@ -168,58 +173,17 @@ export default () => {
         />
       ))}
       {solution &&
-        solution.steiners.map((point, index) => (
-          <circle
-            key={index}
-            cx={point[0]}
-            cy={point[1]}
-            r="20"
-            fill="none"
-            stroke={"yellow"}
-          />
-        ))}
-      {solution &&
-        solution.edges.map(([p1, p2], index) => (
+        solution.map(({ from, to }, index) => (
           <line
-            stroke="rgba(255,0,0,0.5)"
+            stroke="rgba(255,0,255,0.5)"
             strokeWidth="5"
             key={index}
-            x1={p1[0]}
-            y1={p1[1]}
-            x2={p2[0]}
-            y2={p2[1]}
+            x1={from[0]}
+            y1={from[1]}
+            x2={to[0]}
+            y2={to[1]}
           />
         ))}
-      {solution &&
-        edges.map(([p1, p2], index) => (
-          <line
-            stroke="rgba(0,255,0,0.5)"
-            strokeWidth="5"
-            key={index}
-            x1={p1[0]}
-            y1={p1[1]}
-            x2={p2[0]}
-            y2={p2[1]}
-          />
-        ))}
-      {/* {solution &&
-        solution.edgeIds
-          .map(([e1, e2]) => [
-            e1 > 0 ? solution.terminals[e1 - 1] : points[e1 * -1 - 1],
-            e2 > 0 ? solution.terminals[e2 - 1] : points[e2 * -1 - 1],
-          ])
-          .map(([p1, p2], index) => (
-            <line
-              stroke="rgba(0,0,255,0.5)"
-              strokeWidth="5"
-              key={index}
-              x1={p1[0]}
-              y1={p1[1]}
-              x2={p2[0]}
-              y2={p2[1]}
-            />
-          ))} */}
-      {/* <line stroke="red" strokeWidth="5" x1="0" y1="0" x2="1000" y2="1000" /> */}
     </svg>
   )
 }
