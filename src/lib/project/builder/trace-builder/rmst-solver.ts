@@ -1,7 +1,7 @@
 import * as Type from "lib/types"
 import { directionToVec, vecToDirection } from "lib/utils/direction-to-vec"
 import findRectilinearRoute from "rectilinear-router"
-import { sub, componentSum, mult } from "lib/utils/point-math"
+import { sub, componentSum, mult, norm } from "lib/utils/point-math"
 
 type Edge = {
   from: { x: number; y: number; ti?: number }
@@ -66,7 +66,7 @@ export const rmstSolver: Type.RouteSolver = async ({
       const e2 = edges[i + 1]
       const { p1, p2, corner } = getNonCornerPoints(e1, e2)
       const p1Dir = terminals[p1.ti]?.facing_direction
-      const p2Dir = terminals[p1.ti]?.facing_direction
+      const p2Dir = terminals[p2.ti]?.facing_direction
 
       // Score measures alignment of the port and the edge it's connected to
       let score1 = 0,
@@ -74,13 +74,13 @@ export const rmstSolver: Type.RouteSolver = async ({
 
       if (p1Dir) {
         const p1Vec = directionToVec(p1Dir)
-        const p1ToCornerVec = sub(corner, p1)
+        const p1ToCornerVec = norm(sub(corner, p1))
         score1 += negUnacceptable(componentSum(mult(p1Vec, p1ToCornerVec)))
       }
 
       if (p2Dir) {
-        const p2Vec = directionToVec(p1Dir)
-        const p2ToCornerVec = sub(corner, p1)
+        const p2Vec = directionToVec(p2Dir)
+        const p2ToCornerVec = norm(sub(corner, p2))
         score1 += negUnacceptable(componentSum(mult(p2Vec, p2ToCornerVec)))
       }
 
@@ -88,13 +88,13 @@ export const rmstSolver: Type.RouteSolver = async ({
 
       if (p1Dir) {
         const p1Vec = directionToVec(p1Dir)
-        const p1ToCornerVec = sub(corner, p1)
+        const p1ToCornerVec = norm(sub(corner, p1))
         score2 += negUnacceptable(componentSum(mult(p1Vec, p1ToCornerVec)))
       }
 
       if (p2Dir) {
-        const p2Vec = directionToVec(p1Dir)
-        const p2ToCornerVec = sub(corner, p1)
+        const p2Vec = directionToVec(p2Dir)
+        const p2ToCornerVec = norm(sub(corner, p2))
         score2 += negUnacceptable(componentSum(mult(p2Vec, p2ToCornerVec)))
       }
 

@@ -17,3 +17,10 @@ export function mag(p1: Point, p2: Point) {
 export function componentSum(p1: Point) {
   return p1.x + p1.y
 }
+
+export function norm(p1: Point) {
+  return {
+    x: Math.sign(p1.x),
+    y: Math.sign(p1.y),
+  }
+}
