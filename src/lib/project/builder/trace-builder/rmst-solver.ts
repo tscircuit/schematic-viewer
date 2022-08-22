@@ -1,7 +1,17 @@
 import * as Type from "lib/types"
+import { directionToVec, vecToDirection } from "lib/utils/direction-to-vec"
 import findRectilinearRoute from "rectilinear-router"
+import { sub, componentSum, mult } from "lib/utils/point-math"
 
-type Edge = { from: { x: number; y: number }; to: { x: number; y: number } }
+type Edge = {
+  from: { x: number; y: number; ti?: number }
+  to: { x: number; y: number; ti?: number }
+}
+
+function negUnacceptable(n: number) {
+  if (n < 0) return -10000
+  return n
+}
 
 function samePoint(p1: { x: number; y: number }, p2: { x: number; y: number }) {
   return p1.x === p2.x && p1.y === p2.y
@@ -9,11 +19,11 @@ function samePoint(p1: { x: number; y: number }, p2: { x: number; y: number }) {
 
 function getNonCornerPoints(e1: Edge, e2: Edge) {
   const [p1, p2, p3, p4] = [e1.from, e1.to, e2.from, e2.to]
-  if (samePoint(p1, p3)) return { p1: p2, p2: p4 }
-  else if (samePoint(p1, p4)) return { p1: p2, p2: p3 }
-  else if (samePoint(p2, p3)) return { p1, p2: p4 }
-  else if (samePoint(p2, p4)) return { p1, p2: p3 }
-  else throw new Error("Invalid edge")
+  if (samePoint(p1, p3)) return { p1: p2, p2: p4, corner: p1 }
+  else if (samePoint(p1, p4)) return { p1: p2, p2: p3, corner: p1 }
+  else if (samePoint(p2, p3)) return { p1, p2: p4, corner: p2 }
+  else if (samePoint(p2, p4)) return { p1, p2: p3, corner: p2 }
+  else throw new Error("Not a Corner")
 }
 
 function flipEdges(e1: Edge, e2: Edge) {
@@ -40,12 +50,62 @@ export const rmstSolver: Type.RouteSolver = async ({
     terminals: terminals.map(({ x, y }) => [x, y]),
   })
 
-  const edges = route.map(({ from, to }) => ({
-    from: { x: from[0], y: from[1] },
-    to: { x: to[0], y: to[1] },
-  }))
+  const edges = route.map(
+    ({ from, to, fromTerminalIndex, toTerminalIndex }) => ({
+      from: { x: from[0], y: from[1], ti: fromTerminalIndex },
+      to: { x: to[0], y: to[1], ti: toTerminalIndex },
+    })
+  )
 
-  flipEdges(edges[0], edges[1])
+  // Flip edges if they are entering the port incorrectly, or could enter the
+  // port more ergonomically (via the facing_direction)
+  // TODO also check obstacles
+  for (let i = 0; i < edges.length - 1; i++) {
+    try {
+      const e1 = edges[i]
+      const e2 = edges[i + 1]
+      const { p1, p2, corner } = getNonCornerPoints(e1, e2)
+      const p1Dir = terminals[p1.ti]?.facing_direction
+      const p2Dir = terminals[p1.ti]?.facing_direction
+
+      // Score measures alignment of the port and the edge it's connected to
+      let score1 = 0,
+        score2 = 0
+
+      if (p1Dir) {
+        const p1Vec = directionToVec(p1Dir)
+        const p1ToCornerVec = sub(corner, p1)
+        score1 += negUnacceptable(componentSum(mult(p1Vec, p1ToCornerVec)))
+      }
+
+      if (p2Dir) {
+        const p2Vec = directionToVec(p1Dir)
+        const p2ToCornerVec = sub(corner, p1)
+        score1 += negUnacceptable(componentSum(mult(p2Vec, p2ToCornerVec)))
+      }
+
+      flipEdges(e1, e2)
+
+      if (p1Dir) {
+        const p1Vec = directionToVec(p1Dir)
+        const p1ToCornerVec = sub(corner, p1)
+        score2 += negUnacceptable(componentSum(mult(p1Vec, p1ToCornerVec)))
+      }
+
+      if (p2Dir) {
+        const p2Vec = directionToVec(p1Dir)
+        const p2ToCornerVec = sub(corner, p1)
+        score2 += negUnacceptable(componentSum(mult(p2Vec, p2ToCornerVec)))
+      }
+
+      if (score2 < score1) {
+        // restore original flip
+        flipEdges(e1, e2)
+      }
+    } catch (e) {
+      if (!e.toString().includes("Not a Corner")) throw e
+    }
+  }
 
   return edges
 }

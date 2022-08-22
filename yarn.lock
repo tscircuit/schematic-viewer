@@ -9951,11 +9951,12 @@ readdirp@~3.6.0:
   dependencies:
     picomatch "^2.2.1"
 
-rectilinear-router@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/rectilinear-router/-/rectilinear-router-1.0.0.tgz#028de734a43f68f9df8ebf69593bf2137e9a5eed"
-  integrity sha512-ei1hYTPs+tdQVxS12134oFLQlroRRNtHYDRXu/mtz5CQEfXDnnKuLCfFvSotrhpHKgcxTsLlRaz4N4xGuDftCw==
+rectilinear-router@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/rectilinear-router/-/rectilinear-router-1.0.1.tgz#8b817cbd51fad93d994a928c7339a2ae5bd4568d"
+  integrity sha512-3cLXo9A8/jK36nU5XRTC0V/9DLn0ORBaI02nYqGnoscazzo1xphyzzmQIJK8QjyNSBqoDAypkpOEP0khMMIPPw==
   dependencies:
+    lodash "^4.17.21"
     rsmt-ts "^1.1.4"
 
 redent@^1.0.0:

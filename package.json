@@ -40,7 +40,7 @@
     "parsel-js": "^1.0.2",
     "react-no-ssr": "^1.1.0",
     "react-use-measure": "^2.1.1",
-    "rectilinear-router": "^1.0.0",
+    "rectilinear-router": "^1.0.1",
     "svg-path-bounds": "^1.0.2",
     "svg-path-generator": "^1.1.0",
     "transformation-matrix": "^2.12.0",

@@ -87,17 +87,20 @@ export const createTraceBuilder = (
         x: schematic_port.center.x,
         y: schematic_port.center.y,
         schematic_port_id: schematic_port.schematic_port_id,
+        facing_direction: schematic_port.facing_direction,
       }
+    })
+
+    const edges = await internal.routeSolver({
+      terminals: straightRoute,
+      obstacles: [],
     })
 
     const schematic_trace: Type.SchematicTrace = {
       type: "schematic_trace",
       source_trace_id: source_trace_id,
       schematic_trace_id,
-      edges: await internal.routeSolver({
-        terminals: straightRoute,
-        obstacles: [],
-      }),
+      edges,
     }
 
     return [source_trace, schematic_trace]
