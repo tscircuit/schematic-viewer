@@ -30,6 +30,9 @@ export const SchematicComponent = ({ component }: Props) => {
     case "simple_bug": {
       return <Component.SchematicBug component={{ source, schematic }} />
     }
+    case "simple_diode": {
+      return <Component.SimpleDiode component={{ source, schematic }} />
+    }
     default: {
       return <div>unknown ftype: {component.source.ftype}</div>
     }

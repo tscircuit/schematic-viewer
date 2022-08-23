@@ -78,6 +78,14 @@ export default () => {
                 .setSchematicCenter(11, 3)
             )
             .addTrace([".B1 > port.GND", ".gnd"])
+            .addDiode((db) =>
+              db
+                .setSourceProperties({ name: "D1" })
+                .setSchematicCenter(6, 3.5)
+                .setSchematicRotation("180deg")
+            )
+            .addTrace([".D1 > .left", ".B1 > .RG"])
+            .addTrace([".D1 > .right", ".C1 > .right"])
         )
         .buildProject()}
     />
