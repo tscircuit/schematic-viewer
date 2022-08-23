@@ -15,11 +15,21 @@ export const SimpleDiode = ({ component: { source, schematic } }: Props) => {
       center={schematic.center}
       size={schematic.size}
       paths={[
-        // https://commons.wikimedia.org/wiki/File:Electrical_symbols_library.svg
-        { stroke: "red", strokeWidth: 2, d: "m 805,262.41665 h 21" },
-        { stroke: "red", strokeWidth: 2, d: "M 854.00002,262.41665 H 868" },
-        { stroke: "red", strokeWidth: 2, d: "m 854,262.41665 -28,14 v -28 z" },
-        { stroke: "red", strokeWidth: 2, d: "m 854,248.41665 v 28" },
+        { stroke: "red", strokeWidth: 2, d: "M 0,0 H 21" },
+        { stroke: "red", strokeWidth: 2, d: "M 49,0 H 59" },
+        { stroke: "red", strokeWidth: 2, d: "M 49,0 L 21 14 V -14 Z" },
+        { stroke: "red", strokeWidth: 2, d: "M 49,-14 V 14" },
+        // For LEDs
+        // {
+        //   stroke: "red",
+        //   strokeWidth: 2,
+        //   d: "M 35 -32 l 7 5.25 l 1.75 -9.625 z m 3.5 2.625 l -5.25 7",
+        // },
+        // {
+        //   stroke: "red",
+        //   strokeWidth: 2,
+        //   d: "M 52 -26 l 7 5.25 l 1.75 -9.625 z m 3.5 2.625 l -5.25 7",
+        // },
       ]}
     />
   )

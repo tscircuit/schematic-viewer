@@ -30,6 +30,10 @@ export interface SimpleDiode extends SourceComponentBase {
   ftype: "simple_diode"
 }
 
+export type LightEmittingDiode = SimpleDiode & {
+  ftype: "led"
+}
+
 export interface SimpleBug extends SourceComponentBase {
   ftype: "simple_bug"
 }
@@ -51,6 +55,7 @@ export type AnySourceComponent =
   | SimplePowerSource
   | SimpleGround
   | SimpleDiode
+  | LightEmittingDiode
 
 export type SourceComponentFType = AnySourceComponent["ftype"]
 export type SourceComponent<
