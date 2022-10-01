@@ -1,12 +1,11 @@
 {
-  "name": "circuit-renderer",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "@tscircuit/schematic-viewer",
+  "version": "0.0.1",
+  "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
     "start": "next dev",
-    "storybook": "start-storybook -p 6006",
-    "build-storybook": "build-storybook"
+    "build": "tsup ./src --dts --sourcemap"
   },
   "devDependencies": {
     "@babel/core": "^7.18.9",
@@ -22,13 +21,14 @@
     "@types/react": "^18.0.15",
     "ava": "^4.3.1",
     "babel-loader": "^8.2.5",
-    "esbuild": "^0.14.51",
+    "esbuild": "^0.15.10",
     "esbuild-register": "^3.3.3",
     "next": "^12.2.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "tsup": "^6.2.3",
     "type-fest": "^2.17.0",
-    "typescript": "^4.7.4"
+    "typescript": "^4.8.4"
   },
   "dependencies": {
     "@chakra-ui/react": "^2.2.4",
