@@ -1,5 +1,5 @@
 import { useMaybePromise } from "lib/hooks"
-import { ProjectClass } from "lib/project"
+import { ProjectClass } from "@tscircuit/builder"
 import * as Types from "lib/types"
 import * as Components from "./"
 
@@ -10,7 +10,7 @@ interface Props {
 export const ProjectComponent = ({ project: $project }: Props) => {
   const project = useMaybePromise($project)
 
-  if (!project) return "loading"
+  if (!project) return <span>loading</span>
 
   const projectClass = new ProjectClass(project)
 
