@@ -4,7 +4,7 @@ View schematics from [tscircuit jsx](https://tscircuit.com).
 
 ## Usage
 
-```ts
+```tsx
 import { Schematic } from "tscircuit"
 // import { Schematic } from "@tscircuit/schematic-viewer"
 
