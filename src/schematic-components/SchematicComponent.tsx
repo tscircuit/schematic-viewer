@@ -1,4 +1,3 @@
-import { ProjectClass } from "tscircuit"
 import * as Type from "lib/types"
 import * as Component from "./"
 

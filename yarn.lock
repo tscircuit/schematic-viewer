@@ -3192,16 +3192,6 @@
     svg-path-bounds "^1.0.2"
     transformation-matrix "^2.12.0"
 
-"@tscircuit/builder@^1.0.3":
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/@tscircuit/builder/-/builder-1.0.4.tgz#d3c0490c52807d3a40b8a788b6d9498fdce64db2"
-  integrity sha512-h0AeWUuaUiwHUFiGU82+8lbThy35z37LnplqHUJgPrUsRNTC/U6afk/7GoUE4pcB2bhWt60/KFkuKVNjD+kbig==
-  dependencies:
-    parsel-js "^1.0.2"
-    rectilinear-router "^1.0.1"
-    svg-path-bounds "^1.0.2"
-    transformation-matrix "^2.12.0"
-
 "@tscircuit/eagle-xml-converter@^0.0.7":
   version "0.0.7"
   resolved "https://registry.yarnpkg.com/@tscircuit/eagle-xml-converter/-/eagle-xml-converter-0.0.7.tgz#6009da62a7214ca4e91f3e841cdd5bf7767aa1b3"
@@ -3391,13 +3381,6 @@
   version "6.9.7"
   resolved "https://registry.yarnpkg.com/@types/qs/-/qs-6.9.7.tgz#63bb7d067db107cc1e457c303bc25d511febf6cb"
   integrity sha512-FGa1F62FT09qcrueBA6qYTrJPVDzah9a+493+o2PCXsesWHIn27G98TsSMs3WPNbZIEj4+VJf6saSFpvD+3Zsw==
-
-"@types/react-reconciler@^0.28.0":
-  version "0.28.0"
-  resolved "https://registry.yarnpkg.com/@types/react-reconciler/-/react-reconciler-0.28.0.tgz#513acbed173140e958c909041ca14eb40412077f"
-  integrity sha512-5cjk9ottZAj7eaTsqzPUIlrVbh3hBAO2YaEL1rkjHKB3xNAId7oU8GhzvAX+gfmlfoxTwJnBjPxEHyxkEA1Ffg==
-  dependencies:
-    "@types/react" "*"
 
 "@types/react-syntax-highlighter@11.0.5":
   version "11.0.5"
@@ -10156,13 +10139,6 @@ react-use-measure@^2.1.1:
   dependencies:
     debounce "^1.2.1"
 
-react@^18.2.0:
-  version "18.2.0"
-  resolved "https://registry.yarnpkg.com/react/-/react-18.2.0.tgz#555bd98592883255fa00de14f1151a917b5d77d5"
-  integrity sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==
-  dependencies:
-    loose-envify "^1.1.0"
-
 read-pkg-up@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/read-pkg-up/-/read-pkg-up-1.0.1.tgz#9d63c13276c065918d57f002a57f40a1b643fb02"
@@ -11571,16 +11547,6 @@ ts-pnp@^1.1.6:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/ts-pnp/-/ts-pnp-1.2.0.tgz#a500ad084b0798f1c3071af391e65912c86bca92"
   integrity sha512-csd+vJOb/gkzvcCHgTGSChYpy5f1/XKNsmvBGO4JXS+z1v2HobugDz4s1IeFXM3wZB44uczs+eazB5Q/ccdhQw==
-
-tscircuit@^0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/tscircuit/-/tscircuit-0.0.3.tgz#f79f98ff3a703e71db9800138ff334e17c798781"
-  integrity sha512-PcY5gp72vggyD+US0JSUGA4svtU2cVn2FWoIGTiX0zGKkdh19BrYivDMK3rtKqSaIG6SokxqxtXtUdr6w0Kyhg==
-  dependencies:
-    "@tscircuit/builder" "^1.0.3"
-    "@types/react-reconciler" "^0.28.0"
-    react "^18.2.0"
-    react-reconciler "^0.29.0"
 
 tslib@^1.0.0, tslib@^1.9.3:
   version "1.14.1"

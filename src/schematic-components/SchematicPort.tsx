@@ -1,4 +1,3 @@
-import { ProjectClass } from "tscircuit"
 import * as Type from "lib/types"
 import { directionToVec } from "lib/utils/direction-to-vec"
 import * as Component from "./"
