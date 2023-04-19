@@ -87,5 +87,12 @@ const $elements = pb
 export default () => {
   const elements = useMaybePromise($elements)
   if (!elements) return null
-  return <Schematic elements={elements} />
+  return (
+    <>
+      <Schematic elements={elements} />
+      <pre style={{ marginTop: 600 }}>
+        {JSON.stringify(elements, null, "  ")}
+      </pre>
+    </>
+  )
 }
