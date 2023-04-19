@@ -11,7 +11,12 @@ export const ExampleCircuit = () => {
         center={[4, 2]}
         rotation="90deg"
       />
-      <resistor name="R2" reistance="10 ohm" center={[6, 1]} rotation="90deg" />
+      <resistor
+        name="R2"
+        resistance="10 ohm"
+        center={[6, 1]}
+        rotation="90deg"
+      />
       <trace
         path={[".R1 > port.right", ".C1 > port.left", ".R2 > port.left"]}
       />
@@ -24,7 +29,7 @@ export const ExampleCircuit = () => {
         name="B1"
         port_arrangement={{ left_size: 3, right_size: 3 }}
         center={[8, 3]}
-        portLabels={{
+        port_labels={{
           1: "PWR",
           2: "NC",
           3: "RG",
