@@ -6,7 +6,7 @@
   "scripts": {
     "start": "next dev",
     "typecheck": "tsc --noEmit",
-    "build": "tsup ./src --dts --sourcemap",
+    "build": "tsup ./src/index.ts --dts --sourcemap",
     "yalc": "npm run build && yalc push"
   },
   "devDependencies": {
@@ -30,9 +30,7 @@
     "react-dom": "^18.2.0",
     "tsup": "^6.2.3",
     "type-fest": "^2.17.0",
-    "typescript": "^4.8.4"
-  },
-  "dependencies": {
+    "typescript": "^4.8.4",
     "@chakra-ui/react": "^2.2.4",
     "@emotion/react": "^11",
     "@emotion/styled": "^11",
