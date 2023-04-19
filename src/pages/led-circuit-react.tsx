@@ -1,9 +1,9 @@
 import React, { Fragment } from "react"
-import "@tscircuit/react-fiber/src/types/intrinsic-jsx"
+import { Schematic } from "Schematic"
 
 export const ExampleCircuit = () => {
   return (
-    <Fragment>
+    <Schematic>
       <resistor name="R1" resistance="10 ohm" center={[2, 1]} />
       <capacitor
         name="C1"
@@ -44,7 +44,7 @@ export const ExampleCircuit = () => {
       <diode name="D1" center={[6, 3.5]} rotation="180deg" />
       <trace from=".D1 > .left" to=".B1 > .RG" />
       <trace from=".D1 > .right" to=".C1> .right" />
-    </Fragment>
+    </Schematic>
   )
 }
 

@@ -17,8 +17,8 @@ export const Schematic = ({
   const [project, setProject] = useState<any>(null)
 
   useEffect(() => {
-    if (initialElements) {
-      setProject(createProjectFromElements(elements))
+    if (initialElements.length > 0) {
+      setProject(createProjectFromElements(initialElements))
       return
     }
     const projectBuilder = createProjectBuilder()
@@ -27,6 +27,10 @@ export const Schematic = ({
       .then(async (elements) => {
         setElements(elements)
         setProject(createProjectFromElements(elements))
+      })
+      .catch((e) => {
+        console.error("ERROR RENDERING CIRCUIT")
+        throw e
       })
   }, [children])
 
