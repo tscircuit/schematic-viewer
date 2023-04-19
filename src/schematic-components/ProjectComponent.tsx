@@ -12,7 +12,7 @@ export const ProjectComponent = ({ project: $project }: Props) => {
 
   if (!project) return <span>loading</span>
 
-  const projectClass = new ProjectClass(project)
+  const projectClass = new ProjectClass(project as any)
 
   return (
     <>

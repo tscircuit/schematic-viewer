@@ -5,7 +5,9 @@
   "license": "MIT",
   "scripts": {
     "start": "next dev",
-    "build": "tsup ./src --dts --sourcemap"
+    "typecheck": "tsc --noEmit",
+    "build": "tsup ./src --dts --sourcemap",
+    "yalc": "npm run build && yalc push"
   },
   "devDependencies": {
     "@babel/core": "^7.18.9",
@@ -34,7 +36,7 @@
     "@chakra-ui/react": "^2.2.4",
     "@emotion/react": "^11",
     "@emotion/styled": "^11",
-    "@tscircuit/react-fiber": "^0.0.3",
+    "@tscircuit/react-fiber": "^0.0.5",
     "framer-motion": "^6",
     "parse-svg-path": "^0.1.2",
     "parsel-js": "^1.0.2",
