@@ -7,6 +7,10 @@ interface Props {
   project: Types.Project | Promise<Types.Project>
 }
 
+/**
+ * @deprecated use SchematicElement instead because we're most likely
+ * deprecating projects
+ */
 export const ProjectComponent = ({ project: $project }: Props) => {
   const project = useMaybePromise($project)
 

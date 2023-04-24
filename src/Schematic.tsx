@@ -5,6 +5,8 @@ import {
   createProjectFromElements,
 } from "@tscircuit/builder"
 import { createRoot } from "@tscircuit/react-fiber"
+import { SchematicElement } from "schematic-components/SchematicElement"
+import { collectElementRefs } from "lib/utils/collect-element-refs"
 
 export const Schematic = ({
   children,
@@ -36,5 +38,17 @@ export const Schematic = ({
 
   if (elements.length === 0) return null
 
-  return <ProjectComponent project={project} />
+  return (
+    <>
+      {elements.map((elm) => (
+        <SchematicElement
+          element={elm}
+          allElements={elements}
+          key={JSON.stringify(elm)}
+        />
+      ))}
+    </>
+  )
+
+  // return <ProjectComponent project={project} />
 }

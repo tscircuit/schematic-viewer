@@ -35,6 +35,7 @@
     "framer-motion": "^6",
     "next": "^12.2.3",
     "parse-svg-path": "^0.1.2",
+    "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-no-ssr": "^1.1.0",
     "react-use-measure": "^2.1.1",
@@ -49,6 +50,7 @@
   },
   "dependencies": {
     "@tscircuit/builder": "^1.0.11",
-    "@tscircuit/react-fiber": "^0.0.5"
+    "@tscircuit/react-fiber": "^0.0.5",
+    "use-mouse-matrix-transform": "^0.0.4"
   }
 }
