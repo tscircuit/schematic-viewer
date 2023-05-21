@@ -6,15 +6,15 @@ export const collectElementRefs = (elm: AnyElement, allElms: AnyElement[]) => {
       e.type === "source_component" &&
       e.source_component_id === (elm as any).source_component_id
   )
-  if (elm.type === "schematic_component") {
+  if (
+    ["schematic_component", "schematic_trace", "schematic_port"].includes(
+      elm.type
+    )
+  ) {
     return {
       schematic: elm,
       source: source_component,
     }
   }
-
-  if (elm.type === "schematic_trace") {
-  }
-
   return null
 }

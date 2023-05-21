@@ -32,11 +32,13 @@ export const SchematicElement = ({
   }
 
   if (element.type === "schematic_port") {
-    return <SchematicPort port={element as any} />
+    return (
+      <SchematicPort port={collectElementRefs(element, allElements) as any} />
+    )
   }
 
   if (element.type === "schematic_text") {
-    return <SchematicText schematic_text={element as any} />
+    return <SchematicText schematic_text={element} />
   }
 
   return null

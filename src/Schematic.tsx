@@ -3,10 +3,23 @@ import { ProjectComponent } from "schematic-components"
 import {
   createProjectBuilder,
   createProjectFromElements,
+  transformSchematicElement,
 } from "@tscircuit/builder"
 import { createRoot } from "@tscircuit/react-fiber"
 import { SchematicElement } from "schematic-components/SchematicElement"
 import { collectElementRefs } from "lib/utils/collect-element-refs"
+import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
+import { ErrorBoundary } from "react-error-boundary"
+
+const fallbackRender =
+  (elm) =>
+  ({ error, resetErrorBoundary }: any) => {
+    return (
+      <div style={{ color: "red" }}>
+        error rendering {elm.type}: {error.toString()}
+      </div>
+    )
+  }
 
 export const Schematic = ({
   children,
@@ -17,6 +30,7 @@ export const Schematic = ({
 }) => {
   const [elements, setElements] = useState<any>(initialElements)
   const [project, setProject] = useState<any>(null)
+  const { ref, applyTransformToPoint, transform } = useMouseMatrixTransform()
 
   useEffect(() => {
     if (initialElements.length > 0) {
@@ -39,15 +53,17 @@ export const Schematic = ({
   if (elements.length === 0) return null
 
   return (
-    <>
+    <div ref={ref}>
       {elements.map((elm) => (
-        <SchematicElement
-          element={elm}
-          allElements={elements}
-          key={JSON.stringify(elm)}
-        />
+        <ErrorBoundary fallbackRender={fallbackRender(elm)}>
+          <SchematicElement
+            element={elm}
+            allElements={elements} //.map(elm => ())}
+            key={JSON.stringify(elm)}
+          />
+        </ErrorBoundary>
       ))}
-    </>
+    </div>
   )
 
   // return <ProjectComponent project={project} />
