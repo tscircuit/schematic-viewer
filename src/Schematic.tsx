@@ -10,6 +10,7 @@ import { SchematicElement } from "schematic-components/SchematicElement"
 import { collectElementRefs } from "lib/utils/collect-element-refs"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { ErrorBoundary } from "react-error-boundary"
+import { identity, compose, scale } from "transformation-matrix"
 
 const fallbackRender =
   (elm) =>
@@ -31,6 +32,8 @@ export const Schematic = ({
   const [elements, setElements] = useState<any>(initialElements)
   const [project, setProject] = useState<any>(null)
   const { ref, applyTransformToPoint, transform } = useMouseMatrixTransform()
+
+  console.log(transform)
 
   useEffect(() => {
     if (initialElements.length > 0) {
@@ -58,7 +61,9 @@ export const Schematic = ({
         <ErrorBoundary fallbackRender={fallbackRender(elm)}>
           <SchematicElement
             element={elm}
-            allElements={elements} //.map(elm => ())}
+            allElements={elements.map((elm) =>
+              transformSchematicElement(elm, transform)
+            )}
             key={JSON.stringify(elm)}
           />
         </ErrorBoundary>
