@@ -11,6 +11,7 @@ import { collectElementRefs } from "lib/utils/collect-element-refs"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { ErrorBoundary } from "react-error-boundary"
 import { identity, compose, scale } from "transformation-matrix"
+import { useRenderContext } from "lib/render-context"
 
 const fallbackRender =
   (elm) =>
@@ -31,9 +32,11 @@ export const Schematic = ({
 }) => {
   const [elements, setElements] = useState<any>(initialElements)
   const [project, setProject] = useState<any>(null)
-  const { ref, applyTransformToPoint, transform } = useMouseMatrixTransform()
-
-  console.log(transform)
+  const setCameraTransform = useRenderContext((s) => s.setCameraTransform)
+  const { ref } = useMouseMatrixTransform({
+    onSetTransform: (transform) => setCameraTransform(transform),
+    initialTransform: compose(scale(100, 100, 0, 0)),
+  })
 
   useEffect(() => {
     if (initialElements.length > 0) {
@@ -61,15 +64,11 @@ export const Schematic = ({
         <ErrorBoundary fallbackRender={fallbackRender(elm)}>
           <SchematicElement
             element={elm}
-            allElements={elements.map((elm) =>
-              transformSchematicElement(elm, transform)
-            )}
+            allElements={elements}
             key={JSON.stringify(elm)}
           />
         </ErrorBoundary>
       ))}
     </div>
   )
-
-  // return <ProjectComponent project={project} />
 }

@@ -52,6 +52,6 @@
     "@tscircuit/builder": "^1.0.12",
     "@tscircuit/react-fiber": "^0.0.5",
     "react-error-boundary": "^4.0.4",
-    "use-mouse-matrix-transform": "^1.0.1"
+    "use-mouse-matrix-transform": "^1.0.2"
   }
 }

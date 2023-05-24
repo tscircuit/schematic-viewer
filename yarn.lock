@@ -11891,10 +11891,10 @@ use-callback-ref@^1.3.0:
   dependencies:
     tslib "^2.0.0"
 
-use-mouse-matrix-transform@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/use-mouse-matrix-transform/-/use-mouse-matrix-transform-1.0.1.tgz#639e34300ff585ef06fcf93f998e8bddba99797a"
-  integrity sha512-fXvzYPQWmv83k0kCP7O0hoPuclCiGVSoJIV64HR2DvPa4cQKaB3xVAKNELUHGd2ZpQa2nIyvDqbgf/UhcpAQmQ==
+use-mouse-matrix-transform@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/use-mouse-matrix-transform/-/use-mouse-matrix-transform-1.0.2.tgz#76f57a69d445be29f40a915aade703e5b1b45a09"
+  integrity sha512-bfSbGes+SQoWqF7J9ec/OG2g17OWf1kOTOzyrApo5DUuU5X2YKfd07bsrmG9aIIAqicuS6824C4UM+4zZlFXIQ==
   dependencies:
     transformation-matrix "^2.14.0"
 
