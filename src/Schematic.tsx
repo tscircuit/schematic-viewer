@@ -26,9 +26,11 @@ const fallbackRender =
 export const Schematic = ({
   children,
   elements: initialElements = [],
+  style,
 }: {
   children?: any
   elements?: any
+  style?: any
 }) => {
   const [elements, setElements] = useState<any>(initialElements)
   const [project, setProject] = useState<any>(null)
@@ -59,7 +61,18 @@ export const Schematic = ({
   if (elements.length === 0) return null
 
   return (
-    <div ref={ref}>
+    <div
+      style={{
+        width: "100%",
+        backgroundColor: "rgba(255,255,255,0)",
+        minHeight: 200,
+        overflow: "hidden",
+        position: "relative",
+        cursor: "grab",
+        ...style,
+      }}
+      ref={ref}
+    >
       {elements.map((elm) => (
         <ErrorBoundary fallbackRender={fallbackRender(elm)}>
           <SchematicElement
