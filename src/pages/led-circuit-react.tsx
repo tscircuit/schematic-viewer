@@ -3,7 +3,7 @@ import { Schematic } from "Schematic"
 
 export const ExampleCircuit = () => {
   return (
-    <Schematic>
+    <Schematic style={{ height: 500 }}>
       <resistor name="R1" resistance="10 ohm" center={[2, 1]} />
       <capacitor
         name="C1"

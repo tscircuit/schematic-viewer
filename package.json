@@ -10,8 +10,8 @@
     "yalc": "npm run build && yalc push"
   },
   "peerDependencies": {
-    "@tscircuit/react-fiber": "^0.0.5",
-    "react": "^18.2.0"
+    "@tscircuit/react-fiber": "*",
+    "react": "*"
   },
   "devDependencies": {
     "@babel/core": "^7.18.9",
@@ -42,7 +42,6 @@
     "parse-svg-path": "^0.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-no-ssr": "^1.1.0",
     "react-use-measure": "^2.1.1",
     "rectilinear-router": "^1.0.1",
     "semantic-release": "^21.0.6",
@@ -55,8 +54,8 @@
     "zustand": "^4.0.0"
   },
   "dependencies": {
-    "@tscircuit/builder": "^1.0.12",
-    "@tscircuit/react-fiber": "^0.0.5",
+    "@tscircuit/builder": "^1.1.1",
+    "@tscircuit/react-fiber": "*",
     "react-error-boundary": "^4.0.4",
     "use-mouse-matrix-transform": "^1.0.2"
   }

@@ -89,10 +89,8 @@ export default () => {
   if (!elements) return null
   return (
     <>
-      <Schematic elements={elements} />
-      <pre style={{ marginTop: 600 }}>
-        {JSON.stringify(elements, null, "  ")}
-      </pre>
+      <Schematic style={{ height: 400 }} elements={elements} />
+      <pre>{JSON.stringify(elements, null, "  ")}</pre>
     </>
   )
 }
