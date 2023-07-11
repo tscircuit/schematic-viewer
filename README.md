@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/@tscircuit%2Fschematic-viewer.svg)](https://badge.fury.io/js/@tscircuit%2Fschematic-viewer)
 
-[Examples](https://schematic-viewer.vercel.app/) &middot; [TSCircuit](https://tscircuit.com) &middot; [Open in CodeSandbox](https://codesandbox.io/s/github/tscircuit/schematic-viewer)
+[Examples](https://schematic-viewer.vercel.app/) &middot; [TSCircuit](https://tscircuit.com) &middot; [Open in CodeSandbox](https://codesandbox.io/p/sandbox/github/tscircuit/schematic-viewer)
 
 View schematics from [tscircuit jsx](https://tscircuit.com).
 
