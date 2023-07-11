@@ -4,3 +4,5 @@ yarn-error.log
 .yalc
 yalc.lock
 dist
+.vercel
+storybook-static
