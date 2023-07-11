@@ -1,5 +1,9 @@
 # Schematic Viewer for TSCircuit
 
+[![npm version](https://badge.fury.io/js/@tscircuit%2Fschematic-viewer.svg)](https://badge.fury.io/js/@tscircuit%2Fschematic-viewer)
+
+[Examples](https://schematic-viewer.vercel.app/) &middot; [TSCircuit](https://tscircuit.com)
+
 View schematics from [tscircuit jsx](https://tscircuit.com).
 
 ## Usage

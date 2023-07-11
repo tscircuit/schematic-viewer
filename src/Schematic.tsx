@@ -25,14 +25,22 @@ const fallbackRender =
 
 export const Schematic = ({
   children,
-  elements: initialElements = [],
+  elements: initialElements,
+  soup: initialSoup,
   style,
 }: {
   children?: any
+
+  /** @deprecated */
   elements?: any
+
+  soup?: any
+
   style?: any
 }) => {
-  const [elements, setElements] = useState<any>(initialElements)
+  initialSoup = initialSoup ?? initialElements ?? []
+
+  const [elements, setElements] = useState<any>(initialSoup ?? [])
   const [project, setProject] = useState<any>(null)
   const setCameraTransform = useRenderContext((s) => s.setCameraTransform)
   const { ref } = useMouseMatrixTransform({
@@ -41,8 +49,8 @@ export const Schematic = ({
   })
 
   useEffect(() => {
-    if (initialElements.length > 0) {
-      setProject(createProjectFromElements(initialElements))
+    if (initialSoup.length > 0) {
+      setProject(createProjectFromElements(initialSoup))
       return
     }
     const projectBuilder = createProjectBuilder()
