@@ -7,7 +7,9 @@
     "start": "next dev",
     "typecheck": "tsc --noEmit",
     "build": "tsup ./src/index.ts --dts --sourcemap",
-    "yalc": "npm run build && yalc push"
+    "yalc": "npm run build && yalc push",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "peerDependencies": {
     "@tscircuit/react-fiber": "*",
@@ -24,6 +26,13 @@
     "@semantic-release/github": "^9.0.3",
     "@semantic-release/npm": "^10.0.4",
     "@semantic-release/release-notes-generator": "^11.0.4",
+    "@storybook/addon-essentials": "^7.0.26",
+    "@storybook/addon-interactions": "^7.0.26",
+    "@storybook/addon-links": "^7.0.26",
+    "@storybook/blocks": "^7.0.26",
+    "@storybook/nextjs": "^7.0.26",
+    "@storybook/react": "^7.0.26",
+    "@storybook/testing-library": "^0.0.14-next.2",
     "@types/node": "^18.6.0",
     "@types/react": "^18.0.15",
     "ava": "^4.3.1",
@@ -38,6 +47,7 @@
     "react-use-measure": "^2.1.1",
     "rectilinear-router": "^1.0.1",
     "semantic-release": "^21.0.6",
+    "storybook": "^7.0.26",
     "svg-path-bounds": "^1.0.2",
     "svg-path-generator": "^1.1.0",
     "transformation-matrix": "^2.12.0",
