@@ -9,8 +9,7 @@ View schematics from [tscircuit jsx](https://tscircuit.com).
 ## Usage
 
 ```tsx
-import { Schematic } from "tscircuit"
-// import { Schematic } from "@tscircuit/schematic-viewer"
+import { Schematic } from "@tscircuit/schematic-viewer"
 
 export const MyReactApp = () => (
   return (
