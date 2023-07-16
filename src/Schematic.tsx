@@ -44,7 +44,9 @@ export const Schematic = ({
   const [project, setProject] = useState<any>(null)
   const setCameraTransform = useRenderContext((s) => s.setCameraTransform)
   const { ref } = useMouseMatrixTransform({
-    onSetTransform: (transform) => setCameraTransform(transform),
+    onSetTransform: (transform) => {
+      setCameraTransform(transform)
+    },
     initialTransform: compose(scale(100, 100, 0, 0)),
   })
 
@@ -66,8 +68,6 @@ export const Schematic = ({
       })
   }, [children])
 
-  if (elements.length === 0) return null
-
   return (
     <div
       style={{
@@ -81,8 +81,8 @@ export const Schematic = ({
       }}
       ref={ref}
     >
-      {elements.map((elm) => (
-        <ErrorBoundary fallbackRender={fallbackRender(elm)}>
+      {elements?.map((elm, i) => (
+        <ErrorBoundary key={i} fallbackRender={fallbackRender(elm)}>
           <SchematicElement
             element={elm}
             allElements={elements}
