@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { ProjectComponent } from "schematic-components"
 import {
   createProjectBuilder,
   createProjectFromElements,
+  findBoundsAndCenter,
   transformSchematicElement,
 } from "@tscircuit/builder"
 import { createRoot } from "@tscircuit/react-fiber"
@@ -10,7 +11,7 @@ import { SchematicElement } from "schematic-components/SchematicElement"
 import { collectElementRefs } from "lib/utils/collect-element-refs"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { ErrorBoundary } from "react-error-boundary"
-import { identity, compose, scale } from "transformation-matrix"
+import { identity, compose, scale, translate } from "transformation-matrix"
 import { useRenderContext } from "lib/render-context"
 
 const fallbackRender =
@@ -43,24 +44,41 @@ export const Schematic = ({
   const [elements, setElements] = useState<any>(initialSoup ?? [])
   const [project, setProject] = useState<any>(null)
   const setCameraTransform = useRenderContext((s) => s.setCameraTransform)
-  const { ref } = useMouseMatrixTransform({
+  const { ref, setTransform } = useMouseMatrixTransform({
     onSetTransform: (transform) => {
       setCameraTransform(transform)
     },
-    initialTransform: compose(scale(100, 100, 0, 0)),
+    // initialTransform: compose(scale(100, 100, 0, 0)),
   })
+  const setElementsAndCamera = useCallback(
+    (elements) => {
+      const elmBounds = (ref.current as HTMLDivElement).getBoundingClientRect()
+      const { center, width, height } = findBoundsAndCenter(elements)
+      setElements(elements)
+      setProject(createProjectFromElements(elements))
+      console.log(elmBounds.width)
+      setTransform(
+        compose(
+          translate((elmBounds.width ?? 0) / 2, (elmBounds.height ?? 0) / 2),
+          // translate(100, 0),
+          scale(100, 100, 0, 0),
+          translate(-center.x, -center.y),
+        ),
+      )
+    },
+    [setElements, setTransform],
+  )
 
   useEffect(() => {
     if (initialSoup.length > 0) {
-      setProject(createProjectFromElements(initialSoup))
+      setElementsAndCamera(initialSoup)
       return
     }
     const projectBuilder = createProjectBuilder()
     createRoot()
       .render(children, projectBuilder as any)
       .then(async (elements) => {
-        setElements(elements)
-        setProject(createProjectFromElements(elements))
+        setElementsAndCamera(elements)
       })
       .catch((e) => {
         console.error("ERROR RENDERING CIRCUIT")
