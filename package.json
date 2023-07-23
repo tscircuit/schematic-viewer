@@ -3,6 +3,7 @@
   "version": "1.0.6",
   "main": "dist/index.js",
   "license": "MIT",
+  "repository": "tscircuit/schematic-viewer",
   "scripts": {
     "start": "storybook dev -p 6006",
     "typecheck": "tsc --noEmit",
