@@ -6,3 +6,5 @@ yalc.lock
 dist
 .vercel
 storybook-static
+
+.deeper
