@@ -13,6 +13,7 @@
     "build-storybook": "storybook build"
   },
   "peerDependencies": {
+    "@tscircuit/builder": "*",
     "@tscircuit/react-fiber": "*",
     "react": "*"
   },
