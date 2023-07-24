@@ -57,8 +57,8 @@ export const SchematicBug = ({ component: { source, schematic } }: Props) => {
 
   const actualSize = getSVGPathBounds(paths.map((p) => p.d).join(" "))
   const actualCenter = {
-    x: (actualSize.minX + actualSize.maxX) / 2,
-    y: (actualSize.minY + actualSize.maxY) / 2,
+    x: schematic.center.x + (actualSize.minX + actualSize.maxX) / 2,
+    y: schematic.center.y + (actualSize.minY + actualSize.maxY) / 2,
   }
 
   return (
