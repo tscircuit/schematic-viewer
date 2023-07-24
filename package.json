@@ -31,7 +31,7 @@
     "@storybook/nextjs": "^7.0.26",
     "@storybook/react": "^7.0.26",
     "@storybook/testing-library": "^0.0.14-next.2",
-    "@tscircuit/builder": "^1.2.6",
+    "@tscircuit/builder": "^1.2.11",
     "@tscircuit/react-fiber": "^1.0.4",
     "@types/node": "^18.6.0",
     "@types/react": "^18.0.15",
