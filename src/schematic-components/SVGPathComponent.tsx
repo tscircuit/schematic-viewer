@@ -22,9 +22,9 @@ export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
     Math.abs(pathBounds.width / pathBounds.height - size.width / size.height) >
     0.01
   if (badRatio) {
-    console.warn(
-      `Ratio doesn't match for component. ${pathBounds.width}:${pathBounds.height} is not close to ${size.width}:${size.height}`
-    )
+    // console.warn(
+    //   `Ratio doesn't match for component. ${pathBounds.width}:${pathBounds.height} is not close to ${size.width}:${size.height}`
+    // )
   }
   pathBounds.height = Math.max(pathBounds.height, 1)
   pathBounds.width = Math.max(pathBounds.width, 1)

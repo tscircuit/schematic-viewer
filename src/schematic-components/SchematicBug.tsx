@@ -12,16 +12,21 @@ interface Props {
 }
 
 export const SchematicBug = ({ component: { source, schematic } }: Props) => {
-  const ports_arrangement = {
+  const port_arrangement = {
     top_size: 0,
     bottom_size: 0,
     ...schematic.port_arrangement,
   }
   // const port_labels = schematic.port_labels!
-  const bugw = schematic.size.width // bug width
-  const bugh = schematic.size.height
-  const { total_ports } = getPortArrangementSize(ports_arrangement)
-  // TODO throw if schematic.size doesn't match computed ports_arrangement size
+  let bugw = schematic.size.width // bug width
+  let bugh = schematic.size.height
+  const { total_ports, width, height } =
+    getPortArrangementSize(port_arrangement)
+
+  // TODO remove, this seems to be due to a builder bug
+  if (isNaN(bugw)) bugw = width
+  if (isNaN(bugh)) bugh = height
+  // TODO throw if schematic.size doesn't match computed port_arrangement size
 
   const paths = [
     {
@@ -32,7 +37,7 @@ export const SchematicBug = ({ component: { source, schematic } }: Props) => {
       } ${bugh / 2} L ${-bugw / 2} ${bugh / 2}Z`,
     },
     ...range(1, total_ports + 1).map((portNum) => {
-      const pos = getPortPosition(ports_arrangement, portNum)
+      const pos = getPortPosition(port_arrangement, portNum)
 
       const x2 =
         pos.side === "left"

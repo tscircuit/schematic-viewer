@@ -56,17 +56,16 @@ export const Schematic = ({
       const { center, width, height } = findBoundsAndCenter(elements)
       setElements(elements)
       setProject(createProjectFromElements(elements))
-      console.log(elmBounds.width)
       setTransform(
         compose(
           translate((elmBounds.width ?? 0) / 2, (elmBounds.height ?? 0) / 2),
           // translate(100, 0),
           scale(100, 100, 0, 0),
-          translate(-center.x, -center.y),
-        ),
+          translate(-center.x, -center.y)
+        )
       )
     },
-    [setElements, setTransform],
+    [setElements, setTransform]
   )
 
   useEffect(() => {
