@@ -21,16 +21,7 @@ export const SchematicBox = ({ box: { schematic } }: Props) => {
           strokeWidth: 0.2,
           d: `M 0 0 l ${w} 0 l 0 ${h} l -${w} 0 z`,
         },
-        schematic.facing_direction
-          ? {
-              stroke: "blue",
-              strokeWidth: 0.5,
-              d: `M 5 5 l ${directionToVec(schematic.facing_direction).x * 7} ${
-                directionToVec(schematic.facing_direction).y * 7
-              }`,
-            }
-          : null,
-      ].filter(Boolean)}
+      ]}
     />
   )
 }
