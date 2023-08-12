@@ -11,7 +11,14 @@ export const collectElementRefs = (elm: AnyElement, allElms: AnyElement[]) => {
       elm.type
     )
   ) {
+    const schematic_children = allElms.filter(
+      (e) =>
+        "schematic_component_id" in e &&
+        e.schematic_component_id === (elm as any).schematic_component_id
+    )
+
     return {
+      schematic_children,
       schematic: elm,
       source: source_component,
     }

@@ -37,6 +37,8 @@ export const SchematicElement = ({
     )
   }
 
+  // Add support for box and line
+
   if (element.type === "schematic_text") {
     return <SchematicText schematic_text={element} />
   }

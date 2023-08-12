@@ -5,6 +5,7 @@ interface Props {
   component: {
     source: Type.SourceComponent
     schematic: Type.SchematicComponent
+    schematic_children: any[]
   }
 }
 
