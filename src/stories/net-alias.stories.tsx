@@ -34,25 +34,6 @@ const soup = [
     },
   },
   {
-    type: "source_port",
-    name: "gnd",
-    source_port_id: "source_port_0",
-  },
-  {
-    type: "schematic_port",
-    schematic_port_id: "schematic_port_0",
-    source_port_id: "source_port_0",
-    center: {
-      x: 2,
-      y: 1,
-    },
-    source: {
-      type: "source_port",
-      name: "gnd",
-      source_port_id: "source_port_0",
-    },
-  },
-  {
     drawing_type: "box",
     type: "schematic_box",
     x: 2,

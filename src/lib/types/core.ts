@@ -48,6 +48,17 @@ export interface SchematicComponent {
   }
 }
 
+export interface SchematicBox {
+  type: "schematic_box"
+  drawing_type: "box"
+  schematic_box_id: string
+  schematic_component_id: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface SchematicTrace {
   type: "schematic_trace"
   schematic_trace_id: string

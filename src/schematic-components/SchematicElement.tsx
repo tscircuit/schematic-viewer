@@ -3,6 +3,7 @@ import { collectElementRefs } from "lib/utils/collect-element-refs"
 import SchematicComponent from "./SchematicComponent"
 import SchematicPort from "./SchematicPort"
 import SchematicText from "./SchematicText"
+import SchematicBox from "./SchematicBox"
 import SchematicTrace from "./SchematicTrace"
 
 /**
@@ -37,7 +38,11 @@ export const SchematicElement = ({
     )
   }
 
-  // Add support for box and line
+  if (element.type === "schematic_box") {
+    return (
+      <SchematicBox box={collectElementRefs(element, allElements) as any} />
+    )
+  }
 
   if (element.type === "schematic_text") {
     return <SchematicText schematic_text={element} />
