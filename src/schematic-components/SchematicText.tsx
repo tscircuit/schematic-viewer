@@ -23,6 +23,7 @@ export const SchematicText = ({ schematic_text }: Props) => {
   } else if (anchor === "right") {
     offset = [-bounds.width, -bounds.height / 2]
   }
+
   return (
     <div
       ref={boundsRef}
