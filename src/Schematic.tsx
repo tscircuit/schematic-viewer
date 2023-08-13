@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { ProjectComponent } from "schematic-components"
+import { SuperGrid } from "react-supergrid"
 import {
   createProjectBuilder,
   createProjectFromElements,
@@ -13,6 +14,7 @@ import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { ErrorBoundary } from "react-error-boundary"
 import { identity, compose, scale, translate } from "transformation-matrix"
 import { useRenderContext } from "lib/render-context"
+import useMeasure from "react-use-measure"
 
 const fallbackRender =
   (elm) =>
@@ -44,6 +46,8 @@ export const Schematic = ({
   const [elements, setElements] = useState<any>(initialSoup ?? [])
   const [project, setProject] = useState<any>(null)
   const setCameraTransform = useRenderContext((s) => s.setCameraTransform)
+  const cameraTransform = useRenderContext((s) => s.camera_transform)
+  const [boundsRef, bounds] = useMeasure()
   const { ref, setTransform } = useMouseMatrixTransform({
     onSetTransform: (transform) => {
       setCameraTransform(transform)
@@ -96,8 +100,16 @@ export const Schematic = ({
         cursor: "grab",
         ...style,
       }}
-      ref={ref}
+      ref={(el) => {
+        ref.current = el
+        boundsRef(el)
+      }}
     >
+      <SuperGrid
+        width={bounds.width}
+        height={bounds.height}
+        transform={cameraTransform}
+      />
       {elements?.map((elm, i) => (
         <ErrorBoundary key={i} fallbackRender={fallbackRender(elm)}>
           <SchematicElement
