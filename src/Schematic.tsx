@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { ProjectComponent } from "schematic-components"
-import { SuperGrid } from "react-supergrid"
+import { SuperGrid, toMMSI } from "react-supergrid"
 import {
   createProjectBuilder,
   createProjectFromElements,
@@ -25,6 +25,9 @@ const fallbackRender =
       </div>
     )
   }
+
+const toMMSINeg = (v: number, z: number) =>
+  v >= 0 ? toMMSI(v, z) : `-${toMMSI(-v, z)}`
 
 export const Schematic = ({
   children,
@@ -106,6 +109,10 @@ export const Schematic = ({
       }}
     >
       <SuperGrid
+        stringifyCoord={(x, y, z) => {
+          if (z === 0) return ""
+          return `${toMMSINeg(x, z)}, ${toMMSINeg(y, z)}`
+        }}
         width={bounds.width}
         height={bounds.height}
         transform={cameraTransform}
