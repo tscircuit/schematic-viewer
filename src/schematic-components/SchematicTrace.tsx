@@ -14,7 +14,9 @@ interface Props {
 export const SchematicTrace = ({ trace: { source, schematic } }: Props) => {
   const edges = schematic.edges
   if (edges.length === 0) {
-    return <RenderError text="Route with 0 edges" />
+    return (
+      <RenderError text={`Route with 0 edges (${source.source_trace_id})`} />
+    )
   }
   const path = Path()
   for (let i = 0; i < edges.length; i++) {

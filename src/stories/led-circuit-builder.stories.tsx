@@ -81,6 +81,14 @@ const $soup = pb
       )
       .addTrace([".D1 > .left", ".B1 > .RG"])
       .addTrace([".D1 > .right", ".C1 > .right"])
+      .add("net_alias", (nab) =>
+        nab
+          .setSourceProperties({
+            net: "D0BUS",
+          })
+          .setSchematicCenter("10mm", "1mm")
+      )
+      .addTrace([".D0BUS", ".B1 > .D0"])
   )
   .build(pb.createBuildContext())
 
