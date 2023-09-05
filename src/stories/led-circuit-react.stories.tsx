@@ -39,10 +39,13 @@ export const LEDCircuitReact = () => {
       />
       <trace path={[".B1 > port.PWR", ".R2 > port.left"]} />
       <ground name="GND" center={[11, 3]} />
-      <trace from=".B1 > port.GND" to=".GND" />
+      {/* <trace path={[".B1 > port.GND", ".GND"]} /> */}
+      {/* <trace from=".B1 > port.GND" to=".GND" /> */}
       <diode name="D1" center={[6, 3.5]} rotation="180deg" />
-      <trace from=".D1 > .left" to=".B1 > .RG" />
-      <trace from=".D1 > .right" to=".C1> .right" />
+      <trace path={[".D1 > port.right", ".C1 > .right"]} />
+      <trace path={[".D1 > port.left", ".B1 > .RG"]} />
+      {/* <trace from=".D1 > .left" to=".B1 > .RG" />
+      <trace from=".D1 > .right" to=".C1> .right" /> */}
     </Schematic>
   )
 }
