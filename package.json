@@ -13,7 +13,7 @@
     "build-storybook": "storybook build"
   },
   "peerDependencies": {
-    "@tscircuit/builder": "*",
+    "@tscircuit/builder": "^1.2.16",
     "@tscircuit/react-fiber": "*",
     "react": "*"
   },
@@ -31,7 +31,6 @@
     "@storybook/nextjs": "^7.0.26",
     "@storybook/react": "^7.0.26",
     "@storybook/testing-library": "^0.0.14-next.2",
-    "@tscircuit/builder": "file:.yalc/@tscircuit/builder",
     "@tscircuit/react-fiber": "^1.0.4",
     "@types/node": "^18.6.0",
     "@types/react": "^18.0.15",

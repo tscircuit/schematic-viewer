@@ -95,7 +95,7 @@ const $soup = pb
 export const LEDCircuitBuilder = () => {
   const soup = useMaybePromise($soup)
   if (!soup) return null
-  return <Schematic style={{ height: 400 }} soup={soup} />
+  return <Schematic style={{ height: 600 }} soup={soup} />
 }
 
 export default {
