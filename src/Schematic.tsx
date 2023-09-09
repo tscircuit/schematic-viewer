@@ -15,6 +15,7 @@ import { ErrorBoundary } from "react-error-boundary"
 import { identity, compose, scale, translate } from "transformation-matrix"
 import { useRenderContext } from "lib/render-context"
 import useMeasure from "react-use-measure"
+import { SoupTableViewer } from "@tscircuit/table-viewer"
 
 const fallbackRender =
   (elm) =>
@@ -93,39 +94,42 @@ export const Schematic = ({
   }, [children])
 
   return (
-    <div
-      style={{
-        width: "100%",
-        backgroundColor: "rgba(255,255,255,0)",
-        minHeight: 200,
-        overflow: "hidden",
-        position: "relative",
-        cursor: "grab",
-        ...style,
-      }}
-      ref={(el) => {
-        ref.current = el
-        boundsRef(el)
-      }}
-    >
-      <SuperGrid
-        stringifyCoord={(x, y, z) => {
-          if (z === 0) return ""
-          return `${toMMSINeg(x, z)}, ${toMMSINeg(y, z)}`
+    <>
+      <div
+        style={{
+          width: "100%",
+          backgroundColor: "rgba(255,255,255,0)",
+          minHeight: 200,
+          overflow: "hidden",
+          position: "relative",
+          cursor: "grab",
+          ...style,
         }}
-        width={bounds.width}
-        height={bounds.height}
-        transform={cameraTransform}
-      />
-      {elements?.map((elm, i) => (
-        <ErrorBoundary key={i} fallbackRender={fallbackRender(elm)}>
-          <SchematicElement
-            element={elm}
-            allElements={elements}
-            key={JSON.stringify(elm)}
-          />
-        </ErrorBoundary>
-      ))}
-    </div>
+        ref={(el) => {
+          ref.current = el
+          boundsRef(el)
+        }}
+      >
+        <SuperGrid
+          stringifyCoord={(x, y, z) => {
+            if (z === 0) return ""
+            return `${toMMSINeg(x, z)}, ${toMMSINeg(y, z)}`
+          }}
+          width={bounds.width}
+          height={bounds.height}
+          transform={cameraTransform}
+        />
+        {elements?.map((elm, i) => (
+          <ErrorBoundary key={i} fallbackRender={fallbackRender(elm)}>
+            <SchematicElement
+              element={elm}
+              allElements={elements}
+              key={JSON.stringify(elm)}
+            />
+          </ErrorBoundary>
+        ))}
+      </div>
+      {elements && <SoupTableViewer elements={elements} />}
+    </>
   )
 }
