@@ -11,6 +11,9 @@ View schematics from [tscircuit jsx](https://tscircuit.com).
 ```tsx
 import { Schematic } from "@tscircuit/schematic-viewer"
 
+// To get styles for debug table
+import "react-data-grid/lib/styles.css"
+
 export const MyReactApp = () => (
   return (
     <Schematic>
