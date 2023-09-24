@@ -9,6 +9,10 @@ interface Props {
   }
 }
 
+/**
+ * @deprecated ftype-style rendering is being deprecated in favor of the builder
+ * generating schematic lines directly
+ */
 export const SchematicComponent = ({ component }: Props) => {
   const { source, schematic } = component
   switch (source.ftype) {
@@ -31,7 +35,9 @@ export const SchematicComponent = ({ component }: Props) => {
       return <Component.SchematicBug component={{ source, schematic }} />
     }
     case "simple_diode": {
-      return <Component.SimpleDiode component={{ source, schematic }} />
+      // Replaced by builder
+      return null
+      // return <Component.SimpleDiode component={{ source, schematic }} />
     }
     default: {
       return <div>unknown ftype: {component.source.ftype}</div>
