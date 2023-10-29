@@ -35,6 +35,7 @@ export const Schematic = ({
   elements: initialElements,
   soup: initialSoup,
   style,
+  showTable,
 }: {
   children?: any
 
@@ -44,6 +45,8 @@ export const Schematic = ({
   soup?: any
 
   style?: any
+
+  showTable?: boolean
 }) => {
   initialSoup = initialSoup ?? initialElements ?? []
 
@@ -129,7 +132,9 @@ export const Schematic = ({
           </ErrorBoundary>
         ))}
       </div>
-      {elements && <SoupTableViewer elements={elements} />}
+      {showTable !== false && elements && (
+        <SoupTableViewer elements={elements} />
+      )}
     </>
   )
 }
