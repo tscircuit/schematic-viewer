@@ -65,8 +65,19 @@ export const Schematic = ({
   const setElementsAndCamera = useCallback(
     (elements: Array<AnyElement>) => {
       const elmBounds = (ref.current as HTMLDivElement).getBoundingClientRect()
-      const { center, width, height } = findBoundsAndCenter(
-        elements.filter((e) => e.type.startsWith("schematic_"))
+
+      const { center, width, height } = elements.some((e) =>
+        e.type.startsWith("schematic_")
+      )
+        ? findBoundsAndCenter(
+            elements.filter((e) => e.type.startsWith("schematic_"))
+          )
+        : { center: { x: 0, y: 0 }, width: 0.001, height: 0.001 }
+
+      const scaleFactor = Math.min(
+        (elmBounds.width ?? 0) / width,
+        (elmBounds.height ?? 0) / height,
+        100
       )
       setElements(elements)
       setProject(createProjectFromElements(elements))
@@ -74,7 +85,7 @@ export const Schematic = ({
         compose(
           translate((elmBounds.width ?? 0) / 2, (elmBounds.height ?? 0) / 2),
           // translate(100, 0),
-          scale(100, 100, 0, 0),
+          scale(scaleFactor, scaleFactor, 0, 0),
           translate(-center.x, -center.y)
         )
       )
