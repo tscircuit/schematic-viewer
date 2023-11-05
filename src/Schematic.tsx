@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { ProjectComponent } from "schematic-components"
 import { SuperGrid, toMMSI } from "react-supergrid"
 import {
+  AnyElement,
   createProjectBuilder,
   createProjectFromElements,
   findBoundsAndCenter,
@@ -62,9 +63,11 @@ export const Schematic = ({
     // initialTransform: compose(scale(100, 100, 0, 0)),
   })
   const setElementsAndCamera = useCallback(
-    (elements) => {
+    (elements: Array<AnyElement>) => {
       const elmBounds = (ref.current as HTMLDivElement).getBoundingClientRect()
-      const { center, width, height } = findBoundsAndCenter(elements)
+      const { center, width, height } = findBoundsAndCenter(
+        elements.filter((e) => e.type.startsWith("schematic_"))
+      )
       setElements(elements)
       setProject(createProjectFromElements(elements))
       setTransform(
