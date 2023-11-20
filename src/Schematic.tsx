@@ -16,7 +16,7 @@ import { ErrorBoundary } from "react-error-boundary"
 import { identity, compose, scale, translate } from "transformation-matrix"
 import { useRenderContext } from "lib/render-context"
 import useMeasure from "react-use-measure"
-import { SoupTableViewer } from "@tscircuit/table-viewer"
+import { TableViewer } from "./schematic-components/TableViewer"
 
 const fallbackRender =
   (elm) =>
@@ -146,9 +146,7 @@ export const Schematic = ({
           </ErrorBoundary>
         ))}
       </div>
-      {showTable !== false && elements && (
-        <SoupTableViewer elements={elements} />
-      )}
+      {showTable !== false && elements && <TableViewer elements={elements} />}
     </>
   )
 }
