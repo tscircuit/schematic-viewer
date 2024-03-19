@@ -1,6 +1,6 @@
 import { Schematic } from "Schematic"
 
-export const FTDIBasic3v3 = () => (
+const FTDIBasic3v3 = () => (
   <group>
     <bug
       name="U1"
