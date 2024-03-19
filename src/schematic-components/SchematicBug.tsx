@@ -1,7 +1,11 @@
 import * as Type from "lib/types"
 import SVGPathComponent from "./SVGPathComponent"
 import range from "lodash/range"
-import { getPortPosition, getPortArrangementSize } from "@tscircuit/builder"
+import {
+  getPortPosition,
+  getPortArrangementSize,
+  getPortIndices,
+} from "@tscircuit/builder"
 import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
 
 interface Props {
@@ -22,6 +26,7 @@ export const SchematicBug = ({ component: { source, schematic } }: Props) => {
   let bugh = schematic.size.height
   const { total_ports, width, height } =
     getPortArrangementSize(port_arrangement)
+  const port_indices = getPortIndices(port_arrangement)
 
   // TODO remove, this seems to be due to a builder bug
   if (isNaN(bugw)) bugw = width
@@ -36,7 +41,7 @@ export const SchematicBug = ({ component: { source, schematic } }: Props) => {
         bugw / 2
       } ${bugh / 2} L ${-bugw / 2} ${bugh / 2}Z`,
     },
-    ...range(1, total_ports + 1).map((portNum) => {
+    ...port_indices.map((portNum) => {
       const pos = getPortPosition(port_arrangement, portNum)
 
       const x2 =
