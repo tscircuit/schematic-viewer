@@ -52,6 +52,7 @@ export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
         <path
           key={i}
           fill="none"
+          strokeLinecap="round"
           strokeWidth={2 * (p.strokeWidth || 1)}
           stroke={p.stroke || "red"}
           d={p.d}
