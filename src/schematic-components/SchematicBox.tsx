@@ -18,7 +18,7 @@ export const SchematicBox = ({ box: { schematic } }: Props) => {
       paths={[
         {
           stroke: "red",
-          strokeWidth: 0.2,
+          strokeWidth: 0.02,
           d: `M 0 0 l ${w} 0 l 0 ${h} l -${w} 0 z`,
         },
       ]}
