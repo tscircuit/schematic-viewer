@@ -69,6 +69,17 @@ export interface SchematicLine {
   y2: number
 }
 
+export interface SchematicPath {
+  type: "schematic_path"
+  drawing_type: "path"
+  schematic_component_id: string
+  points: Array<{
+    x: number
+    y: number
+  }>
+  is_filled: boolean
+}
+
 export interface SchematicTrace {
   type: "schematic_trace"
   schematic_trace_id: string
@@ -192,6 +203,8 @@ export type AnyElement =
   | SchematicConfig
   | SchematicPort
   | SchematicText
+  | SchematicLine
+  | SchematicPath
 
 export type ElementType = AnyElement["type"]
 export type ElementOfType<T extends ElementType> = Extract<
