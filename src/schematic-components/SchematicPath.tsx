@@ -5,21 +5,24 @@ import Path from "svg-path-generator"
 import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
 
 interface Props {
-  line: {
+  path: {
     schematic: Type.SchematicPath
   }
 }
 
-export const SchematicPath = ({ line: { schematic } }: Props) => {
-  const { x1, x2, y1, y2 } = schematic
-  const dx = x2 - x1
-  const dy = y2 - y1
-  // const width = Math.abs(dx) + 0.1
-  // const height = Math.abs(dy) + 0.1
-  // const center = { x: x1 + dx / 2, y: y1 + dy / 2 }
+export const SchematicPath = (props: Props) => {
+  console.log("SchematicPath", props)
+  const { points, is_filled, is_closed, fill_color } = props.path.schematic
+
+  if (points.length === 0) return null
   const path = Path()
-  path.moveTo(x1, y1)
-  path.lineTo(x2, y2)
+  path.moveTo(points[0].x, points[0].y)
+  for (const point of points.slice(1)) {
+    path.lineTo(point.x, point.y)
+  }
+  if (is_closed) {
+    path.closePath()
+  }
   const d = path.toString()
   const pathBounds = getSVGPathBounds(d)
   pathBounds.height = Math.max(pathBounds.height, 1)
@@ -36,8 +39,9 @@ export const SchematicPath = ({ line: { schematic } }: Props) => {
       size={pathBounds}
       paths={[
         {
-          stroke: "red",
+          stroke: is_filled ? "none" : fill_color ?? "red",
           strokeWidth: 0.02,
+          fill: is_filled ? fill_color ?? "red" : undefined,
           d: d,
         },
       ]}

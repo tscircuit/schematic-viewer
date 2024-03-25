@@ -19,6 +19,8 @@ const soup: AnyElement[] = [
     type: "schematic_path",
     drawing_type: "path",
     is_filled: true,
+    is_closed: true,
+    fill_color: "red",
     points: [
       { x: 0, y: 0 },
       { x: 1, y: 1 },

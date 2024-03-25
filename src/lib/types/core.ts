@@ -78,6 +78,8 @@ export interface SchematicPath {
     y: number
   }>
   is_filled: boolean
+  is_closed: boolean
+  fill_color?: "red" | "blue"
 }
 
 export interface SchematicTrace {
