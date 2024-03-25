@@ -1,4 +1,4 @@
-import { SourceComponent } from "./source-component"
+import { AnySourceComponent, SourceComponent } from "./source-component"
 
 export interface SchematicConfig {
   type: "schematic_config"
@@ -188,7 +188,7 @@ export interface Project {
 export type AnyElement =
   | Project
   | SourceConfig
-  | SourceComponent
+  | AnySourceComponent
   | SourceGroup
   | SourceTrace
   | SourcePort
