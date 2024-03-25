@@ -10,6 +10,7 @@ interface Props {
   paths: Array<{
     strokeWidth: number
     stroke: string
+    fill?: string
     d: string
   }>
 }
@@ -51,7 +52,7 @@ export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
       {paths.map((p, i) => (
         <path
           key={i}
-          fill="none"
+          fill={p.fill ?? "none"}
           strokeLinecap="round"
           strokeWidth={2 * (p.strokeWidth || 1)}
           stroke={p.stroke || "red"}

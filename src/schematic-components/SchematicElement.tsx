@@ -7,6 +7,7 @@ import SchematicBox from "./SchematicBox"
 import SchematicTrace from "./SchematicTrace"
 import SchematicLine from "./SchematicLine"
 import RenderError from "./RenderError"
+import SchematicPath from "./SchematicPath"
 
 /**
  * Render any @tsbuilder/builder AnyElement that can be put on a schematic.
@@ -49,6 +50,12 @@ export const SchematicElement = ({
   if (element.type === "schematic_line") {
     return (
       <SchematicLine line={collectElementRefs(element, allElements) as any} />
+    )
+  }
+
+  if (element.type === "schematic_path") {
+    return (
+      <SchematicPath path={collectElementRefs(element, allElements) as any} />
     )
   }
 

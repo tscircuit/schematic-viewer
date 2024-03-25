@@ -13,6 +13,7 @@ export const collectElementRefs = (elm: AnyElement, allElms: AnyElement[]) => {
       "schematic_port",
       "schematic_box",
       "schematic_line",
+      "schematic_path",
     ].includes(elm.type)
   ) {
     const schematic_children = allElms.filter(

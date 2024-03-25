@@ -1,4 +1,4 @@
-import { SourceComponent } from "./source-component"
+import { AnySourceComponent, SourceComponent } from "./source-component"
 
 export interface SchematicConfig {
   type: "schematic_config"
@@ -67,6 +67,19 @@ export interface SchematicLine {
   y1: number
   x2: number
   y2: number
+}
+
+export interface SchematicPath {
+  type: "schematic_path"
+  drawing_type: "path"
+  schematic_component_id: string
+  points: Array<{
+    x: number
+    y: number
+  }>
+  is_filled: boolean
+  is_closed: boolean
+  fill_color?: "red" | "blue"
 }
 
 export interface SchematicTrace {
@@ -177,7 +190,7 @@ export interface Project {
 export type AnyElement =
   | Project
   | SourceConfig
-  | SourceComponent
+  | AnySourceComponent
   | SourceGroup
   | SourceTrace
   | SourcePort
@@ -192,6 +205,8 @@ export type AnyElement =
   | SchematicConfig
   | SchematicPort
   | SchematicText
+  | SchematicLine
+  | SchematicPath
 
 export type ElementType = AnyElement["type"]
 export type ElementOfType<T extends ElementType> = Extract<

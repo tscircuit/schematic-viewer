@@ -15,6 +15,8 @@ interface Props {
  */
 export const SchematicComponent = ({ component }: Props) => {
   const { source, schematic } = component
+  if (!source.ftype) return null
+
   switch (source.ftype) {
     case "simple_resistor": {
       return <Component.SimpleResistor component={{ source, schematic }} />

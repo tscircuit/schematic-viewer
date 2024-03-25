@@ -56,8 +56,12 @@ export type AnySourceComponent =
   | SimpleGround
   | SimpleDiode
   | LightEmittingDiode
+  | Omit<SourceComponentBase, "ftype">
 
-export type SourceComponentFType = AnySourceComponent["ftype"]
+export type SourceComponentFType = Extract<
+  AnySourceComponent,
+  { ftype: string }
+>["ftype"]
 export type SourceComponent<
   T extends SourceComponentFType = SourceComponentFType
 > = Extract<AnySourceComponent, { ftype: T }>
