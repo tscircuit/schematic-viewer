@@ -7,13 +7,12 @@
   "scripts": {
     "start": "storybook dev -p 6006",
     "typecheck": "tsc --noEmit",
-    "build": "tsup ./src/index.ts --dts --sourcemap",
+    "build": "tsup ./src/index.ts --metafile --dts --sourcemap",
     "yalc": "npm run build && yalc push",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
   "peerDependencies": {
-    "@tscircuit/builder": "*",
     "@tscircuit/react-fiber": "*",
     "@tscircuit/table-viewer": "*",
     "react": "*"
@@ -32,17 +31,15 @@
     "@storybook/nextjs": "^7.4.0",
     "@storybook/react": "^7.4.0",
     "@storybook/testing-library": "^0.0.14-next.2",
-    "@tscircuit/builder": "^1.5.5",
+    "@tscircuit/builder": "^1.5.17",
     "@tscircuit/react-fiber": "^1.0.12",
     "@tscircuit/routing": "^1.3.0",
     "@tscircuit/table-viewer": "^0.0.6",
     "@types/node": "^18.6.0",
     "@types/react": "^18.0.15",
     "ava": "^4.3.1",
-    "babel-loader": "^8.2.5",
     "esbuild": "^0.15.10",
     "esbuild-register": "^3.3.3",
-    "framer-motion": "^6",
     "next": "^12.2.3",
     "parse-svg-path": "^0.1.2",
     "react": "^18.2.0",
@@ -54,7 +51,7 @@
     "svg-path-bounds": "^1.0.2",
     "svg-path-generator": "^1.1.0",
     "transformation-matrix": "^2.12.0",
-    "tsup": "^6.2.3",
+    "tsup": "^6.7.0",
     "type-fest": "^2.17.0",
     "typescript": "^4.8.4",
     "zustand": "^4.0.0"
