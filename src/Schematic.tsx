@@ -8,6 +8,7 @@ import {
   findBoundsAndCenter,
   transformSchematicElement,
 } from "@tscircuit/builder"
+import * as builder1 from "@tscircuit/builder"
 import { createRoot } from "@tscircuit/react-fiber"
 import { SchematicElement } from "schematic-components/SchematicElement"
 import { collectElementRefs } from "lib/utils/collect-element-refs"
@@ -62,6 +63,7 @@ export const Schematic = ({
     },
     // initialTransform: compose(scale(100, 100, 0, 0)),
   })
+  console.log({ builder1 })
   const setElementsAndCamera = useCallback(
     (elements: Array<AnyElement>) => {
       const elmBounds = (ref.current as HTMLDivElement).getBoundingClientRect()

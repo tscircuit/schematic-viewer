@@ -11,7 +11,6 @@ interface Props {
 }
 
 export const SchematicPath = (props: Props) => {
-  console.log("SchematicPath", props)
   const { points, is_filled, is_closed, fill_color } = props.path.schematic
 
   if (points.length === 0) return null
