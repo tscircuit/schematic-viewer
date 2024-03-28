@@ -163,6 +163,7 @@ export interface SourceGroup {
 export interface SourcePort {
   type: "source_port"
   name: string
+  pin_number?: number
   source_port_id: string
   source_component_id: string
 }

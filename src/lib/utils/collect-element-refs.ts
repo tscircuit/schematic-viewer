@@ -1,10 +1,17 @@
-import { AnyElement } from "@tscircuit/builder"
+import { AnyElement, SourcePort } from "@tscircuit/builder"
 
 export const collectElementRefs = (elm: AnyElement, allElms: AnyElement[]) => {
+  const source_port = allElms.find(
+    (e) =>
+      e.type === "source_port" &&
+      e.source_port_id === (elm as any).source_port_id
+  ) as SourcePort | null
+  const source_component_id: string =
+    (elm as any).source_component_id ?? source_port?.source_component_id
   const source_component = allElms.find(
     (e) =>
       e.type === "source_component" &&
-      e.source_component_id === (elm as any).source_component_id
+      e.source_component_id === source_component_id
   )
   if (
     [
@@ -26,6 +33,8 @@ export const collectElementRefs = (elm: AnyElement, allElms: AnyElement[]) => {
       schematic_children,
       schematic: elm,
       source: source_component,
+      source_component,
+      source_port,
     }
   }
   return null

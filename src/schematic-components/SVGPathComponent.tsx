@@ -1,5 +1,6 @@
 import { useCameraTransform } from "lib/render-context"
 import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
+import { useCallback, useState } from "react"
 
 import { applyToPoint } from "transformation-matrix"
 
@@ -13,9 +14,18 @@ interface Props {
     fill?: string
     d: string
   }>
+  zIndex?: number
+  hoverContent?: any
 }
 
-export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
+export const SVGPathComponent = ({
+  size,
+  center,
+  rotation,
+  paths,
+  zIndex,
+  hoverContent,
+}: Props) => {
   const ct = useCameraTransform()
   const pathBounds = getSVGPathBounds(paths.map((p) => p.d))
   // Margin in SVG Space
@@ -30,36 +40,84 @@ export const SVGPathComponent = ({ size, center, rotation, paths }: Props) => {
   pathBounds.height = Math.max(pathBounds.height, 1)
   pathBounds.width = Math.max(pathBounds.width, 1)
   const absoluteCenter = applyToPoint(ct, center)
+  const actualAbsWidth = size.width * ct.a
+  const actualAbsHeight = size.height * ct.d
   const absoluteSize = {
-    width: Math.max(1, size.width * ct.a),
-    height: Math.max(1, size.height * ct.d),
+    width: Math.max(1, actualAbsWidth),
+    height: Math.max(1, actualAbsHeight),
   }
 
+  const [hovering, setHovering] = useState(false)
+
+  const svgLeft = absoluteCenter.x - absoluteSize.width / 2
+  const svgTop = absoluteCenter.y - absoluteSize.height / 2
+
   return (
-    <svg
-      style={{
-        position: "absolute",
-        transform: rotation === 0 ? "" : `rotate(${rotation}rad)`,
-        left: absoluteCenter.x - absoluteSize.width / 2,
-        top: absoluteCenter.y - absoluteSize.height / 2,
-        // backgroundColor: badRatio ? "rgba(255, 0, 0, 0.5)" : "transparent",
-      }}
-      overflow="visible"
-      width={absoluteSize.width}
-      height={absoluteSize.height}
-      viewBox={`${pathBounds.minX} ${pathBounds.minY} ${pathBounds.width} ${pathBounds.height}`}
-    >
-      {paths.map((p, i) => (
-        <path
-          key={i}
-          fill={p.fill ?? "none"}
-          strokeLinecap="round"
-          strokeWidth={2 * (p.strokeWidth || 1)}
-          stroke={p.stroke || "red"}
-          d={p.d}
-        />
-      ))}
-    </svg>
+    <>
+      {hovering && (
+        <>
+          <div
+            style={{
+              position: "absolute",
+              left: svgLeft - 4,
+              top: svgTop - 4,
+              pointerEvents: "none",
+              width: actualAbsWidth + 8,
+              height: actualAbsHeight + 8,
+              border: "1px red solid",
+              zIndex: 1000,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: svgLeft + actualAbsWidth + 10,
+              pointerEvents: "none",
+              zIndex: 1000,
+              color: "red",
+              top: svgTop,
+              fontFamily: "monospace",
+              fontSize: 14,
+              textShadow: `-1px 1px 0 #fff,
+              1px 1px 0 #fff,
+              1px -1px 0 #fff,
+              -1px -1px 0 #fff`,
+            }}
+          >
+            {hoverContent}
+          </div>
+        </>
+      )}
+      <svg
+        onMouseOver={() => setHovering(Boolean(hoverContent))}
+        onMouseOut={() => setHovering(false)}
+        style={{
+          position: "absolute",
+          // backgroundColor: hovering ? "rgba(0, 0, 255, 0.5)" : "transparent",
+          cursor: hovering ? "pointer" : undefined,
+          zIndex,
+          transform: rotation === 0 ? "" : `rotate(${rotation}rad)`,
+          left: svgLeft,
+          top: svgTop,
+          // backgroundColor: badRatio ? "rgba(255, 0, 0, 0.5)" : "transparent",
+        }}
+        overflow="visible"
+        width={absoluteSize.width}
+        height={absoluteSize.height}
+        viewBox={`${pathBounds.minX} ${pathBounds.minY} ${pathBounds.width} ${pathBounds.height}`}
+      >
+        {paths.map((p, i) => (
+          <path
+            key={i}
+            fill={p.fill ?? "none"}
+            strokeLinecap="round"
+            strokeWidth={2 * (p.strokeWidth || 1)}
+            stroke={p.stroke || "red"}
+            d={p.d}
+          />
+        ))}
+      </svg>
+    </>
   )
 }
 
