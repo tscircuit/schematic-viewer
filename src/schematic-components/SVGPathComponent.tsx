@@ -65,7 +65,7 @@ export const SVGPathComponent = ({
               width: actualAbsWidth + 8,
               height: actualAbsHeight + 8,
               border: "1px red solid",
-              mixBlendMode: "exclusion",
+              mixBlendMode: "difference",
               zIndex: 1000,
             }}
           />
@@ -76,7 +76,7 @@ export const SVGPathComponent = ({
               pointerEvents: "none",
               zIndex: 1000,
               color: "red",
-              mixBlendMode: "exclusion",
+              mixBlendMode: "difference",
               top: svgTop,
               fontFamily: "monospace",
               fontSize: 14,

@@ -13,13 +13,15 @@ import { createRoot } from "@tscircuit/react-fiber"
 import { SchematicElement } from "schematic-components/SchematicElement"
 import { collectElementRefs } from "lib/utils/collect-element-refs"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
-import { ErrorBoundary } from "react-error-boundary"
+import { ErrorBoundary as TypedErrorBoundary } from "react-error-boundary"
 import { identity, compose, scale, translate } from "transformation-matrix"
 import { useRenderContext } from "lib/render-context"
 import useMeasure from "react-use-measure"
 import { TableViewer } from "./schematic-components/TableViewer"
 
-const fallbackRender =
+const ErrorBoundary = TypedErrorBoundary as any
+
+const fallbackRender: any =
   (elm) =>
   ({ error, resetErrorBoundary }: any) => {
     return (
@@ -120,6 +122,7 @@ export const Schematic = ({
           minHeight: 200,
           overflow: "hidden",
           position: "relative",
+          isolation: "isolate",
           cursor: "grab",
           ...style,
         }}
