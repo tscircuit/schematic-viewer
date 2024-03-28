@@ -75,13 +75,10 @@ export const SVGPathComponent = ({
               pointerEvents: "none",
               zIndex: 1000,
               color: "red",
+              mixBlendMode: "difference",
               top: svgTop,
               fontFamily: "monospace",
               fontSize: 14,
-              textShadow: `-1px 1px 0 #fff,
-              1px 1px 0 #fff,
-              1px -1px 0 #fff,
-              -1px -1px 0 #fff`,
             }}
           >
             {hoverContent}
