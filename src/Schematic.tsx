@@ -63,7 +63,6 @@ export const Schematic = ({
     },
     // initialTransform: compose(scale(100, 100, 0, 0)),
   })
-  console.log({ builder1 })
   const setElementsAndCamera = useCallback(
     (elements: Array<AnyElement>) => {
       const elmBounds = (ref.current as HTMLDivElement).getBoundingClientRect()
