@@ -60,6 +60,6 @@
   "dependencies": {
     "react-error-boundary": "^4.0.4",
     "react-supergrid": "^1.0.8",
-    "use-mouse-matrix-transform": "^1.1.9"
+    "use-mouse-matrix-transform": "^1.1.12"
   }
 }
