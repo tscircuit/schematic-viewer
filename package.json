@@ -7,7 +7,7 @@
   "scripts": {
     "start": "storybook dev -p 6006",
     "typecheck": "tsc --noEmit",
-    "build": "tsup ./src/index.ts --metafile --dts --sourcemap",
+    "build": "tsup",
     "yalc": "npm run build && yalc push",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
