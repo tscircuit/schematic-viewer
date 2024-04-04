@@ -12,10 +12,9 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "module": "esnext",
     "baseUrl": "./src",
-    "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": false
