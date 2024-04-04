@@ -101,9 +101,8 @@ export const Schematic = ({
       setElementsAndCamera(initialSoup)
       return
     }
-    const projectBuilder = createProjectBuilder()(
-      createRoot ?? TscReactFiber.createRoot
-    )()
+    const projectBuilder = createProjectBuilder()
+    ;((createRoot ?? TscReactFiber.createRoot) as any)()
       .render(children, projectBuilder as any)
       .then(async (elements) => {
         setElementsAndCamera(elements)
