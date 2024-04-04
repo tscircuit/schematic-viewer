@@ -9,7 +9,7 @@ import {
   transformSchematicElement,
 } from "@tscircuit/builder"
 import * as builder1 from "@tscircuit/builder"
-import { createRoot } from "@tscircuit/react-fiber"
+import TscReactFiber, { createRoot } from "@tscircuit/react-fiber"
 import { SchematicElement } from "schematic-components/SchematicElement"
 import { collectElementRefs } from "lib/utils/collect-element-refs"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
@@ -102,7 +102,7 @@ export const Schematic = ({
       return
     }
     const projectBuilder = createProjectBuilder()
-    createRoot()
+    ((createRoot ?? TscReactFiber.createRoot)()
       .render(children, projectBuilder as any)
       .then(async (elements) => {
         setElementsAndCamera(elements)
