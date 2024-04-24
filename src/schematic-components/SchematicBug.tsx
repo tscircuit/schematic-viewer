@@ -52,9 +52,9 @@ export const SchematicBug = ({ component: { source, schematic } }: Props) => {
           : pos.x
       const y2 =
         pos.side === "top"
-          ? -bugh / 2
-          : pos.side === "bottom"
           ? bugh / 2
+          : pos.side === "bottom"
+          ? -bugh / 2
           : pos.y
 
       return {
