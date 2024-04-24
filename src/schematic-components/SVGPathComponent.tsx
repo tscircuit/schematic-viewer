@@ -41,7 +41,7 @@ export const SVGPathComponent = ({
   pathBounds.width = Math.max(pathBounds.width, 1)
   const absoluteCenter = applyToPoint(ct, center)
   const actualAbsWidth = size.width * ct.a
-  const actualAbsHeight = size.height * ct.d
+  const actualAbsHeight = size.height * Math.abs(ct.d)
   const absoluteSize = {
     width: Math.max(1, actualAbsWidth),
     height: Math.max(1, actualAbsHeight),
@@ -51,6 +51,8 @@ export const SVGPathComponent = ({
 
   const svgLeft = absoluteCenter.x - absoluteSize.width / 2
   const svgTop = absoluteCenter.y - absoluteSize.height / 2
+
+  const viewBox = `${pathBounds.minX} ${pathBounds.minY} ${pathBounds.width} ${pathBounds.height}`
 
   return (
     <>
@@ -94,7 +96,10 @@ export const SVGPathComponent = ({
           // backgroundColor: hovering ? "rgba(0, 0, 255, 0.5)" : "transparent",
           cursor: hovering ? "pointer" : undefined,
           zIndex,
-          transform: rotation === 0 ? "" : `rotate(${rotation}rad)`,
+          transform: [
+            "scale(1, -1)", // TODO based on ct.d
+            rotation === 0 ? "" : `rotate(${rotation}rad)`,
+          ].join(" "),
           left: svgLeft,
           top: svgTop,
           // backgroundColor: badRatio ? "rgba(255, 0, 0, 0.5)" : "transparent",
@@ -102,7 +107,7 @@ export const SVGPathComponent = ({
         overflow="visible"
         width={absoluteSize.width}
         height={absoluteSize.height}
-        viewBox={`${pathBounds.minX} ${pathBounds.minY} ${pathBounds.width} ${pathBounds.height}`}
+        viewBox={viewBox}
       >
         {paths.map((p, i) => (
           <path

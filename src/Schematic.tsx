@@ -39,7 +39,7 @@ export const Schematic = ({
   elements: initialElements,
   soup: initialSoup,
   style,
-  showTable,
+  showTable = false,
 }: {
   children?: any
 
@@ -88,7 +88,7 @@ export const Schematic = ({
         compose(
           translate((elmBounds.width ?? 0) / 2, (elmBounds.height ?? 0) / 2),
           // translate(100, 0),
-          scale(scaleFactor, scaleFactor, 0, 0),
+          scale(scaleFactor, -scaleFactor, 0, 0),
           translate(-center.x, -center.y)
         )
       )
