@@ -14,6 +14,8 @@ export const SimpleGround = ({ component: { source, schematic } }: Props) => {
       rotation={schematic.rotation}
       center={schematic.center}
       size={schematic.size}
+      invertY
+      shiftToBottom
       paths={[
         {
           stroke: "red",

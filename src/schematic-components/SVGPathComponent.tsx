@@ -8,6 +8,8 @@ interface Props {
   rotation: number
   center: { x: number; y: number }
   size: { width: number; height: number }
+  invertY?: boolean
+  shiftToBottom?: boolean
   paths: Array<{
     strokeWidth: number
     stroke: string
@@ -24,6 +26,8 @@ export const SVGPathComponent = ({
   rotation,
   paths,
   zIndex,
+  invertY,
+  shiftToBottom,
   hoverContent,
 }: Props) => {
   const ct = useCameraTransform()
@@ -97,7 +101,8 @@ export const SVGPathComponent = ({
           cursor: hovering ? "pointer" : undefined,
           zIndex,
           transform: [
-            "scale(1, -1)", // TODO based on ct.d
+            invertY ? "scale(1, 1)" : "scale(1, -1)", // TODO based on ct.d
+            shiftToBottom ? "translate(0, 100%)" : "",
             rotation === 0 ? "" : `rotate(${rotation}rad)`,
           ].join(" "),
           left: svgLeft,

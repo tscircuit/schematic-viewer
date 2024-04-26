@@ -16,6 +16,7 @@ export const SimplePowerSource = ({
       rotation={schematic.rotation}
       center={schematic.center}
       size={schematic.size}
+      invertY
       paths={[
         {
           stroke: "red",
