@@ -24,12 +24,16 @@ export const SchematicText = ({ schematic_text }: Props) => {
     offset = [-bounds.width, -bounds.height / 2]
   }
 
+  const fontTransformRatio = 0.15 // magic number (roughly 0.1mm = 12px)
+  const projectedTextSize = fontTransformRatio * ct.a
+
   return (
     <div
       ref={boundsRef}
       style={{
         fontFamily: "'IBM Plex Mono', monospace",
         position: "absolute",
+        fontSize: projectedTextSize,
         left: tPos.x + offset[0],
         top: tPos.y + offset[1],
       }}
