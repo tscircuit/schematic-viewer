@@ -49,7 +49,7 @@ export const SchematicPort = ({
               stroke: "blue",
               strokeWidth: 0.5,
               d: `M 5 5 l ${directionToVec(schematic.facing_direction).x * 7} ${
-                -directionToVec(schematic.facing_direction).y * 7
+                directionToVec(schematic.facing_direction).y * 7
               }`,
             }
           : null,
