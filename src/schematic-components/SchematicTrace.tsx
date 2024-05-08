@@ -3,6 +3,7 @@ import SVGPathComponent from "./SVGPathComponent"
 import Path from "svg-path-generator"
 import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
 import RenderError from "./RenderError"
+import SVGPathComponent2 from "./SVGPathComponent2"
 
 interface Props {
   trace: {
@@ -32,7 +33,7 @@ export const SchematicTrace = ({ trace: { source, schematic } }: Props) => {
     y: pathBounds.minY + pathBounds.height / 2,
   }
   return (
-    <SVGPathComponent
+    <SVGPathComponent2
       rotation={0}
       center={center}
       size={pathBounds}
