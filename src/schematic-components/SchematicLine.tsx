@@ -22,8 +22,8 @@ export const SchematicLine = ({ line: { schematic } }: Props) => {
   path.lineTo(x2, y2)
   const d = path.toString()
   const pathBounds = getSVGPathBounds(d)
-  pathBounds.height = Math.max(pathBounds.height, 1)
-  pathBounds.width = Math.max(pathBounds.width, 1)
+  // pathBounds.height = Math.max(pathBounds.height, 1)
+  // pathBounds.width = Math.max(pathBounds.width, 1)
   const center = {
     x: pathBounds.minX + pathBounds.width / 2,
     y: pathBounds.minY + pathBounds.height / 2,
