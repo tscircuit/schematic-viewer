@@ -18,8 +18,8 @@ export const SimpleCapacitor = ({
       size={schematic.size}
       paths={[
         { stroke: "red", strokeWidth: 1, d: "M 0 15 l 12 0" },
-        { stroke: "red", strokeWidth: 2, d: "M 12 0 l 0 30" },
-        { stroke: "red", strokeWidth: 2, d: "M 18 0 l 0 30" },
+        { stroke: "red", strokeWidth: 1, d: "M 12 0 l 0 30" },
+        { stroke: "red", strokeWidth: 1, d: "M 18 0 l 0 30" },
         { stroke: "red", strokeWidth: 1, d: "M 18 15 l 12 0" },
       ]}
     />

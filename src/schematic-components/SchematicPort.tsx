@@ -19,6 +19,7 @@ export const SchematicPort = ({
         source_port?.name ?? source_port?.pin_number
       }`
     : `.${source_port?.name ?? source_port?.pin_number}`
+  const vec = directionToVec(schematic.facing_direction)
   return (
     <Component.SVGPathComponent
       rotation={0}
@@ -36,7 +37,10 @@ export const SchematicPort = ({
         </div>
       }
       center={schematic.center}
-      size={{ width: 0.2, height: 0.2 }}
+      size={{
+        width: 0.2 + Math.abs(vec.x) * 0.04,
+        height: 0.2 + Math.abs(vec.y) * 0.04,
+      }}
       zIndex={10}
       paths={[
         {
@@ -48,9 +52,7 @@ export const SchematicPort = ({
           ? {
               stroke: "blue",
               strokeWidth: 0.5,
-              d: `M 5 5 l ${directionToVec(schematic.facing_direction).x * 7} ${
-                directionToVec(schematic.facing_direction).y * 7
-              }`,
+              d: `M 5 5 l ${vec.x * 7} ${vec.y * 7}`,
             }
           : null,
       ].filter(Boolean)}
