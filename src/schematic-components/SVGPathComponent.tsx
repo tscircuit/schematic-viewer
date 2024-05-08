@@ -41,8 +41,8 @@ export const SVGPathComponent = ({
     //   `Ratio doesn't match for component. ${pathBounds.width}:${pathBounds.height} is not close to ${size.width}:${size.height}`
     // )
   }
-  pathBounds.height = Math.max(pathBounds.height, 1)
-  pathBounds.width = Math.max(pathBounds.width, 1)
+  pathBounds.height = Math.max(pathBounds.height, 0.01)
+  pathBounds.width = Math.max(pathBounds.width, 0.01)
   const absoluteCenter = applyToPoint(ct, center)
   const actualAbsWidth = size.width * ct.a
   const actualAbsHeight = size.height * Math.abs(ct.d)
@@ -50,6 +50,7 @@ export const SVGPathComponent = ({
     width: Math.max(1, actualAbsWidth),
     height: Math.max(1, actualAbsHeight),
   }
+  console.log(absoluteSize, pathBounds)
 
   const [hovering, setHovering] = useState(false)
 
