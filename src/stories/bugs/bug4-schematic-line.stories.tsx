@@ -6,7 +6,7 @@ export const Bug4SchematicLine = () => {
     <Schematic style={{ height: 500 }}>
       {/* <resistor name="R1" resistance="10" schX={2} schY={1} /> */}
       <component name="K1" schX={0} schY={0}>
-        <schematicline x1={0} y1={0} x2={2} y2={2} />
+        <schematicline x1={0} y1={0} x2={0} y2={2} />
       </component>
     </Schematic>
   )

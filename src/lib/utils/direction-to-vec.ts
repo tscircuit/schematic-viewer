@@ -3,7 +3,7 @@ export const directionToVec = (direction: "up" | "down" | "left" | "right") => {
   else if (direction === "down") return { x: 0, y: -1 }
   else if (direction === "left") return { x: -1, y: 0 }
   else if (direction === "right") return { x: 1, y: 0 }
-  else throw new Error("Invalid direction")
+  else throw new Error(`Invalid direction "${direction}"`)
 }
 
 export const vecToDirection = ({ x, y }: { x: number; y: number }) => {

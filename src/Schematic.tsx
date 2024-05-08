@@ -82,6 +82,7 @@ export const Schematic = ({
         (elmBounds.height ?? 0) / height,
         100
       )
+      // console.log(elements)
       setElements(elements)
       setProject(createProjectFromElements(elements))
       setTransform(

@@ -50,31 +50,63 @@ export const SVGPathComponent = ({
   }
   // pathBounds.height = Math.max(pathBounds.height, 0.01)
   // pathBounds.width = Math.max(pathBounds.width, 0.01)
+
+  // Three sizes:
+  // pathBound size (the size of the path in "d")
+  // innerSize (the screen-space size of the path)
+  // fullSize (the screen-space size of the svg element, innerSize plus padding)
+
+  const padding = {
+    x: 0,
+    y: 0,
+  }
+
   const absoluteCenter = applyToPoint(ct, center)
-  const actualAbsWidth = size.width * ct.a
-  const actualAbsHeight = size.height * Math.abs(ct.d)
-  const absoluteSize = {
-    width: Math.max(1, actualAbsWidth),
-    height: Math.max(1, actualAbsHeight),
+
+  const innerSize = {
+    width: size.width * ct.a,
+    height: size.height * Math.abs(ct.d),
+  }
+
+  const fullSize = {
+    width: innerSize.width + padding.x * 2,
+    height: innerSize.height + padding.y * 2,
   }
 
   const [hovering, setHovering] = useState(false)
 
-  const svgLeft = absoluteCenter.x - absoluteSize.width / 2
-  const svgTop = absoluteCenter.y - absoluteSize.height / 2
+  const svgLeft = absoluteCenter.x - fullSize.width / 2
+  const svgTop = absoluteCenter.y - fullSize.height / 2
 
-  const viewBox = `${pathBounds.minX} ${pathBounds.minY} ${pathBounds.width} ${pathBounds.height}`
+  // const viewBox = `${pathBounds.minX} ${pathBounds.minY} ${pathBounds.width} ${pathBounds.height}`
   // const viewBox2 = `${svgLeft} ${svgTctualAbsWidth} ${actualAbsHeight}`
 
+  // console.log(
+  //   pathBounds,
+  //   fullSize,
+  //   fullSize.width / pathBounds.width,
+  //   fullSize.height / pathBounds.height
+  // )
+  const preferredRatio =
+    pathBounds.width === 0
+      ? innerSize.height / pathBounds.height
+      : innerSize.width / pathBounds.width
   const svgToScreen = compose(
     // translate(0, 0)
     scale(
-      actualAbsWidth / pathBounds.width,
-      actualAbsHeight / pathBounds.height
+      pathBounds.width === 0
+        ? preferredRatio
+        : fullSize.width / pathBounds.width,
+      pathBounds.height === 0
+        ? preferredRatio
+        : fullSize.height / pathBounds.height
     ),
     translate(-pathBounds.minX, -pathBounds.minY)
     // translate(center.x, center.y)
   )
+  // console.log(svgToScreen)
+  // console.log(toSVG(svgToScreen))
+  // console.log(paths[0].d)
   // translate(..., ...),
 
   return (
@@ -87,8 +119,8 @@ export const SVGPathComponent = ({
               left: svgLeft - 6,
               top: svgTop - 6,
               pointerEvents: "none",
-              width: actualAbsWidth + 12,
-              height: actualAbsHeight + 12,
+              width: fullSize.width + 12,
+              height: fullSize.height + 12,
               border: "1px red solid",
               mixBlendMode: "difference",
               zIndex: 1000,
@@ -97,7 +129,7 @@ export const SVGPathComponent = ({
           <div
             style={{
               position: "absolute",
-              left: svgLeft + actualAbsWidth + 10,
+              left: svgLeft + fullSize.width + 10,
               pointerEvents: "none",
               zIndex: 1000,
               color: "red",
@@ -131,18 +163,15 @@ export const SVGPathComponent = ({
           // backgroundColor: "rgba(255, 0, 0, 0.1)",
         }}
         overflow="visible"
-        width={absoluteSize.width}
-        height={absoluteSize.height}
+        width={fullSize.width}
+        height={fullSize.height}
       >
         {paths.map((p, i) => (
           <path
             key={i}
-            // transform={toSVG(inverse(ct))}
-            // transform={`scale(${ct.a}, ${ct.a})`}
             transform={toSVG(svgToScreen)}
             fill={p.fill ?? "none"}
             strokeLinecap="round"
-            // strokeWidth={2 * (p.strokeWidth || 1)}
             strokeWidth={1.5 * (p.strokeWidth || 1)}
             stroke={p.stroke || "red"}
             d={p.d}
