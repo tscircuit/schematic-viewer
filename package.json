@@ -58,7 +58,7 @@
     "zustand": "^4.0.0"
   },
   "dependencies": {
-    "@tscircuit/soup": "^0.0.7",
+    "@tscircuit/soup": "^0.0.16",
     "convert-units": "^2.3.4",
     "react-error-boundary": "^4.0.4",
     "react-supergrid": "^1.0.10",

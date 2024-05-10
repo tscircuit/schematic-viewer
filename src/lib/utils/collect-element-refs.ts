@@ -1,6 +1,9 @@
-import { AnyElement, SourcePort } from "@tscircuit/builder"
+import { AnySoupElement, SourcePort } from "@tscircuit/soup"
 
-export const collectElementRefs = (elm: AnyElement, allElms: AnyElement[]) => {
+export const collectElementRefs = (
+  elm: AnySoupElement,
+  allElms: AnySoupElement[]
+) => {
   const source_port = allElms.find(
     (e) =>
       e.type === "source_port" &&

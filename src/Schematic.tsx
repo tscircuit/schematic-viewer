@@ -43,7 +43,7 @@ export const Schematic = ({
 }: {
   children?: any
 
-  /** @deprecated */
+  /** @deprecated use soup */
   elements?: any
 
   soup?: any
