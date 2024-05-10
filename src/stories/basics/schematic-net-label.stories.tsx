@@ -137,7 +137,7 @@ export const SchematicNetLabel = () => {
               type: "source_net",
               member_source_group_ids: [],
               source_net_id: "net_0",
-              name: "GND",
+              name: "N1",
               source: null,
             },
             {
@@ -150,12 +150,31 @@ export const SchematicNetLabel = () => {
             {
               type: "schematic_net_label",
               source_net_id: "net_0",
-              text: "GND",
+              text: "N1",
               anchor_side: "left",
               center: {
                 x: 1.5,
                 y: 0,
               },
+              source: null,
+            },
+            {
+              type: "schematic_trace",
+              schematic_trace_id: "schematic_trace_0",
+              source_trace_id: "source_trace_0",
+              edges: [
+                {
+                  from: {
+                    x: 0.5,
+                    y: 0,
+                  },
+                  to: {
+                    x: 1.5,
+                    y: 0,
+                  },
+                  from_schematic_port_id: "schematic_port_1",
+                },
+              ],
               source: null,
             },
           ],
