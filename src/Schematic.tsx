@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { ProjectComponent } from "schematic-components"
+import { ContextProviders, ProjectComponent } from "schematic-components"
 import { SuperGrid, toMMSI } from "react-supergrid"
 import {
   AnyElement,
@@ -15,7 +15,7 @@ import { collectElementRefs } from "lib/utils/collect-element-refs"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { ErrorBoundary as TypedErrorBoundary } from "react-error-boundary"
 import { identity, compose, scale, translate } from "transformation-matrix"
-import { useRenderContext } from "lib/render-context"
+import { useGlobalStore } from "lib/render-context"
 import useMeasure from "react-use-measure"
 import { TableViewer } from "./schematic-components/TableViewer"
 
@@ -34,13 +34,7 @@ const fallbackRender: any =
 const toMMSINeg = (v: number, z: number) =>
   v >= 0 ? toMMSI(v, z) : `-${toMMSI(-v, z)}`
 
-export const Schematic = ({
-  children,
-  elements: initialElements,
-  soup: initialSoup,
-  style,
-  showTable = false,
-}: {
+export interface SchematicProps {
   children?: any
 
   /** @deprecated use soup */
@@ -51,13 +45,29 @@ export const Schematic = ({
   style?: any
 
   showTable?: boolean
-}) => {
+}
+
+export const Schematic = (props: SchematicProps) => {
+  return (
+    <ContextProviders>
+      <SchematicWithoutContext {...props} />
+    </ContextProviders>
+  )
+}
+
+export const SchematicWithoutContext = ({
+  children,
+  elements: initialElements,
+  soup: initialSoup,
+  style,
+  showTable = false,
+}: SchematicProps) => {
   initialSoup = initialSoup ?? initialElements ?? []
 
   const [elements, setElements] = useState<any>(initialSoup ?? [])
   const [project, setProject] = useState<any>(null)
-  const setCameraTransform = useRenderContext((s) => s.setCameraTransform)
-  const cameraTransform = useRenderContext((s) => s.camera_transform)
+  const { setCameraTransform, camera_transform: cameraTransform } =
+    useGlobalStore()
   const [boundsRef, bounds] = useMeasure()
   const { ref, setTransform } = useMouseMatrixTransform({
     onSetTransform: (transform) => {
@@ -82,13 +92,11 @@ export const Schematic = ({
         (elmBounds.height ?? 0) / height,
         100
       )
-      // console.log(elements)
       setElements(elements)
       setProject(createProjectFromElements(elements))
       setTransform(
         compose(
           translate((elmBounds.width ?? 0) / 2, (elmBounds.height ?? 0) / 2),
-          // translate(100, 0),
           scale(scaleFactor, -scaleFactor, 0, 0),
           translate(-center.x, -center.y)
         )
