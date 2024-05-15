@@ -15,7 +15,7 @@ import { collectElementRefs } from "lib/utils/collect-element-refs"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { ErrorBoundary as TypedErrorBoundary } from "react-error-boundary"
 import { identity, compose, scale, translate } from "transformation-matrix"
-import { useRenderContext } from "lib/render-context"
+import { createRenderContextStore } from "lib/render-context"
 import useMeasure from "react-use-measure"
 import { TableViewer } from "./schematic-components/TableViewer"
 
@@ -56,6 +56,7 @@ export const Schematic = ({
 
   const [elements, setElements] = useState<any>(initialSoup ?? [])
   const [project, setProject] = useState<any>(null)
+  const useRenderContext = createRenderContextStore()
   const setCameraTransform = useRenderContext((s) => s.setCameraTransform)
   const cameraTransform = useRenderContext((s) => s.camera_transform)
   const [boundsRef, bounds] = useMeasure()
