@@ -2,7 +2,7 @@ import * as Type from "lib/types"
 import SVGPathComponent from "./SVGPathComponent"
 import Path from "svg-path-generator"
 import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
-import { useCameraTransform } from "lib/render-context"
+import { useGlobalStore } from "lib/render-context"
 import { applyToPoint } from "transformation-matrix"
 import useMeasure from "react-use-measure"
 
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const SchematicText = ({ schematic_text }: Props) => {
-  const ct = useCameraTransform()
+  const ct = useGlobalStore((s) => s.camera_transform)
   const { text, position, anchor } = schematic_text
   const tPos = applyToPoint(ct, position)
   const [boundsRef, bounds] = useMeasure()

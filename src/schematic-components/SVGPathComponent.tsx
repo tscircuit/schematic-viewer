@@ -1,4 +1,4 @@
-import { useCameraTransform } from "lib/render-context"
+import { useGlobalStore } from "lib/render-context"
 import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
 import { useCallback, useState } from "react"
 
@@ -37,7 +37,7 @@ export const SVGPathComponent = ({
   shiftToBottom,
   hoverContent,
 }: Props) => {
-  const ct = useCameraTransform()
+  const ct = useGlobalStore((s) => s.camera_transform)
   const pathBounds = getSVGPathBounds(paths.map((p) => p.d))
   // Margin in SVG Space
   const badRatio =
