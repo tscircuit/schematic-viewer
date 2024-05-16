@@ -1,4 +1,4 @@
-import { Schematic } from "../Schematic"
+import { Schematic } from "../../Schematic"
 
 export const Resistor = () => {
   return (
@@ -9,6 +9,6 @@ export const Resistor = () => {
 }
 
 export default {
-  title: "Resistor",
+  title: "Circuit Components/Resistor",
   component: Resistor,
 }
