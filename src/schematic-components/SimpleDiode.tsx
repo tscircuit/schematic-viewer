@@ -13,7 +13,11 @@ export const SimpleDiode = ({ component: { source, schematic } }: Props) => {
     <SVGPathComponent
       rotation={schematic.rotation}
       center={schematic.center}
-      size={schematic.size}
+      // size={schematic.size}
+      size={{
+        height: 0.5,
+        width: 1,
+      }}
       paths={[
         { stroke: "red", strokeWidth: 2, d: "M 0,0 H 21" },
         { stroke: "red", strokeWidth: 2, d: "M 49,0 H 59" },
