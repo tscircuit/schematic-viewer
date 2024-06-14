@@ -1,6 +1,6 @@
 import { Schematic } from "Schematic"
 
-const OneSidedBugExample = () => (
+const BugPinSpacingExample = () => (
   <bug
     name="U2"
     schPortArrangement={{
@@ -9,6 +9,8 @@ const OneSidedBugExample = () => (
     }}
     schX={-10}
     schY={0}
+    // TODO
+    // schPinSpacing="1.5mm"
     pinLabels={{
       "1": "GND",
       "2": "VBUS",
@@ -18,15 +20,15 @@ const OneSidedBugExample = () => (
   />
 )
 
-export const OneSidedBug = () => {
+export const BugPinSpacing = () => {
   return (
     <Schematic style={{ height: 600 }}>
-      <OneSidedBugExample />
+      <BugPinSpacingExample />
     </Schematic>
   )
 }
 
 export default {
-  title: "OneSidedBug",
-  component: OneSidedBug,
+  title: "BugPinSpacing",
+  component: BugPinSpacing,
 }
