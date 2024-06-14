@@ -4,13 +4,15 @@ const BugPinSpacingExample = () => (
   <bug
     name="U2"
     schPortArrangement={{
-      leftSize: 0,
-      rightSize: 4,
+      leftSize: 2,
+      rightSize: 2,
     }}
     schX={-10}
     schY={0}
     // TODO
     // schPinSpacing="1.5mm"
+    // TODO
+    // schWidth="5mm"
     pinLabels={{
       "1": "GND",
       "2": "VBUS",
@@ -22,7 +24,21 @@ const BugPinSpacingExample = () => (
 
 export const BugPinSpacing = () => {
   return (
-    <Schematic style={{ height: 600 }}>
+    <Schematic
+      style={{ height: 600 }}
+      _soupPostProcessor={(soup) => {
+        return soup.map((elm) => {
+          if (elm.type === "schematic_component") {
+            return {
+              ...elm,
+              size: { width: 3, height: 3 },
+              pin_spacing: 1.5,
+            }
+          }
+          return elm
+        })
+      }}
+    >
       <BugPinSpacingExample />
     </Schematic>
   )

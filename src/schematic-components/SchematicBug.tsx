@@ -24,6 +24,7 @@ export const SchematicBug = ({ component: { source, schematic } }: Props) => {
   // const port_labels = schematic.port_labels!
   let bugw = schematic.size.width // bug width
   let bugh = schematic.size.height
+
   const { total_ports, width, height } =
     getPortArrangementSize(port_arrangement)
   const port_indices = getPortIndices(port_arrangement)

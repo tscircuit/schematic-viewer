@@ -18,6 +18,7 @@ import { identity, compose, scale, translate } from "transformation-matrix"
 import { useGlobalStore } from "lib/render-context"
 import useMeasure from "react-use-measure"
 import { TableViewer } from "./schematic-components/TableViewer"
+import { AnySoupElement } from "@tscircuit/soup"
 
 const ErrorBoundary = TypedErrorBoundary as any
 
@@ -40,11 +41,13 @@ export interface SchematicProps {
   /** @deprecated use soup */
   elements?: any
 
-  soup?: any
+  soup?: AnySoupElement[]
 
   style?: any
 
   showTable?: boolean
+
+  _soupPostProcessor?: (soup: AnySoupElement[]) => AnySoupElement[]
 }
 
 export const Schematic = (props: SchematicProps) => {
@@ -61,6 +64,7 @@ export const SchematicWithoutContext = ({
   soup: initialSoup,
   style,
   showTable = false,
+  _soupPostProcessor,
 }: SchematicProps) => {
   initialSoup = initialSoup ?? initialElements ?? []
 
@@ -107,13 +111,16 @@ export const SchematicWithoutContext = ({
 
   useEffect(() => {
     if (initialSoup.length > 0) {
-      setElementsAndCamera(initialSoup)
+      setElementsAndCamera(initialSoup as any)
       return
     }
     const projectBuilder = createProjectBuilder()
     ;((createRoot ?? TscReactFiber.createRoot) as any)()
       .render(children, projectBuilder as any)
       .then(async (elements) => {
+        if (_soupPostProcessor) {
+          elements = _soupPostProcessor(elements)
+        }
         setElementsAndCamera(elements)
       })
       .catch((e) => {
