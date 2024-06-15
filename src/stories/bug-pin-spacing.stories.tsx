@@ -11,6 +11,9 @@ const BugPinSpacingExample = () => (
     schY={0}
     // TODO
     // schPinSpacing="1.5mm"
+    schPinSpacing={1.5}
+    // pinSpacing={1}
+    // pin_spacing="1.5mm"
     // TODO
     // schWidth="5mm"
     pinLabels={{
@@ -29,11 +32,13 @@ export const BugPinSpacing = () => {
       _soupPostProcessor={(soup) => {
         return soup.map((elm) => {
           if (elm.type === "schematic_component") {
-            return {
-              ...elm,
-              size: { width: 3, height: 3 },
-              pin_spacing: 1.5,
-            }
+            // return {
+            //   ...elm,
+            //   size: { width: 3, height: 3 },
+            //   pin_spacing: 1.5,
+            // }
+            console.log(elm)
+            return elm
           }
           return elm
         })

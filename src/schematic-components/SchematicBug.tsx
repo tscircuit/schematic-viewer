@@ -6,12 +6,13 @@ import {
   getPortArrangementSize,
   getPortIndices,
 } from "@tscircuit/builder"
+import type { SchematicComponent } from "@tscircuit/soup"
 import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
 
 interface Props {
   component: {
     source: Type.SimpleBug
-    schematic: Type.SchematicComponent
+    schematic: SchematicComponent
   }
 }
 
@@ -43,20 +44,24 @@ export const SchematicBug = ({ component: { source, schematic } }: Props) => {
       } ${bugh / 2} L ${-bugw / 2} ${bugh / 2}Z`,
     },
     ...port_indices.map((portNum) => {
-      const pos = getPortPosition(port_arrangement, portNum)
+      // TODO get the ports passed to the components and use those positions
+      const pos = getPortPosition(
+        { ...port_arrangement, pin_spacing: schematic.pin_spacing },
+        portNum,
+      )
 
       const x2 =
         pos.side === "left"
           ? -bugw / 2
           : pos.side === "right"
-          ? bugw / 2
-          : pos.x
+            ? bugw / 2
+            : pos.x
       const y2 =
         pos.side === "top"
           ? bugh / 2
           : pos.side === "bottom"
-          ? -bugh / 2
-          : pos.y
+            ? -bugh / 2
+            : pos.y
 
       return {
         stroke: "red",
