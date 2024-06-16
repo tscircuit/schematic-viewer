@@ -9,13 +9,7 @@ const BugPinSpacingExample = () => (
     }}
     schX={-10}
     schY={0}
-    // TODO
-    // schPinSpacing="1.5mm"
-    schPinSpacing={1.5}
-    // pinSpacing={1}
-    // pin_spacing="1.5mm"
-    // TODO
-    // schWidth="5mm"
+    schPinSpacing="1.5mm"
     pinLabels={{
       "1": "GND",
       "2": "VBUS",
