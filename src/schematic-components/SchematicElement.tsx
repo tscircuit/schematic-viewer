@@ -3,12 +3,15 @@ import { collectElementRefs } from "lib/utils/collect-element-refs"
 import SchematicComponent from "./SchematicComponent"
 import SchematicPort from "./SchematicPort"
 import SchematicText from "./SchematicText"
+import { SchematicText as SchematicTextType } from "@tscircuit/soup"
 import SchematicBox from "./SchematicBox"
 import SchematicTrace from "./SchematicTrace"
 import SchematicLine from "./SchematicLine"
 import RenderError from "./RenderError"
 import SchematicPath from "./SchematicPath"
 import { SchematicNetLabel } from "./SchematicNetLabel"
+import SVGPathComponent2 from "./SVGPathComponent2"
+import { Type } from "@tscircuit/react-fiber/dist/lib/render"
 
 /**
  * Render any @tsbuilder/builder AnyElement that can be put on a schematic.
@@ -71,6 +74,22 @@ export const SchematicElement = ({
   if (element.type === "source_error") {
     // TODO use the ids on the source error to put this in the right place
     return <RenderError text={element.message} />
+  }
+
+  if (element.ftype === "simple_bug") {
+    const obj: SchematicTextType = {
+      type: "schematic_text",
+      schematic_component_id: "schematic_component_simple_bug_0",
+      schematic_text_id: "schematic_text_0",
+      anchor: "top",
+      position: {
+        x: -0.5,
+        y: 1,
+      },
+      text: element.name,
+      rotation: 0,
+    }
+    return <SchematicText schematic_text={obj} />
   }
 
   return null
