@@ -9,3 +9,4 @@ storybook-static
 
 .deeper
 .aider*
+*.log
