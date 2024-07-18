@@ -9,3 +9,5 @@ storybook-static
 
 .deeper
 .aider*
+*.log
+.vscode
