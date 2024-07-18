@@ -11,6 +11,7 @@ const preview: Preview = {
         date: /Date$/,
       },
     },
+    diffThreshold: 0.2,
   },
 }
 
