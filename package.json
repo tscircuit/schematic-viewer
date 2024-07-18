@@ -59,7 +59,7 @@
     "transformation-matrix": "^2.12.0",
     "tsup": "^6.7.0",
     "type-fest": "^2.17.0",
-    "typescript": "^5.4.3",
+    "typescript": "^5.5.3",
     "vite": "^5.2.11",
     "vite-tsconfig-paths": "^4.3.2",
     "zod": "^3.23.8",
