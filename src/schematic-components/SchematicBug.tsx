@@ -91,7 +91,7 @@ export const SchematicBug = ({ component: { source, schematic } }: Props) => {
         schematic_text={{
           anchor: "bottom",
           position: {
-            x: location.x + actualSize.minX,
+            x: location.x + actualSize.minX / 1.5,
             y: location.y + actualSize.minY,
           },
           schematic_component_id: "SYNTHETIC",
