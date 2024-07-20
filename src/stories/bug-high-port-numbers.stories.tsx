@@ -4,6 +4,7 @@ const FTDIBasic3v3 = () => (
   <group>
     <bug
       name="U1"
+      manufacturerPartNumber="part-number"
       port_arrangement={{
         left_side: {
           pins: [16, 15, 20, 17, 4, 27, 28, 19, 26, 25, 7, 18, 21],
