@@ -30,8 +30,8 @@ export const Bug8Autolayout = () => {
       <Schematic style={{ height: 500 }}>
         <board
           layout={layout().autoLayoutSchematic()}
-          pcbCenterX={0}
-          pcbCenterY={0}
+          pcbX={0}
+          pcbY={0}
           width={"10mm"}
           height={"10mm"}
         >

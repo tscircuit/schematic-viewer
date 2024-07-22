@@ -5,13 +5,13 @@ export const BugConnections = () => {
     <Schematic style={{ height: 600 }}>
       <bug
         name="B1"
-        port_arrangement={{
-          left_size: 3,
-          right_size: 2,
+        schPortArrangement={{
+          leftSize: 3,
+          rightSize: 2,
         }}
-        sch_cx={8}
-        sch_cy={3}
-        port_labels={{
+        schX={8}
+        schY={3}
+        pinLabels={{
           "1": "D0",
           "2": "D1",
         }}

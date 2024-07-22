@@ -83,7 +83,7 @@ const soup = [
 ]
 
 export const NetAliasSoup = () => {
-  return <Schematic style={{ height: 500 }} soup={soup} />
+  return <Schematic style={{ height: 500 }} soup={soup as any} />
 }
 
 export default {
