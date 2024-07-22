@@ -6,9 +6,10 @@ export const ThreeSidedBug = () => {
       <bug
         name="B1"
         schPortArrangement={{
-          leftSide: { pins: [3, 2, 1], direction: "top-to-bottom" },
-          rightSide: { pins: [6, 5, 4], direction: "top-to-bottom" },
-          bottomSide: { pins: [10, 11, 12], direction: "top-to-bottom" },
+          leftSize: 3,
+          rightSize: 3,
+          topSize: 0,
+          bottomSize: 5,
         }}
         schX={8}
         schY={3}
