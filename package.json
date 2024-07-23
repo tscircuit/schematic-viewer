@@ -39,7 +39,7 @@
     "@tscircuit/react-fiber": "^1.1.29",
     "@tscircuit/routing": "^1.3.0",
     "@tscircuit/soup": "^0.0.41",
-    "@tscircuit/table-viewer": "^0.0.6",
+    "@tscircuit/table-viewer": "^0.0.8",
     "@types/node": "^18.6.0",
     "@types/react": "^18.0.15",
     "@vitejs/plugin-react": "^4.3.0",
