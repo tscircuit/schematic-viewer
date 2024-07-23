@@ -1,14 +1,13 @@
 import { AnySoupElement } from "@tscircuit/soup"
 import { collectElementRefs } from "lib/utils/collect-element-refs"
+import SchematicBox from "./SchematicBox"
 import SchematicComponent from "./SchematicComponent"
+import SchematicLine from "./SchematicLine"
+import { SchematicNetLabel } from "./SchematicNetLabel"
+import SchematicPath from "./SchematicPath"
 import SchematicPort from "./SchematicPort"
 import SchematicText from "./SchematicText"
-import SchematicBox from "./SchematicBox"
 import SchematicTrace from "./SchematicTrace"
-import SchematicLine from "./SchematicLine"
-import RenderError from "./RenderError"
-import SchematicPath from "./SchematicPath"
-import { SchematicNetLabel } from "./SchematicNetLabel"
 
 /**
  * Render any @tsbuilder/builder AnyElement that can be put on a schematic.
@@ -66,11 +65,6 @@ export const SchematicElement = ({
 
   if (element.type === "schematic_net_label") {
     return <SchematicNetLabel net_label={element} />
-  }
-
-  if (element.type === "source_error") {
-    // TODO use the ids on the source error to put this in the right place
-    return <RenderError text={element.message} />
   }
 
   return null

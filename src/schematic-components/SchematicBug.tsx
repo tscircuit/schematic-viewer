@@ -1,13 +1,13 @@
-import * as Type from "lib/types"
-import SVGPathComponent from "./SVGPathComponent"
-import range from "lodash/range"
 import {
-  getPortPosition,
   getPortArrangementSize,
   getPortIndices,
+  getPortPosition,
 } from "@tscircuit/builder"
 import type { SchematicComponent } from "@tscircuit/soup"
+import * as Type from "lib/types"
 import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
+import SVGPathComponent from "./SVGPathComponent"
+import SchematicText from "./SchematicText"
 
 interface Props {
   component: {
@@ -17,11 +17,13 @@ interface Props {
 }
 
 export const SchematicBug = ({ component: { source, schematic } }: Props) => {
+  const location = schematic.center
   const port_arrangement = {
     top_size: 0,
     bottom_size: 0,
     ...schematic.port_arrangement,
   }
+  const manufacturerPartNumber = source.manufacturerPartNumber
   // const port_labels = schematic.port_labels!
   let bugw = schematic.size.width // bug width
   let bugh = schematic.size.height
@@ -78,12 +80,27 @@ export const SchematicBug = ({ component: { source, schematic } }: Props) => {
   }
 
   return (
-    <SVGPathComponent
-      rotation={schematic.rotation}
-      center={actualCenter}
-      size={actualSize}
-      paths={paths}
-    />
+    <>
+      <SVGPathComponent
+        rotation={schematic.rotation}
+        center={actualCenter}
+        size={actualSize}
+        paths={paths}
+      />
+      <SchematicText
+        schematic_text={{
+          anchor: "bottom",
+          position: {
+            x: location.x + actualSize.minX / 1.5,
+            y: location.y + actualSize.minY,
+          },
+          schematic_component_id: "SYNTHETIC",
+          schematic_text_id: "SYNTHETIC",
+          text: manufacturerPartNumber,
+          type: "schematic_text",
+        }}
+      />
+    </>
   )
 }
 

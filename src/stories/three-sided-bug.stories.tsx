@@ -5,15 +5,15 @@ export const ThreeSidedBug = () => {
     <Schematic style={{ height: 600 }}>
       <bug
         name="B1"
-        port_arrangement={{
-          left_size: 3,
-          right_size: 3,
-          top_size: 0,
-          bottom_size: 5,
+        schPortArrangement={{
+          leftSize: 3,
+          rightSize: 3,
+          topSize: 0,
+          bottomSize: 5,
         }}
-        sch_cx={8}
-        sch_cy={3}
-        port_labels={{
+        schX={8}
+        schY={3}
+        pinLabels={{
           "1": "D0",
           "2": "D1",
         }}

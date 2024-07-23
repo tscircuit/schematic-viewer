@@ -7,13 +7,13 @@ export const OffCenterRendering = () => {
       <Schematic style={{ height: 600 }}>
         <bug
           name="B1"
-          port_arrangement={{
-            left_size: 3,
-            right_size: 2,
+          schPortArrangement={{
+            leftSide: { pins: [3, 2, 1], direction: "top-to-bottom" },
+            rightSide: { pins: [6, 5, 4], direction: "top-to-bottom" },
           }}
-          sch_cx={8}
-          sch_cy={3}
-          port_labels={{
+          schX={8}
+          schY={3}
+          pinLabels={{
             "1": "D0",
             "2": "D1",
           }}

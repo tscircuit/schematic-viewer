@@ -31,7 +31,7 @@ const soup: AnyElement[] = [
 ]
 
 export const SchematicPathSoup = () => {
-  return <Schematic style={{ height: 500 }} soup={soup} />
+  return <Schematic style={{ height: 500 }} soup={soup as any} />
 }
 
 export default {

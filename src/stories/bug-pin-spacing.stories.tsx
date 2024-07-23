@@ -3,6 +3,7 @@ import { Schematic } from "Schematic"
 const BugPinSpacingExample = () => (
   <bug
     name="U2"
+    manufacturerPartNumber="part-number"
     schPortArrangement={{
       leftSize: 2,
       rightSize: 2,

@@ -9,7 +9,7 @@ export const RotatedResistor = () => {
         schX={2}
         schY={1}
         schRotation="90deg"
-        rotation="90deg"
+        pcbRotation="90deg"
       />
     </Schematic>
   )

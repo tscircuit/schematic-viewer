@@ -4,18 +4,19 @@ const FTDIBasic3v3 = () => (
   <group>
     <bug
       name="U1"
-      port_arrangement={{
-        left_side: {
+      manufacturerPartNumber="part-number"
+      schPortArrangement={{
+        leftSide: {
           pins: [16, 15, 20, 17, 4, 27, 28, 19, 26, 25, 7, 18, 21],
           direction: "top-to-bottom",
         },
-        right_side: {
+        rightSide: {
           pins: [1, 5, 11, 3, 2, 9, 10, 6, 23, 22, 14, 13, 12],
           direction: "top-to-bottom",
         },
       }}
       footprint="ssop28Db"
-      port_labels={{
+      pinLabels={{
         "1": "TXD",
         "5": "RXD",
         "11": "CTS",
@@ -48,31 +49,33 @@ const FTDIBasic3v3 = () => (
       resistance="1kohm"
       name="R1"
       footprint="0805"
-      center={[3, 0]}
-      rotation="90deg"
+      schX={3}
+      schY={0}
+      schRotation="90deg"
     />
     <resistor
       resistance="1kohm"
       name="R2"
       footprint="0805"
-      center={[4.5, 0]}
-      rotation="90deg"
+      schX={4.5}
+      schY={0}
+      schRotation="90deg"
     />
-    <diode name="LED1" footprint="0805" rotation="90deg" center={[3, 2]} />
-    <diode name="LED2" footprint="0805" rotation="90deg" center={[4.5, 2]} />
-    <netalias net="5V" center={[3, -2]} />
-    <netalias net="5V" center={[4.5, -2]} />
+    <diode name="LED1" footprint="0805" schRotation={"90deg"} schX={3} schY={2} />
+    <diode name="LED2" footprint="0805" schRotation={"90deg"} schX={4.5} schY={2} />
+    <netalias net="5V" schX={3} schY={-2} />
+    <netalias net="5V" schX={4.5} schY={-2} />
     <trace path={[".5V", ".R2 > port.left"]} />
     <trace path={[".5V", ".R1 > port.left"]} />
     <trace path={[".R1 > port.right", ".LED1 > port.left"]} />
     <trace path={[".R2 > port.right", ".LED2 > port.left"]} />
     <trace path={[".LED1 > port.right", ".U1 > .TXLED"]} />
     <trace path={[".LED2 > port.right", ".U1 > .RXLED"]} />
-    <netalias net="GND" center={[-3, 4]} rotation="180deg" />
-    <netalias net="GND" center={[-5, 3]} rotation="180deg" />
-    <netalias net="GND" center={[-6, 3]} rotation="180deg" />
-    <netalias net="GND" center={[-7, 3]} rotation="180deg" />
-    <netalias net="GND" center={[-8, 2]} rotation="180deg" />
+    <netalias net="GND" schX={-3} schY={4} schRotation="180deg" />
+    <netalias net="GND" schX={-5} schY={3} schRotation="180deg" />
+    <netalias net="GND" schX={-6} schY={3} schRotation="180deg" />
+    <netalias net="GND" schX={-7} schY={3} schRotation="180deg" />
+    <netalias net="GND" schX={-8} schY={2} schRotation="180deg" />  
     {/* <component>
       <schematicbox
         name="USB"

@@ -35,6 +35,7 @@ export type LightEmittingDiode = SimpleDiode & {
 }
 
 export interface SimpleBug extends SourceComponentBase {
+  manufacturerPartNumber: any
   ftype: "simple_bug"
 }
 
