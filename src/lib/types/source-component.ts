@@ -48,6 +48,11 @@ export interface SimpleGround extends SourceComponentBase {
   ftype: "simple_ground"
 }
 
+export interface Switch extends SourceComponentBase {
+  ftype: "switch"
+  closed: boolean
+}
+
 export type AnySourceComponent =
   | SimpleResistor
   | SimpleCapacitor
@@ -55,6 +60,7 @@ export type AnySourceComponent =
   | SimpleInductor
   | SimplePowerSource
   | SimpleGround
+  | Switch
   | SimpleDiode
   | LightEmittingDiode
   | Omit<SourceComponentBase, "ftype">

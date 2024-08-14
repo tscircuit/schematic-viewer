@@ -1,66 +1,38 @@
-import React from 'react';
-import { SchematicComponent, Point } from '../lib/types/core';
+import * as Type from "../lib/types"
+import SVGPathComponent from "./SVGPathComponent"
 
-interface SwitchProps extends SchematicComponent {
-  closed?: boolean;
+interface Props {
+  component: {
+    source: Type.Switch
+    schematic: Type.SchematicComponent
+  }
 }
 
-export const Switch: React.FC<SwitchProps> = ({
-  schematic_component_id,
-  rotation,
-  size,
-  center,
-  closed = false,
-}) => {
-  const width = size.width;
-  const height = size.height;
-
-  const transform = `rotate(${rotation} ${center.x} ${center.y})`;
-
-  const calculatePoint = (x: number, y: number): Point => ({
-    x: center.x + x - width / 2,
-    y: center.y + y - height / 2,
-  });
-
-  const startPoint = calculatePoint(width * 0.1, height / 2);
-  const midPoint = calculatePoint(width * 0.3, height / 2);
-  const endPoint = calculatePoint(width * 0.9, height / 2);
-  const switchPoint = calculatePoint(width * 0.7, closed ? height / 2 : height / 6);
-
+export const Switch = ({
+  component: { source, schematic },
+}: Props) => {
   return (
-    <g id={schematic_component_id} transform={transform}>
-      <line
-        x1={startPoint.x}
-        y1={startPoint.y}
-        x2={midPoint.x}
-        y2={midPoint.y}
-        stroke="black"
-        strokeWidth="2"
-      />
-      
-      <line
-        x1={midPoint.x}
-        y1={midPoint.y}
-        x2={switchPoint.x}
-        y2={switchPoint.y}
-        stroke="black"
-        strokeWidth="2"
-      />
-      
-    
-      <line
-        x1={switchPoint.x}
-        y1={endPoint.y}
-        x2={endPoint.x}
-        y2={endPoint.y}
-        stroke="black"
-        strokeWidth="2"
-      />
-      
-      <circle cx={midPoint.x} cy={midPoint.y} r="3" fill="black" />
-      <circle cx={endPoint.x} cy={endPoint.y} r="3" fill="black" />
-    </g>
-  );
-};
+    <SVGPathComponent
+      rotation={schematic.rotation}
+      center={schematic.center}
+      size={schematic.size}
+      paths={[
+        { stroke: "black", strokeWidth: 2, d: "M 10 30 L 30 30" },
+        { stroke: "black", strokeWidth: 2, d: "M 30 30 L 70 " + (source.closed ? "30" : "10") },
+        { stroke: "black", strokeWidth: 2, d: "M 70 30 L 90 30" },
+        {
+          fill: "black", d: "M 30 30 m -3 0 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0",
+          strokeWidth: 0,
+          stroke: ""
+        },
+        {
+          fill: "black", d: "M 90 30 m -3 0 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0",
+          strokeWidth: 0,
+          stroke: ""
+        }
+      ]}
+    />
+  )
+}
 
-export default Switch;
+export default Switch
