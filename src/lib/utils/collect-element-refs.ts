@@ -1,8 +1,8 @@
-import { AnySoupElement, SourcePort } from "@tscircuit/soup"
+import { AnyCircuitElement, SourcePort } from "circuit-json"
 
 export const collectElementRefs = (
-  elm: AnySoupElement,
-  allElms: AnySoupElement[]
+  elm: AnyCircuitElement,
+  allElms: AnyCircuitElement[]
 ) => {
   const source_port = allElms.find(
     (e) =>
