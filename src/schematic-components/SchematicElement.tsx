@@ -1,4 +1,4 @@
-import { AnySoupElement } from "@tscircuit/soup"
+import { AnyCircuitElement } from "circuit-json"
 import { collectElementRefs } from "lib/utils/collect-element-refs"
 import SchematicBox from "./SchematicBox"
 import SchematicComponent from "./SchematicComponent"
@@ -16,8 +16,8 @@ export const SchematicElement = ({
   element,
   allElements,
 }: {
-  element: AnySoupElement
-  allElements: AnySoupElement[]
+  element: AnyCircuitElement
+  allElements: AnyCircuitElement[]
 }) => {
   // A lot of the split logic for element types into a project is here:
   // https://github.com/tscircuit/builder/blob/7e7bef9c0aadd11999795003b8986f0d244c111f/src/lib/project/create-project-from-elements.ts#L13

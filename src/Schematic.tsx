@@ -1,24 +1,21 @@
-import { useCallback, useEffect, useState } from "react"
-import { ContextProviders, ProjectComponent } from "schematic-components"
-import { SuperGrid, toMMSI } from "react-supergrid"
 import {
   AnyElement,
   createProjectBuilder,
   createProjectFromElements,
   findBoundsAndCenter,
-  transformSchematicElement,
 } from "@tscircuit/builder"
-import * as builder1 from "@tscircuit/builder"
 import TscReactFiber, { createRoot } from "@tscircuit/react-fiber"
-import { SchematicElement } from "schematic-components/SchematicElement"
-import { collectElementRefs } from "lib/utils/collect-element-refs"
-import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
-import { ErrorBoundary as TypedErrorBoundary } from "react-error-boundary"
-import { identity, compose, scale, translate } from "transformation-matrix"
+import { AnyCircuitElement } from "circuit-json"
 import { useGlobalStore } from "lib/render-context"
+import { useCallback, useEffect, useState } from "react"
+import { ErrorBoundary as TypedErrorBoundary } from "react-error-boundary"
+import { SuperGrid, toMMSI } from "react-supergrid"
 import useMeasure from "react-use-measure"
+import { ContextProviders } from "schematic-components"
+import { SchematicElement } from "schematic-components/SchematicElement"
+import { compose, scale, translate } from "transformation-matrix"
+import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { TableViewer } from "./schematic-components/TableViewer"
-import { AnySoupElement } from "@tscircuit/soup"
 
 const ErrorBoundary = TypedErrorBoundary as any
 
@@ -41,13 +38,13 @@ export interface SchematicProps {
   /** @deprecated use soup */
   elements?: any
 
-  soup?: AnySoupElement[]
+  soup?: AnyCircuitElement[]
 
   style?: any
 
   showTable?: boolean
 
-  _soupPostProcessor?: (soup: AnySoupElement[]) => AnySoupElement[]
+  _soupPostProcessor?: (soup: AnyCircuitElement[]) => AnyCircuitElement[]
 }
 
 export const Schematic = (props: SchematicProps) => {
@@ -84,17 +81,17 @@ export const SchematicWithoutContext = ({
       const elmBounds = (ref.current as HTMLDivElement).getBoundingClientRect()
 
       const { center, width, height } = elements.some((e) =>
-        e.type.startsWith("schematic_")
+        e.type.startsWith("schematic_"),
       )
         ? findBoundsAndCenter(
-            elements.filter((e) => e.type.startsWith("schematic_"))
+            elements.filter((e) => e.type.startsWith("schematic_")),
           )
         : { center: { x: 0, y: 0 }, width: 0.001, height: 0.001 }
 
       const scaleFactor = Math.min(
         (elmBounds.width ?? 0) / width,
         (elmBounds.height ?? 0) / height,
-        100
+        100,
       )
       setElements(elements)
       setProject(createProjectFromElements(elements))
@@ -102,11 +99,11 @@ export const SchematicWithoutContext = ({
         compose(
           translate((elmBounds.width ?? 0) / 2, (elmBounds.height ?? 0) / 2),
           scale(scaleFactor, -scaleFactor, 0, 0),
-          translate(-center.x, -center.y)
-        )
+          translate(-center.x, -center.y),
+        ),
       )
     },
-    [setElements, setTransform]
+    [setElements, setTransform],
   )
 
   useEffect(() => {
