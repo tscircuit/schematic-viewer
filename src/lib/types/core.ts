@@ -5,7 +5,6 @@ import {
   PcbTrace,
   PcbComponent,
   PcbPort,
-  SchematicComponent,
   SourceGroup,
 } from "circuit-json"
 
@@ -25,6 +24,26 @@ export interface SchematicGroup {
   size: Size
   children_schematic_component_ids: string[]
   children_schematic_trace_ids: string[]
+}
+
+export interface SchematicComponent {
+  type: "schematic_component"
+  rotation: number
+  size: Size
+  center: Point
+  source_component_id: string
+  schematic_component_id: string
+
+  // TODO only for schematic-bug
+  port_arrangement?: {
+    left_size: number
+    right_size: number
+    top_size?: number
+    bottom_size?: number
+  }
+  port_labels?: {
+    [port_number: string]: string
+  }
 }
 
 export interface SchematicBox {
