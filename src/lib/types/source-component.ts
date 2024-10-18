@@ -38,6 +38,10 @@ export interface SimpleBug extends SourceComponentBase {
   manufacturerPartNumber: any
   ftype: "simple_bug"
 }
+export interface SimpleChip extends SourceComponentBase {
+  manufacturerPartNumber: any
+  ftype: "simple_chip"
+}
 
 export interface SimplePowerSource extends SourceComponentBase {
   ftype: "simple_power_source"
@@ -52,6 +56,7 @@ export type AnySourceComponent =
   | SimpleResistor
   | SimpleCapacitor
   | SimpleBug
+  | SimpleChip
   | SimpleInductor
   | SimplePowerSource
   | SimpleGround

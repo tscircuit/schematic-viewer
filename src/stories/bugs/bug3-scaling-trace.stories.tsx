@@ -1,13 +1,19 @@
-import { useResistor } from "@tscircuit/react-fiber"
 import { Schematic } from "../../Schematic"
 
 export const Bug3ScalingTrace = () => {
-  const R1 = useResistor("R1", { resistance: "10" })
-  const R2 = useResistor("R2", { resistance: "1k" })
   return (
     <Schematic style={{ height: 500 }}>
-      <R1 schX={2} schY={1} />
-      <R2 schRotation="90deg" schX={0} schY={3} left={R1.left} />
+      <board width={"10mm"} height={"10mm"} pcbX={0} pcbY={0}>
+        <resistor name="R1" resistance="10" schX={2} schY={1} />
+        <resistor
+          name="R2"
+          resistance="1k"
+          schX={0}
+          schY={3}
+          symbolName="boxresistor_vert"
+        />
+        <trace path={[".R1 > port.right", ".R2 > port.left"]} />
+      </board>
     </Schematic>
   )
 }

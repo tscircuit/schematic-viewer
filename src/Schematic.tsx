@@ -1,20 +1,21 @@
-import {
-  AnyElement,
-  createProjectBuilder,
-  createProjectFromElements,
-  findBoundsAndCenter,
-} from "@tscircuit/builder"
-import TscReactFiber, { createRoot } from "@tscircuit/react-fiber"
-import { AnyCircuitElement } from "circuit-json"
+import { useRenderedCircuit } from "@tscircuit/core"
+import { findBoundsAndCenter } from "@tscircuit/soup-util"
+import type { AnyCircuitElement } from "circuit-json"
 import { useGlobalStore } from "lib/render-context"
-import { useCallback, useEffect, useState } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import { ErrorBoundary as TypedErrorBoundary } from "react-error-boundary"
 import { SuperGrid, toMMSI } from "react-supergrid"
 import useMeasure from "react-use-measure"
 import { ContextProviders } from "schematic-components"
 import { SchematicElement } from "schematic-components/SchematicElement"
-import { compose, scale, translate } from "transformation-matrix"
-import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
+import {
+  applyToPoint,
+  compose,
+  inverse,
+  Matrix,
+  scale,
+  translate,
+} from "transformation-matrix"
 import { TableViewer } from "./schematic-components/TableViewer"
 
 const ErrorBoundary = TypedErrorBoundary as any
@@ -34,16 +35,9 @@ const toMMSINeg = (v: number, z: number) =>
 
 export interface SchematicProps {
   children?: any
-
-  /** @deprecated use soup */
-  elements?: any
-
   soup?: AnyCircuitElement[]
-
-  style?: any
-
+  style?: React.CSSProperties
   showTable?: boolean
-
   _soupPostProcessor?: (soup: AnyCircuitElement[]) => AnyCircuitElement[]
 }
 
@@ -57,28 +51,54 @@ export const Schematic = (props: SchematicProps) => {
 
 export const SchematicWithoutContext = ({
   children,
-  elements: initialElements,
-  soup: initialSoup,
+  soup,
   style,
   showTable = false,
   _soupPostProcessor,
 }: SchematicProps) => {
-  initialSoup = initialSoup ?? initialElements ?? []
+  const {
+    circuitJson: circuitJsonFromChildren,
+    error: errorFromChildren,
+    isLoading,
+  } = useRenderedCircuit(children)
 
-  const [elements, setElements] = useState<any>(initialSoup ?? [])
-  const [project, setProject] = useState<any>(null)
-  const { setCameraTransform, camera_transform: cameraTransform } =
-    useGlobalStore()
+  const [elements, setElements] = useState<AnyCircuitElement[]>([])
+  const { setCameraTransform } = useGlobalStore()
   const [boundsRef, bounds] = useMeasure()
-  const { ref, setTransform } = useMouseMatrixTransform({
-    onSetTransform: (transform) => {
-      setCameraTransform(transform)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const transformRef = useRef<Matrix>(compose(translate(0, 0), scale(1, 1)))
+  const isDraggingRef = useRef(false)
+  const lastMousePosRef = useRef({ x: 0, y: 0 })
+  const [, forceUpdate] = useState({})
+
+  const updateTransform = useCallback(
+    (newTransform: Matrix) => {
+      transformRef.current = newTransform
+      setCameraTransform(newTransform)
+      forceUpdate({})
     },
-    // initialTransform: compose(scale(100, 100, 0, 0)),
-  })
-  const setElementsAndCamera = useCallback(
-    (elements: Array<AnyElement>) => {
-      const elmBounds = (ref.current as HTMLDivElement).getBoundingClientRect()
+    [setCameraTransform],
+  )
+
+  useEffect(() => {
+    let processedElements: AnyCircuitElement[] = []
+    if (circuitJsonFromChildren && (!soup || soup.length === 0)) {
+      processedElements = circuitJsonFromChildren as AnyCircuitElement[]
+    } else if (soup && soup.length > 0) {
+      processedElements = soup
+    }
+
+    if (processedElements.length > 0) {
+      if (_soupPostProcessor) {
+        processedElements = _soupPostProcessor(processedElements)
+      }
+      setElements(processedElements)
+    }
+  }, [circuitJsonFromChildren, soup, _soupPostProcessor])
+
+  useEffect(() => {
+    if (elements.length > 0 && containerRef.current) {
+      const elmBounds = containerRef.current.getBoundingClientRect()
 
       const { center, width, height } = elements.some((e) =>
         e.type.startsWith("schematic_"),
@@ -93,38 +113,88 @@ export const SchematicWithoutContext = ({
         (elmBounds.height ?? 0) / height,
         100,
       )
-      setElements(elements)
-      setProject(createProjectFromElements(elements))
-      setTransform(
-        compose(
-          translate((elmBounds.width ?? 0) / 2, (elmBounds.height ?? 0) / 2),
-          scale(scaleFactor, -scaleFactor, 0, 0),
-          translate(-center.x, -center.y),
-        ),
+
+      const newTransform = compose(
+        translate((elmBounds.width ?? 0) / 2, (elmBounds.height ?? 0) / 2),
+        scale(scaleFactor, -scaleFactor, 0, 0),
+        translate(-center.x, -center.y),
       )
+
+      updateTransform(newTransform)
+    }
+  }, [elements, bounds.width, bounds.height, updateTransform])
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    isDraggingRef.current = true
+    lastMousePosRef.current = { x: e.clientX, y: e.clientY }
+  }, [])
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isDraggingRef.current) return
+
+      const dx = e.clientX - lastMousePosRef.current.x
+      const dy = e.clientY - lastMousePosRef.current.y
+      lastMousePosRef.current = { x: e.clientX, y: e.clientY }
+
+      const scale = transformRef.current.a // Assuming uniform scaling
+      const dragSensitivity = 150 / scale // Adjust this value to change drag speed
+
+      const newTransform = compose(
+        translate(dx * dragSensitivity, dy * dragSensitivity),
+        transformRef.current,
+      )
+      updateTransform(newTransform)
     },
-    [setElements, setTransform],
+    [updateTransform],
+  )
+
+  const handleMouseUp = useCallback(() => {
+    isDraggingRef.current = false
+  }, [])
+
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      e.preventDefault()
+      const scaleMultiplier = Math.pow(0.999, e.deltaY)
+
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        const mouseX = e.clientX - rect.left
+        const mouseY = e.clientY - rect.top
+
+        const inverseTransform = inverse(transformRef.current)
+        const transformedPoint = applyToPoint(inverseTransform, {
+          x: mouseX,
+          y: mouseY,
+        })
+
+        const newTransform = compose(
+          transformRef.current,
+          translate(transformedPoint.x, transformedPoint.y),
+          scale(scaleMultiplier, scaleMultiplier),
+          translate(-transformedPoint.x, -transformedPoint.y),
+        )
+
+        updateTransform(newTransform)
+      }
+    },
+    [updateTransform],
   )
 
   useEffect(() => {
-    if (initialSoup.length > 0) {
-      setElementsAndCamera(initialSoup as any)
-      return
+    const container = containerRef.current
+    if (container) {
+      container.addEventListener("wheel", handleWheel, { passive: false })
+      return () => {
+        container.removeEventListener("wheel", handleWheel)
+      }
     }
-    const projectBuilder = createProjectBuilder()
-    ;((createRoot ?? TscReactFiber.createRoot) as any)()
-      .render(children, projectBuilder as any)
-      .then(async (elements) => {
-        if (_soupPostProcessor) {
-          elements = _soupPostProcessor(elements)
-        }
-        setElementsAndCamera(elements)
-      })
-      .catch((e) => {
-        console.error("ERROR RENDERING CIRCUIT")
-        throw e
-      })
-  }, [children])
+  }, [handleWheel])
+
+  if (errorFromChildren) {
+    return <div>Error: {errorFromChildren.message}</div>
+  }
 
   return (
     <>
@@ -136,13 +206,17 @@ export const SchematicWithoutContext = ({
           overflow: "hidden",
           position: "relative",
           isolation: "isolate",
-          cursor: "grab",
+          cursor: isDraggingRef.current ? "grabbing" : "grab",
           ...style,
         }}
         ref={(el) => {
-          ref.current = el
+          containerRef.current = el
           boundsRef(el)
         }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
         <SuperGrid
           stringifyCoord={(x, y, z) => {
@@ -151,7 +225,7 @@ export const SchematicWithoutContext = ({
           }}
           width={bounds.width}
           height={bounds.height}
-          transform={cameraTransform}
+          transform={transformRef.current}
         />
         {elements?.map((elm, i) => (
           <ErrorBoundary key={i} fallbackRender={fallbackRender(elm)}>
@@ -163,7 +237,7 @@ export const SchematicWithoutContext = ({
           </ErrorBoundary>
         ))}
       </div>
-      {showTable !== false && elements && <TableViewer elements={elements} />}
+      {showTable !== false && elements && <TableViewer elements={elements as any} />}
     </>
   )
 }

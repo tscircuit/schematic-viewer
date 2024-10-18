@@ -1,4 +1,3 @@
-import { useResistor } from "@tscircuit/react-fiber"
 import { Schematic } from "../../Schematic"
 
 export const Bug5SchematicLine = () => {
