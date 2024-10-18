@@ -1,11 +1,10 @@
-import { AnyCircuitElement } from "circuit-json"
-import * as Type from "lib/types"
+import { AnyCircuitElement, SchematicComponent as SchematicComponentType } from "circuit-json"
 import * as Component from "./"
 
 interface Props {
   component: {
-    source: Type.SourceComponent
-    schematic: Type.SchematicComponent
+    source: any
+    schematic: SchematicComponentType
     schematic_children: any[]
     allElements: AnyCircuitElement[]
   }

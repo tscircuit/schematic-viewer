@@ -1,11 +1,7 @@
 import { AnyCircuitElement } from "circuit-json"
 import { collectElementRefs } from "lib/utils/collect-element-refs"
-import SchematicBox from "./SchematicBox"
 import SchematicComponent from "./SchematicComponent"
-import SchematicLine from "./SchematicLine"
 import { SchematicNetLabel } from "./SchematicNetLabel"
-import SchematicPath from "./SchematicPath"
-import SchematicPort from "./SchematicPort"
 import SchematicText from "./SchematicText"
 import SchematicTrace from "./SchematicTrace"
 
@@ -32,30 +28,6 @@ export const SchematicElement = ({
   if (element.type === "schematic_trace") {
     return (
       <SchematicTrace trace={collectElementRefs(element, allElements) as any} />
-    )
-  }
-
-  // if (element.type === "schematic_port") {
-  //   return (
-  //     <SchematicPort port={collectElementRefs(element, allElements) as any} />
-  //   )
-  // }
-
-  if (element.type === "schematic_box") {
-    return (
-      <SchematicBox box={collectElementRefs(element, allElements) as any} />
-    )
-  }
-
-  if (element.type === "schematic_line") {
-    return (
-      <SchematicLine line={collectElementRefs(element, allElements) as any} />
-    )
-  }
-
-  if (element.type === "schematic_path") {
-    return (
-      <SchematicPath path={collectElementRefs(element, allElements) as any} />
     )
   }
 

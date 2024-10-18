@@ -1,12 +1,12 @@
-import * as Type from "lib/types"
+import { SchematicComponent, SourceSimpleResistor } from "circuit-json"
 import { colorMap } from "lib/utils/colors"
 import { symbols } from "schematic-symbols"
 import SVGPathComponent from "./SVGPathComponent"
 
 interface Props {
   component: {
-    source: Type.SimpleResistor
-    schematic: Type.SchematicComponent
+    source: SourceSimpleResistor
+    schematic: SchematicComponent
   }
 }
 

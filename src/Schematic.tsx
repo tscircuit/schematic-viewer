@@ -8,7 +8,6 @@ import { SuperGrid, toMMSI } from "react-supergrid"
 import useMeasure from "react-use-measure"
 import { ContextProviders } from "schematic-components"
 import { SchematicElement } from "schematic-components/SchematicElement"
-import fs from "fs"
 import {
   applyToPoint,
   compose,
@@ -35,7 +34,7 @@ const toMMSINeg = (v: number, z: number) =>
   v >= 0 ? toMMSI(v, z) : `-${toMMSI(-v, z)}`
 
 export interface SchematicProps {
-  children?: React.ReactNode
+  children?: any
   soup?: AnyCircuitElement[]
   style?: React.CSSProperties
   showTable?: boolean
@@ -84,7 +83,7 @@ export const SchematicWithoutContext = ({
   useEffect(() => {
     let processedElements: AnyCircuitElement[] = []
     if (circuitJsonFromChildren && (!soup || soup.length === 0)) {
-      processedElements = circuitJsonFromChildren
+      processedElements = circuitJsonFromChildren as AnyCircuitElement[]
     } else if (soup && soup.length > 0) {
       processedElements = soup
     }
@@ -193,10 +192,6 @@ export const SchematicWithoutContext = ({
     }
   }, [handleWheel])
 
-  // if (isLoading) {
-  //   return <div>Loading...</div>
-  // }
-
   if (errorFromChildren) {
     return <div>Error: {errorFromChildren.message}</div>
   }
@@ -242,7 +237,7 @@ export const SchematicWithoutContext = ({
           </ErrorBoundary>
         ))}
       </div>
-      {showTable !== false && elements && <TableViewer elements={elements} />}
+      {showTable !== false && elements && <TableViewer elements={elements as any} />}
     </>
   )
 }

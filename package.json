@@ -17,7 +17,6 @@
     "chromatic": "npx chromatic --project-token=chpt_d88a6beb0734bbe"
   },
   "peerDependencies": {
-    "@tscircuit/builder": "*",
     "@tscircuit/table-viewer": "*",
     "react": "*"
   },
@@ -34,7 +33,6 @@
     "@storybook/nextjs": "^8.1.3",
     "@storybook/react": "^8.1.3",
     "@storybook/testing-library": "^0.0.14-next.2",
-    "@tscircuit/builder": "^1.5.126",
     "@tscircuit/routing": "^1.3.0",
     "@tscircuit/table-viewer": "^0.0.6",
     "@types/node": "^18.6.0",

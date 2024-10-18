@@ -71,14 +71,14 @@ export const BugHighPortNumbers = () => {
         footprint="0805"
         symbolName="diode_vert"
         schX={3}
-        schY={2}
+        schY={3}
       />
       <diode
         name="LED2"
         footprint="0805"
         symbolName="diode_vert"
         schX={4.5}
-        schY={2}
+        schY={3}
       />
       <netalias net="5V" schX={3} schY={-2} />
       <netalias net="5V" schX={4.5} schY={-2} />
@@ -86,7 +86,7 @@ export const BugHighPortNumbers = () => {
       <trace path={[".5V", ".R1 > port.left"]} /> */}
       <trace path={[".R1 > port.right", ".LED1 > port.left"]} />
       <trace path={[".R2 > port.right", ".LED2 > port.left"]} />
-      <trace path={[".LED1 > port.right", ".U1 > .TXLED"]} />
+      <trace path={[".LED1 > port.right", ".U1 > .pin1"]} />
       <trace path={[".LED2 > port.right", ".U1 > .RXLED"]} />
       <netalias net="GND" schX={-3} schY={4} schRotation="180deg" />
       <netalias net="GND" schX={-5} schY={3} schRotation="180deg" />
@@ -108,9 +108,7 @@ export const BugHighPortNumbers = () => {
 
   const circuitJson = circuit.getCircuitJson()
 
-  // console.log(JSON.stringify(circuitJson))
-
-  return <Schematic soup={circuitJson} style={{ height: 600 }} />
+  return <Schematic soup={circuitJson as any} style={{ height: 600 }} />
 }
 
 export default {

@@ -1,4 +1,4 @@
-import { AnyCircuitElement, SchematicComponent, SchematicPort } from "circuit-json";
+import { AnyCircuitElement, SchematicPort as OriginalSchematicPort, SchematicComponent } from "circuit-json";
 import * as Type from "lib/types";
 import { colorMap } from "lib/utils/colors";
 import SVGPathComponent from "./SVGPathComponent";
@@ -12,16 +12,28 @@ interface Props {
   }
 }
 
+// Extend the Center type within SchematicPort
+type ExtendedCenter = OriginalSchematicPort['center'] & {
+  side: "left" | "right" | "top" | "bottom";
+  pinNumber: number;
+};
+
+// Create a new type for SchematicPort with the extended Center
+type SchematicPort = Omit<OriginalSchematicPort, 'center'> & {
+  center: ExtendedCenter;
+};
+
 export const SchematicChip = ({ component: { source, schematic, allElements } }: Props) => {
   const { center, size, rotation, schematic_component_id } = schematic;
   const { manufacturerPartNumber, name } = source;
   const chipWidth = size.width;
   const chipHeight = size.height;
 
-  const paths: Array<{strokeWidth: number, stroke: string, fill?: string, d: string}> = [];
+  const paths: Array<{type?: 'path' | 'circle', strokeWidth: number, stroke: string, fill?: string, d?: string, cx?: number, cy?: number, r?: number}> = [];
 
   // Main chip rectangle
   paths.push({
+    type: 'path',
     strokeWidth: 0.02,
     stroke: colorMap.schematic.component_outline,
     fill: colorMap.schematic.component_body,
@@ -34,11 +46,12 @@ export const SchematicChip = ({ component: { source, schematic, allElements } }:
       item.type === "schematic_port" && 
       item.schematic_component_id === schematic_component_id &&
       item.center && 
+      'side' in item.center &&
       (item.center.side === "left" || item.center.side === "right" || item.center.side === "top" || item.center.side === "bottom")
   );
 
   const portLength = 0.2;
-  const squareSize = 0.1;
+  const circleRadius = 0.05;
   const labelOffset = 0.1;
 
   const pinLabels: Array<{x: number, y: number, text: string, anchor: string}> = [];
@@ -52,48 +65,50 @@ export const SchematicChip = ({ component: { source, schematic, allElements } }:
     switch (side) {
       case "left":
         endX = -chipWidth / 2 - portLength;
-        labelX = endX;
+        labelX = endX - labelOffset;
         labelY = y + labelOffset;
-        textAnchor = "middle";
+        textAnchor = "end";
         break;
       case "right":
         endX = chipWidth / 2 + portLength;
         labelX = endX - labelOffset;
         labelY = y + labelOffset;
-        textAnchor = "middle";
+        textAnchor = "start";
         break;
       case "top":
         endY = -chipHeight / 2 - portLength;
         labelY = endY - labelOffset;
-        textAnchor = "middle";
         break;
       case "bottom":
         endY = chipHeight / 2 + portLength;
         labelY = endY + labelOffset;
-        textAnchor = "middle";
         break;
     }
 
     // Port line
     paths.push({
+      type: 'path',
       strokeWidth: 0.02,
       stroke: colorMap.schematic.component_outline,
       d: `M ${x},${y} L ${endX},${endY}`,
     });
 
-    // Port square at the end of the line
+    // Port circle at the end of the line
     paths.push({
+      type: 'circle',
+      cx: endX,
+      cy: endY,
+      r: circleRadius,
       strokeWidth: 0.01,
       stroke: colorMap.schematic.component_outline,
       fill: colorMap.schematic.component_outline,
-      d: `M ${endX - squareSize / 2},${endY - squareSize / 2} h ${squareSize} v ${squareSize} h ${-squareSize} Z`,
     });
 
     // Add pin label
     pinLabels.push({
       x: labelX,
       y: labelY,
-      text: pinNumber,
+      text: pinNumber.toString(),
       anchor: textAnchor
     });
   });
@@ -104,7 +119,7 @@ export const SchematicChip = ({ component: { source, schematic, allElements } }:
         rotation={rotation}
         center={center}
         size={size}
-        paths={paths}
+        paths={paths as any}
       />
       {pinLabels.map((label, index) => (
         <SchematicText
