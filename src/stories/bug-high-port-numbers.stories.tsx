@@ -6,7 +6,7 @@ export const BugHighPortNumbers = () => {
 
   circuit.add(
     <group>
-      <bug
+      <chip
         name="U1"
         manufacturerPartNumber="part-number"
         schPortArrangement={{
@@ -19,6 +19,7 @@ export const BugHighPortNumbers = () => {
             direction: "top-to-bottom",
           },
         }}
+        schWidth={1}
         footprint="ssop28Db"
         pinLabels={{
           "1": "TXD",
@@ -55,7 +56,7 @@ export const BugHighPortNumbers = () => {
         footprint="0805"
         schX={3}
         schY={0}
-        schRotation="90deg"
+        symbolName="boxresistor_vert"
       />
       <resistor
         resistance="1kohm"
@@ -63,26 +64,26 @@ export const BugHighPortNumbers = () => {
         footprint="0805"
         schX={4.5}
         schY={0}
-        schRotation="90deg"
+        symbolName="boxresistor_vert"
       />
       <diode
         name="LED1"
         footprint="0805"
-        schRotation={"90deg"}
+        symbolName="diode_vert"
         schX={3}
         schY={2}
       />
       <diode
         name="LED2"
         footprint="0805"
-        schRotation={"90deg"}
+        symbolName="diode_vert"
         schX={4.5}
         schY={2}
       />
       <netalias net="5V" schX={3} schY={-2} />
       <netalias net="5V" schX={4.5} schY={-2} />
-      <trace path={[".5V", ".R2 > port.left"]} />
-      <trace path={[".5V", ".R1 > port.left"]} />
+      {/* <trace path={[".5V", ".R2 > port.left"]} />
+      <trace path={[".5V", ".R1 > port.left"]} /> */}
       <trace path={[".R1 > port.right", ".LED1 > port.left"]} />
       <trace path={[".R2 > port.right", ".LED2 > port.left"]} />
       <trace path={[".LED1 > port.right", ".U1 > .TXLED"]} />
@@ -107,7 +108,9 @@ export const BugHighPortNumbers = () => {
 
   const circuitJson = circuit.getCircuitJson()
 
-  return <Schematic soup={circuitJson} />
+  // console.log(JSON.stringify(circuitJson))
+
+  return <Schematic soup={circuitJson} style={{ height: 600 }} />
 }
 
 export default {

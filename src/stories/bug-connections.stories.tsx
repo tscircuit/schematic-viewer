@@ -9,6 +9,9 @@ export const BugConnections = () => {
           leftSize: 3,
           rightSize: 2,
         }}
+        schHeight={5}
+        schWidth={3}
+        schPinSpacing={2}
         schX={8}
         schY={3}
         pinLabels={{

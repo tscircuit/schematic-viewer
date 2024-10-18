@@ -1,14 +1,13 @@
 import { useGlobalStore } from "lib/render-context"
 import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
-import { useCallback, useState } from "react"
+import { useState } from "react"
 
 import {
   applyToPoint,
-  toSVG,
-  inverse,
   compose,
-  translate,
   scale,
+  toSVG,
+  translate,
 } from "transformation-matrix"
 
 interface Props {
@@ -99,9 +98,9 @@ export const SVGPathComponent = ({
         : fullSize.width / pathBounds.width,
       pathBounds.height === 0
         ? preferredRatio
-        : fullSize.height / pathBounds.height
+        : fullSize.height / pathBounds.height,
     ),
-    translate(-pathBounds.minX, -pathBounds.minY)
+    translate(-pathBounds.minX, -pathBounds.minY),
     // translate(center.x, center.y)
   )
   // console.log(svgToScreen)
@@ -154,7 +153,7 @@ export const SVGPathComponent = ({
           transform: [
             invertY ? "scale(1, 1)" : "scale(1, -1)", // TODO based on ct.d
             shiftToBottom ? "translate(0, 100%)" : "",
-            rotation === 0 ? "" : `rotate(${rotation}rad)`,
+            rotation === 0 ? "" : `rotate(${rotation})`,
           ].join(" "),
           left: svgLeft,
           top: svgTop,

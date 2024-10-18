@@ -35,11 +35,11 @@ export const SchematicElement = ({
     )
   }
 
-  if (element.type === "schematic_port") {
-    return (
-      <SchematicPort port={collectElementRefs(element, allElements) as any} />
-    )
-  }
+  // if (element.type === "schematic_port") {
+  //   return (
+  //     <SchematicPort port={collectElementRefs(element, allElements) as any} />
+  //   )
+  // }
 
   if (element.type === "schematic_box") {
     return (

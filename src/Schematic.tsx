@@ -1,3 +1,4 @@
+import { useRenderedCircuit } from "@tscircuit/core"
 import { findBoundsAndCenter } from "@tscircuit/soup-util"
 import type { AnyCircuitElement } from "circuit-json"
 import { useGlobalStore } from "lib/render-context"
@@ -7,6 +8,7 @@ import { SuperGrid, toMMSI } from "react-supergrid"
 import useMeasure from "react-use-measure"
 import { ContextProviders } from "schematic-components"
 import { SchematicElement } from "schematic-components/SchematicElement"
+import fs from "fs"
 import {
   applyToPoint,
   compose,
@@ -33,7 +35,8 @@ const toMMSINeg = (v: number, z: number) =>
   v >= 0 ? toMMSI(v, z) : `-${toMMSI(-v, z)}`
 
 export interface SchematicProps {
-  soup: AnyCircuitElement[]
+  children?: React.ReactNode
+  soup?: AnyCircuitElement[]
   style?: React.CSSProperties
   showTable?: boolean
   _soupPostProcessor?: (soup: AnyCircuitElement[]) => AnyCircuitElement[]
@@ -48,11 +51,18 @@ export const Schematic = (props: SchematicProps) => {
 }
 
 export const SchematicWithoutContext = ({
+  children,
   soup,
   style,
   showTable = false,
   _soupPostProcessor,
 }: SchematicProps) => {
+  const {
+    circuitJson: circuitJsonFromChildren,
+    error: errorFromChildren,
+    isLoading,
+  } = useRenderedCircuit(children)
+
   const [elements, setElements] = useState<AnyCircuitElement[]>([])
   const { setCameraTransform } = useGlobalStore()
   const [boundsRef, bounds] = useMeasure()
@@ -72,13 +82,20 @@ export const SchematicWithoutContext = ({
   )
 
   useEffect(() => {
-    if (soup && soup.length > 0) {
-      const processedElements = _soupPostProcessor
-        ? _soupPostProcessor(soup)
-        : soup
+    let processedElements: AnyCircuitElement[] = []
+    if (circuitJsonFromChildren && (!soup || soup.length === 0)) {
+      processedElements = circuitJsonFromChildren
+    } else if (soup && soup.length > 0) {
+      processedElements = soup
+    }
+
+    if (processedElements.length > 0) {
+      if (_soupPostProcessor) {
+        processedElements = _soupPostProcessor(processedElements)
+      }
       setElements(processedElements)
     }
-  }, [soup, _soupPostProcessor])
+  }, [circuitJsonFromChildren, soup, _soupPostProcessor])
 
   useEffect(() => {
     if (elements.length > 0 && containerRef.current) {
@@ -175,6 +192,14 @@ export const SchematicWithoutContext = ({
       }
     }
   }, [handleWheel])
+
+  // if (isLoading) {
+  //   return <div>Loading...</div>
+  // }
+
+  if (errorFromChildren) {
+    return <div>Error: {errorFromChildren.message}</div>
+  }
 
   return (
     <>
