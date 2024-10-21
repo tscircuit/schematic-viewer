@@ -1,11 +1,12 @@
-import * as Type from "lib/types"
+import { AnyCircuitElement, SchematicComponent as SchematicComponentType } from "circuit-json"
 import * as Component from "./"
 
 interface Props {
   component: {
-    source: Type.SourceComponent
-    schematic: Type.SchematicComponent
+    source: any
+    schematic: SchematicComponentType
     schematic_children: any[]
+    allElements: AnyCircuitElement[]
   }
 }
 
@@ -14,30 +15,23 @@ interface Props {
  * generating schematic lines directly
  */
 export const SchematicComponent = ({ component }: Props) => {
-  const { source, schematic } = component
+  const { source, schematic, allElements } = component
   if (!source.ftype) return null
 
   switch (source.ftype) {
-    case "simple_resistor": {
-      return <Component.SimpleResistor component={{ source, schematic }} />
+    case "simple_resistor": 
+    case "simple_capacitor":
+    case "simple_power_source":
+    case "simple_ground":
+    case "simple_inductor":
+    case "simple_diode":
+    {
+      return <Component.SchematicComponentFromSymbol component={{ source, schematic }} />
     }
-    case "simple_capacitor": {
-      return <Component.SimpleCapacitor component={{ source, schematic }} />
-    }
-    case "simple_power_source": {
-      return <Component.SimplePowerSource component={{ source, schematic }} />
-    }
-    case "simple_ground": {
-      return <Component.SimpleGround component={{ source, schematic }} />
-    }
-    case "simple_inductor": {
-      return <Component.SimpleInductor component={{ source, schematic }} />
-    }
-    case "simple_bug": {
-      return <Component.SchematicBug component={{ source, schematic }} />
-    }
-    case "simple_diode": {
-      return <Component.SimpleDiode component={{ source, schematic }} />
+    case "simple_chip":
+    case "simple_bug":
+    {
+      return <Component.SchematicChip component={{ source, schematic, allElements }} />
     }
     default: {
       return <div>unknown ftype: {component.source.ftype}</div>

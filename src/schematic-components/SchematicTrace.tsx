@@ -4,6 +4,7 @@ import Path from "svg-path-generator"
 import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
 import RenderError from "./RenderError"
 import SVGPathComponent2 from "./SVGPathComponent2"
+import { colorMap } from "lib/utils/colors"
 
 interface Props {
   trace: {
@@ -33,14 +34,14 @@ export const SchematicTrace = ({ trace: { source, schematic } }: Props) => {
     y: pathBounds.minY + pathBounds.height / 2,
   }
   return (
-    <SVGPathComponent2
+    <SVGPathComponent
       rotation={0}
       center={center}
       size={pathBounds}
       paths={[
         {
-          stroke: "green",
-          strokeWidth: 0.02,
+          stroke:colorMap.schematic.wire,
+          strokeWidth: 0.01,
           d,
         },
       ]}

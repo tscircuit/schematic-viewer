@@ -38,6 +38,7 @@ export const collectElementRefs = (
       source: source_component,
       source_component,
       source_port,
+      allElements: allElms,
     }
   }
   return null
