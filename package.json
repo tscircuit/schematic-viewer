@@ -63,7 +63,7 @@
   },
   "dependencies": {
     "@storybook/react-vite": "^8.1.3",
-    "@tscircuit/core": "^0.0.121",
+    "@tscircuit/core": "^0.0.125",
     "@tscircuit/layout": "^0.0.25",
     "@tscircuit/props": "^0.0.23",
     "@tscircuit/soup-util": "^0.0.38",

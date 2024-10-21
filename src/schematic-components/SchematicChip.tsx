@@ -1,6 +1,7 @@
 import { AnyCircuitElement, SchematicPort as OriginalSchematicPort, SchematicComponent } from "circuit-json";
 import * as Type from "lib/types";
 import { colorMap } from "lib/utils/colors";
+import React from 'react';
 import SVGPathComponent from "./SVGPathComponent";
 import SchematicText from "./SchematicText";
 
@@ -12,18 +13,19 @@ interface Props {
   }
 }
 
-// Extend the Center type within SchematicPort
 type ExtendedCenter = OriginalSchematicPort['center'] & {
   side: "left" | "right" | "top" | "bottom";
   pinNumber: number;
+  distanceFromEdge: number;
+  trueIndex: number;
 };
 
-// Create a new type for SchematicPort with the extended Center
 type SchematicPort = Omit<OriginalSchematicPort, 'center'> & {
   center: ExtendedCenter;
+  type: "schematic_port";
 };
 
-export const SchematicChip = ({ component: { source, schematic, allElements } }: Props) => {
+export const SchematicChip: React.FC<Props> = ({ component: { source, schematic, allElements } }) => {
   const { center, size, rotation, schematic_component_id } = schematic;
   const { manufacturerPartNumber, name } = source;
   const chipWidth = size.width;
@@ -40,14 +42,10 @@ export const SchematicChip = ({ component: { source, schematic, allElements } }:
     d: `M ${-chipWidth / 2},${-chipHeight / 2} h ${chipWidth} v ${chipHeight} h ${-chipWidth} Z`,
   });
 
-  // Add ports
   const schematicPorts = allElements.filter(
     (item): item is SchematicPort => 
       item.type === "schematic_port" && 
-      item.schematic_component_id === schematic_component_id &&
-      item.center && 
-      'side' in item.center &&
-      (item.center.side === "left" || item.center.side === "right" || item.center.side === "top" || item.center.side === "bottom")
+      item.schematic_component_id === schematic_component_id
   );
 
   const portLength = 0.2;
@@ -57,30 +55,44 @@ export const SchematicChip = ({ component: { source, schematic, allElements } }:
   const pinLabels: Array<{x: number, y: number, text: string, anchor: string}> = [];
 
   schematicPorts.forEach((port) => {
-    const { x, y, side, pinNumber } = port.center;
-    let endX = x, endY = y;
-    let labelX = x, labelY = y;
+    const { side, pinNumber, distanceFromEdge } = port.center;
+    let x = 0, y = 0, endX = 0, endY = 0;
+    let labelX = 0, labelY = 0;
     let textAnchor = "middle";
 
     switch (side) {
       case "left":
-        endX = -chipWidth / 2 - portLength;
-        labelX = endX - labelOffset;
+        x = -chipWidth / 2;
+        y = -chipHeight / 2 + distanceFromEdge;
+        endX = x - portLength;
+        endY = y;
+        labelX = endX;
         labelY = y + labelOffset;
         textAnchor = "end";
         break;
       case "right":
-        endX = chipWidth / 2 + portLength;
+        x = chipWidth / 2;
+        y = chipHeight / 2 - distanceFromEdge;
+        endX = x + portLength;
+        endY = y;
         labelX = endX - labelOffset;
         labelY = y + labelOffset;
         textAnchor = "start";
         break;
-      case "top":
-        endY = -chipHeight / 2 - portLength;
-        labelY = endY - labelOffset;
-        break;
       case "bottom":
-        endY = chipHeight / 2 + portLength;
+        x = -chipWidth / 2 + distanceFromEdge;
+        y = -chipHeight / 2;
+        endX = x;
+        endY = y - portLength;
+        labelX = x;
+        labelY = endY + labelOffset;
+        break;
+      case "top":
+        x = chipWidth / 2 - distanceFromEdge;
+        y = chipHeight / 2;
+        endX = x;
+        endY = y + portLength;
+        labelX = x;
         labelY = endY + labelOffset;
         break;
     }
@@ -105,12 +117,14 @@ export const SchematicChip = ({ component: { source, schematic, allElements } }:
     });
 
     // Add pin label
-    pinLabels.push({
-      x: labelX,
-      y: labelY,
-      text: pinNumber.toString(),
-      anchor: textAnchor
-    });
+    if(pinNumber !== undefined) {
+      pinLabels.push({
+        x: labelX,
+        y: labelY,
+        text: `${pinNumber}`,
+        anchor: textAnchor
+      });
+    }
   });
 
   return (
@@ -139,26 +153,26 @@ export const SchematicChip = ({ component: { source, schematic, allElements } }:
       ))}
       <SchematicText
         schematic_text={{
-          anchor: "top",
+          anchor: "center",
           position: {
             x: center.x,
             y: center.y - chipHeight / 2 - 0.2,
           },
           schematic_component_id: "SYNTHETIC",
-          schematic_text_id: "SYNTHETIC",
+          schematic_text_id: "SYNTHETIC_MPN",
           text: manufacturerPartNumber,
           type: "schematic_text",
         }}
       />
       <SchematicText
         schematic_text={{
-          anchor: "bottom",
+          anchor: "center",
           position: {
             x: center.x,
             y: center.y + chipHeight / 2 + 0.2,
           },
           schematic_component_id: "SYNTHETIC",
-          schematic_text_id: "SYNTHETIC",
+          schematic_text_id: "SYNTHETIC_NAME",
           text: name,
           type: "schematic_text",
         }}
