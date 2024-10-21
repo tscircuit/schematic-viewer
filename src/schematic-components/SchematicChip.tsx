@@ -22,7 +22,6 @@ type ExtendedCenter = OriginalSchematicPort['center'] & {
 
 type SchematicPort = Omit<OriginalSchematicPort, 'center'> & {
   center: ExtendedCenter;
-  type: "schematic_port";
 };
 
 export const SchematicChip: React.FC<Props> = ({ component: { source, schematic, allElements } }) => {
