@@ -1,23 +1,25 @@
 import { Schematic } from "Schematic"
 
 const BugPinSpacingExample = () => (
-  <bug
-    name="U2"
-    manufacturerPartNumber="part-number"
-    schPortArrangement={{
-      leftSize: 2,
-      rightSize: 2,
-    }}
-    schX={-10}
-    schY={0}
-    schPinSpacing="1.5mm"
-    pinLabels={{
-      "1": "GND",
-      "2": "VBUS",
-      "3": "D-",
-      "4": "D+",
-    }}
-  />
+  <board width={10} height={10}>
+    <bug
+      name="U2"
+      manufacturerPartNumber="part-number"
+      schPortArrangement={{
+        leftSize: 2,
+        rightSize: 2,
+      }}
+      schX={-10}
+      schY={0}
+      schPinSpacing="1.5mm"
+      pinLabels={{
+        "1": "GND",
+        "2": "VBUS",
+        "3": "D-",
+        "4": "D+",
+      }}
+    />
+  </board>
 )
 
 export const BugPinSpacing = () => {

@@ -1,13 +1,10 @@
-import * as Type from "lib/types"
-import SVGPathComponent from "./SVGPathComponent"
-import Path from "svg-path-generator"
-import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
+import { SchematicText as SchematicTextType } from "circuit-json"
 import { useGlobalStore } from "lib/render-context"
-import { applyToPoint } from "transformation-matrix"
 import useMeasure from "react-use-measure"
+import { applyToPoint } from "transformation-matrix"
 
 interface Props {
-  schematic_text: Type.SchematicText
+  schematic_text: SchematicTextType
 }
 
 export const SchematicText = ({ schematic_text }: Props) => {
@@ -36,6 +33,7 @@ export const SchematicText = ({ schematic_text }: Props) => {
         fontSize: projectedTextSize,
         left: tPos.x + offset[0],
         top: tPos.y + offset[1],
+        color: schematic_text.color,
       }}
     >
       {text}

@@ -10,7 +10,9 @@ interface Props {
   }
 }
 
-export const SchematicComponentFromSymbol = ({ component: { source, schematic } }: Props) => {
+export const SchematicComponentFromSymbol = ({
+  component: { source, schematic },
+}: Props) => {
   const { center, rotation } = schematic
   // Get the resistor symbol paths
   const symbol = symbols[schematic.symbol_name]

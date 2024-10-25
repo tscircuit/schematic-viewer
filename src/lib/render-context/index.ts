@@ -20,7 +20,7 @@ export const createRenderContextStore = () =>
   }))
 
 export const useGlobalStore = <T = RenderContextState>(
-  s?: (state: RenderContextState) => T
+  s?: (state: RenderContextState) => T,
 ): T => {
   const store = useContext(StoreContext)
 

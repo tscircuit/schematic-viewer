@@ -17,7 +17,7 @@ export const vecToDirection = ({ x, y }: { x: number; y: number }) => {
 }
 
 export const rotateClockwise = (
-  direction: "up" | "down" | "left" | "right"
+  direction: "up" | "down" | "left" | "right",
 ) => {
   if (direction === "up") return "right"
   else if (direction === "right") return "down"
@@ -26,7 +26,7 @@ export const rotateClockwise = (
 }
 
 export const rotateCounterClockwise = (
-  direction: "up" | "down" | "left" | "right"
+  direction: "up" | "down" | "left" | "right",
 ) => {
   if (direction === "up") return "left"
   else if (direction === "left") return "down"
@@ -36,7 +36,7 @@ export const rotateCounterClockwise = (
 
 export const rotateDirection = (
   direction: "up" | "down" | "left" | "right",
-  num90DegreeClockwiseTurns: number
+  num90DegreeClockwiseTurns: number,
 ) => {
   while (num90DegreeClockwiseTurns > 0) {
     direction = rotateClockwise(direction)

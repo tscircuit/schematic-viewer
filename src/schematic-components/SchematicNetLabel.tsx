@@ -3,6 +3,7 @@ import SVGPathComponent from "./SVGPathComponent"
 import SchematicText from "./SchematicText"
 import { getRotationFromAnchorSide } from "lib/utils/get-rotation-from-anchor-side"
 import { getVecFromAnchorSide } from "lib/utils/get-vec-from-anchor-side"
+import { colorMap } from "lib/utils/colors"
 
 export const SchematicNetLabel = ({
   net_label,
@@ -44,6 +45,7 @@ export const SchematicNetLabel = ({
       />
       <SchematicText
         schematic_text={{
+          rotation: is_vertical ? 0 : getRotationFromAnchorSide(anchor_side),
           anchor: is_vertical ? "center" : anchor_side,
           position: {
             x: net_label.center.x + anchor_vec.x,
@@ -53,6 +55,7 @@ export const SchematicNetLabel = ({
           schematic_text_id: "SYNTHETIC",
           text: net_label.text,
           type: "schematic_text",
+          color: colorMap.schematic.net_name,
         }}
       />
     </>

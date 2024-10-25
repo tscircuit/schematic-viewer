@@ -69,5 +69,5 @@ export type SourceComponentFType = Extract<
   { ftype: string }
 >["ftype"]
 export type SourceComponent<
-  T extends SourceComponentFType = SourceComponentFType
+  T extends SourceComponentFType = SourceComponentFType,
 > = Extract<AnySourceComponent, { ftype: T }>
