@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "storybook dev -p 6006",
+    "format": "biome format . --write",
     "typecheck": "tsc --noEmit",
     "build": "tsup",
     "yalc": "npm run build && yalc push",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.18.9",
+    "@biomejs/biome": "^1.8.3",
     "@emotion/react": "^11",
     "@emotion/styled": "^11",
     "@semantic-release/changelog": "^6.0.3",
