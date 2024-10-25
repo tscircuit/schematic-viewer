@@ -72,6 +72,7 @@ export const SchematicNetLabel = () => {
             y: -0.5,
           },
           rotation: 0,
+          color: "black",
         },
         {
           type: "schematic_text",
@@ -84,6 +85,7 @@ export const SchematicNetLabel = () => {
             y: -0.3,
           },
           rotation: 0,
+          color: "black",
         },
         {
           type: "source_net",
