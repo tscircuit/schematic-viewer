@@ -237,7 +237,9 @@ export const SchematicWithoutContext = ({
           </ErrorBoundary>
         ))}
       </div>
-      {showTable !== false && elements && <TableViewer elements={elements as any} />}
+      {showTable !== false && elements && (
+        <TableViewer elements={elements as any} />
+      )}
     </>
   )
 }

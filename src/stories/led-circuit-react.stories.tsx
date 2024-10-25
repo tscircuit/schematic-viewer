@@ -4,20 +4,15 @@ export const LEDCircuitReact = () => {
   return (
     <Schematic style={{ height: 500 }}>
       <group>
-        <resistor name="R1" resistance="10 ohm" schX={2} schY={1}/>
+        <resistor name="R1" resistance="10 ohm" schX={2} schY={1} />
         <capacitor
           name="C1"
           capacitance="10 uF"
           schX={4}
           schY={2}
-        symbolName="capacitor_vert"
+          symbolName="capacitor_vert"
         />
-        <resistor
-          name="R2"
-          resistance="10 ohm"
-          schX={6}
-          schY={1}
-        />
+        <resistor name="R2" resistance="10 ohm" schX={6} schY={1} />
         <trace path={[".R1 > port.right", ".C1 > port.left"]} />
         <trace path={[".C1 > port.right", ".R2 > port.left"]} />
         <powersource voltage={5} schX={1} schY={2} name="main_power" />

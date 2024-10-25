@@ -11,3 +11,4 @@ storybook-static
 .aider*
 *.log
 .vscode
+.tool-versions

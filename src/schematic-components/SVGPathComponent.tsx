@@ -1,37 +1,43 @@
-import { useGlobalStore } from "lib/render-context";
-import getSVGPathBounds from "lib/utils/get-svg-path-bounds";
-import { useState } from "react";
-import { applyToPoint, compose, scale, toSVG, translate } from "transformation-matrix";
+import { useGlobalStore } from "lib/render-context"
+import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
+import { useState } from "react"
+import {
+  applyToPoint,
+  compose,
+  scale,
+  toSVG,
+  translate,
+} from "transformation-matrix"
 
 interface PathProps {
-  type?: 'path';
-  strokeWidth: number;
-  stroke: string;
-  fill?: string;
-  d: string;
+  type?: "path"
+  strokeWidth: number
+  stroke: string
+  fill?: string
+  d: string
 }
 
 interface CircleProps {
-  type: 'circle';
-  cx: number;
-  cy: number;
-  r: number;
-  strokeWidth: number;
-  stroke: string;
-  fill?: string;
+  type: "circle"
+  cx: number
+  cy: number
+  r: number
+  strokeWidth: number
+  stroke: string
+  fill?: string
 }
 
-export type SVGElement = PathProps | CircleProps;
+export type SVGElement = PathProps | CircleProps
 
 interface Props {
-  rotation: number;
-  center: { x: number; y: number };
-  size: { width: number; height: number };
-  invertY?: boolean;
-  shiftToBottom?: boolean;
-  paths: SVGElement[];
-  zIndex?: number;
-  hoverContent?: any;
+  rotation: number
+  center: { x: number; y: number }
+  size: { width: number; height: number }
+  invertY?: boolean
+  shiftToBottom?: boolean
+  paths: SVGElement[]
+  zIndex?: number
+  hoverContent?: any
 }
 
 export const SVGPathComponent = ({
@@ -44,36 +50,43 @@ export const SVGPathComponent = ({
   shiftToBottom,
   hoverContent,
 }: Props) => {
-  const ct = useGlobalStore((s) => s.camera_transform);
-  const pathBounds = getSVGPathBounds(paths.filter((p): p is PathProps => p.type !== 'circle').map(p => p.d));
+  const ct = useGlobalStore((s) => s.camera_transform)
+  const pathBounds = getSVGPathBounds(
+    paths.filter((p): p is PathProps => p.type !== "circle").map((p) => p.d),
+  )
 
-  const padding = { x: 0, y: 0 };
-  const absoluteCenter = applyToPoint(ct, center);
+  const padding = { x: 0, y: 0 }
+  const absoluteCenter = applyToPoint(ct, center)
   const innerSize = {
     width: size.width * ct.a,
     height: size.height * Math.abs(ct.d),
-  };
+  }
   const fullSize = {
     width: innerSize.width + padding.x * 2,
     height: innerSize.height + padding.y * 2,
-  };
+  }
 
-  const [hovering, setHovering] = useState(false);
+  const [hovering, setHovering] = useState(false)
 
-  const svgLeft = absoluteCenter.x - fullSize.width / 2;
-  const svgTop = absoluteCenter.y - fullSize.height / 2;
+  const svgLeft = absoluteCenter.x - fullSize.width / 2
+  const svgTop = absoluteCenter.y - fullSize.height / 2
 
-  const preferredRatio = pathBounds.width === 0
-    ? innerSize.height / pathBounds.height
-    : innerSize.width / pathBounds.width;
+  const preferredRatio =
+    pathBounds.width === 0
+      ? innerSize.height / pathBounds.height
+      : innerSize.width / pathBounds.width
 
   const svgToScreen = compose(
     scale(
-      pathBounds.width === 0 ? preferredRatio : fullSize.width / pathBounds.width,
-      pathBounds.height === 0 ? preferredRatio : fullSize.height / pathBounds.height,
+      pathBounds.width === 0
+        ? preferredRatio
+        : fullSize.width / pathBounds.width,
+      pathBounds.height === 0
+        ? preferredRatio
+        : fullSize.height / pathBounds.height,
     ),
     translate(-pathBounds.minX, -pathBounds.minY),
-  );
+  )
 
   return (
     <svg
@@ -95,14 +108,16 @@ export const SVGPathComponent = ({
       width={fullSize.width}
       height={fullSize.height}
     >
-      {paths.map((p, i) => 
-        p.type === 'circle' ? (
+      {paths.map((p, i) =>
+        p.type === "circle" ? (
           <circle
             key={i}
-            transform={toSVG(compose(
-              scale(1, 1), // Add a smaller scale factor for circles
-              svgToScreen
-            ))}
+            transform={toSVG(
+              compose(
+                scale(1, 1), // Add a smaller scale factor for circles
+                svgToScreen,
+              ),
+            )}
             cx={p.cx}
             cy={p.cy}
             r={p.r}
@@ -110,7 +125,6 @@ export const SVGPathComponent = ({
             strokeWidth={2.25 * (p.strokeWidth || 1)}
             stroke={p.stroke || "red"}
           />
-
         ) : (
           <path
             key={i}
@@ -121,10 +135,10 @@ export const SVGPathComponent = ({
             stroke={p.stroke || "red"}
             d={p.d || ""}
           />
-        )
+        ),
       )}
     </svg>
-  );
-};
+  )
+}
 
-export default SVGPathComponent;
+export default SVGPathComponent

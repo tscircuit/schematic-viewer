@@ -7,4 +7,3 @@ export * from "./SchematicGroup"
 export * from "./SchematicText"
 export * from "./SchematicTrace"
 export * from "./SVGPathComponent"
-

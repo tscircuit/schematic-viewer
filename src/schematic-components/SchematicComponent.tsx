@@ -1,4 +1,7 @@
-import { AnyCircuitElement, SchematicComponent as SchematicComponentType } from "circuit-json"
+import {
+  AnyCircuitElement,
+  SchematicComponent as SchematicComponentType,
+} from "circuit-json"
 import * as Component from "./"
 
 interface Props {
@@ -19,19 +22,25 @@ export const SchematicComponent = ({ component }: Props) => {
   if (!source.ftype) return null
 
   switch (source.ftype) {
-    case "simple_resistor": 
+    case "simple_resistor":
     case "simple_capacitor":
     case "simple_power_source":
     case "simple_ground":
     case "simple_inductor":
-    case "simple_diode":
-    {
-      return <Component.SchematicComponentFromSymbol component={{ source, schematic }} />
+    case "simple_diode": {
+      return (
+        <Component.SchematicComponentFromSymbol
+          component={{ source, schematic }}
+        />
+      )
     }
     case "simple_chip":
-    case "simple_bug":
-    {
-      return <Component.SchematicChip component={{ source, schematic, allElements }} />
+    case "simple_bug": {
+      return (
+        <Component.SchematicChip
+          component={{ source, schematic, allElements }}
+        />
+      )
     }
     default: {
       return <div>unknown ftype: {component.source.ftype}</div>

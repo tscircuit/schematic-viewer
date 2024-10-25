@@ -40,7 +40,7 @@ export const SchematicTrace = ({ trace: { source, schematic } }: Props) => {
       size={pathBounds}
       paths={[
         {
-          stroke:colorMap.schematic.wire,
+          stroke: colorMap.schematic.wire,
           strokeWidth: 0.01,
           d,
         },
