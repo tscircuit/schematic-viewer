@@ -5,7 +5,11 @@ export const BugHighPortNumbers = () => {
   const circuit = new Circuit()
 
   circuit.add(
-    <group>
+    <board
+      width={10}
+      height={10}
+      // @ts-ignore
+    >
       <chip
         name="U1"
         manufacturerPartNumber="part-number"
@@ -17,6 +21,10 @@ export const BugHighPortNumbers = () => {
           rightSide: {
             pins: [1, 5, 11, 3, 2, 9, 10, 6, 23, 22, 14, 13, 12],
             direction: "top-to-bottom",
+          },
+          bottomSide: {
+            pins: [29],
+            direction: "left-to-right",
           },
         }}
         schWidth={1}
@@ -55,7 +63,7 @@ export const BugHighPortNumbers = () => {
         name="R1"
         footprint="0805"
         schX={3}
-        schY={0}
+        schY={-1}
         symbolName="boxresistor_vert"
       />
       <resistor
@@ -63,7 +71,7 @@ export const BugHighPortNumbers = () => {
         name="R2"
         footprint="0805"
         schX={4.5}
-        schY={0}
+        schY={-1}
         symbolName="boxresistor_vert"
       />
       <diode
@@ -71,14 +79,14 @@ export const BugHighPortNumbers = () => {
         footprint="0805"
         symbolName="diode_vert"
         schX={3}
-        schY={3}
+        schY={2}
       />
       <diode
         name="LED2"
         footprint="0805"
         symbolName="diode_vert"
         schX={4.5}
-        schY={3}
+        schY={2}
       />
       <netalias net="5V" schX={3} schY={-2} />
       <netalias net="5V" schX={4.5} schY={-2} />
@@ -86,8 +94,8 @@ export const BugHighPortNumbers = () => {
       <trace path={[".5V", ".R1 > port.left"]} /> */}
       <trace path={[".R1 > port.right", ".LED1 > port.left"]} />
       <trace path={[".R2 > port.right", ".LED2 > port.left"]} />
-      <trace path={[".LED1 > port.right", ".U1 > .pin1"]} />
-      <trace path={[".LED2 > port.right", ".U1 > .RXLED"]} />
+      <trace path={[".LED1 > port.right", ".U1 > .pin20"]} />
+      <trace path={[".LED2 > port.right", ".U1 > .pin6"]} />
       <netalias net="GND" schX={-3} schY={4} schRotation="180deg" />
       <netalias net="GND" schX={-5} schY={3} schRotation="180deg" />
       <netalias net="GND" schX={-6} schY={3} schRotation="180deg" />
@@ -103,7 +111,7 @@ export const BugHighPortNumbers = () => {
         height={2}
       />
     </component> */}
-    </group>,
+    </board>,
   )
 
   const circuitJson = circuit.getCircuitJson()

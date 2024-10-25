@@ -14,7 +14,7 @@ interface Props {
 }
 
 type ExtendedCenter = OriginalSchematicPort['center'] & {
-  side: "left" | "right" | "top" | "bottom";
+  side: "left" | "right" | "top" | "bottom" | "center";
   pinNumber: number;
   distanceFromEdge: number;
   trueIndex: number;
@@ -51,13 +51,18 @@ export const SchematicChip: React.FC<Props> = ({ component: { source, schematic,
   const circleRadius = 0.05;
   const labelOffset = 0.1;
 
-  const pinLabels: Array<{x: number, y: number, text: string, anchor: string}> = [];
+  const pinLabels: Array<{x: number, y: number, text: string, anchor: string, rotation: number}> = [];
 
   schematicPorts.forEach((port) => {
     const { side, pinNumber, distanceFromEdge } = port.center;
     let x = 0, y = 0, endX = 0, endY = 0;
     let labelX = 0, labelY = 0;
     let textAnchor = "middle";
+    let rotation = 0;
+
+    if(side === "center") {
+      return;
+    }
 
     switch (side) {
       case "left":
@@ -85,6 +90,7 @@ export const SchematicChip: React.FC<Props> = ({ component: { source, schematic,
         endY = y - portLength;
         labelX = x;
         labelY = endY + labelOffset;
+        rotation = -90;
         break;
       case "top":
         x = chipWidth / 2 - distanceFromEdge;
@@ -93,13 +99,14 @@ export const SchematicChip: React.FC<Props> = ({ component: { source, schematic,
         endY = y + portLength;
         labelX = x;
         labelY = endY + labelOffset;
+        rotation = -90;
         break;
     }
 
     // Port line
     paths.push({
       type: 'path',
-      strokeWidth: 0.02,
+      strokeWidth: 0.015,
       stroke: colorMap.schematic.component_outline,
       d: `M ${x},${y} L ${endX},${endY}`,
     });
@@ -121,7 +128,8 @@ export const SchematicChip: React.FC<Props> = ({ component: { source, schematic,
         x: labelX,
         y: labelY,
         text: `${pinNumber}`,
-        anchor: textAnchor
+        anchor: textAnchor,
+        rotation: rotation,
       });
     }
   });
@@ -139,6 +147,7 @@ export const SchematicChip: React.FC<Props> = ({ component: { source, schematic,
           key={index}
           schematic_text={{
             anchor: label.anchor as any,
+            rotation: 0,
             position: {
               x: center.x + label.x,
               y: center.y + label.y,
@@ -147,12 +156,14 @@ export const SchematicChip: React.FC<Props> = ({ component: { source, schematic,
             schematic_text_id: `PIN_LABEL_${index}`,
             text: label.text,
             type: "schematic_text",
+            color: colorMap.schematic.pin_number,
           }}
         />
       ))}
       <SchematicText
         schematic_text={{
-          anchor: "center",
+          anchor: "right",
+          rotation: 0,
           position: {
             x: center.x,
             y: center.y - chipHeight / 2 - 0.2,
@@ -161,11 +172,13 @@ export const SchematicChip: React.FC<Props> = ({ component: { source, schematic,
           schematic_text_id: "SYNTHETIC_MPN",
           text: manufacturerPartNumber,
           type: "schematic_text",
+          color: colorMap.schematic.reference,
         }}
       />
       <SchematicText
         schematic_text={{
-          anchor: "center",
+          anchor: "right",
+          rotation: 0,
           position: {
             x: center.x,
             y: center.y + chipHeight / 2 + 0.2,
@@ -174,6 +187,7 @@ export const SchematicChip: React.FC<Props> = ({ component: { source, schematic,
           schematic_text_id: "SYNTHETIC_NAME",
           text: name,
           type: "schematic_text",
+          color: colorMap.schematic.reference,
         }}
       />
     </>

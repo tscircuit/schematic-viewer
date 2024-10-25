@@ -99,13 +99,18 @@ export const SVGPathComponent = ({
         p.type === 'circle' ? (
           <circle
             key={i}
+            transform={toSVG(compose(
+              scale(1, 1), // Add a smaller scale factor for circles
+              svgToScreen
+            ))}
             cx={p.cx}
             cy={p.cy}
             r={p.r}
-            fill={p.fill ?? "none"}
-            strokeWidth={1.5 * (p.strokeWidth || 1)}
+            fill={"none"}
+            strokeWidth={2.25 * (p.strokeWidth || 1)}
             stroke={p.stroke || "red"}
           />
+
         ) : (
           <path
             key={i}

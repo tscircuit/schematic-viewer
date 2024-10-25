@@ -1,7 +1,8 @@
 import { Schematic } from "Schematic"
 
 const OneSidedBugExample = () => (
-  <bug
+  <board width={10} height={10}>
+    <bug
     name="U2"
     schPortArrangement={{
       leftSize: 0,
@@ -16,6 +17,7 @@ const OneSidedBugExample = () => (
       "4": "D+",
     }}
   />
+  </board>
 )
 
 export const OneSidedBug = () => {
