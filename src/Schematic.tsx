@@ -2,17 +2,18 @@ import { useRenderedCircuit } from "@tscircuit/core"
 import { findBoundsAndCenter } from "@tscircuit/soup-util"
 import type { AnyCircuitElement } from "circuit-json"
 import { useGlobalStore } from "lib/render-context"
-import React, { useCallback, useEffect, useRef, useState } from "react"
+import type React from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ErrorBoundary as TypedErrorBoundary } from "react-error-boundary"
 import { SuperGrid, toMMSI } from "react-supergrid"
 import useMeasure from "react-use-measure"
 import { ContextProviders } from "schematic-components"
 import { SchematicElement } from "schematic-components/SchematicElement"
 import {
+  type Matrix,
   applyToPoint,
   compose,
   inverse,
-  Matrix,
   scale,
   translate,
 } from "transformation-matrix"
@@ -122,7 +123,7 @@ export const SchematicWithoutContext = ({
 
       updateTransform(newTransform)
     }
-  }, [elements, bounds.width, bounds.height, updateTransform])
+  }, [elements, updateTransform])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     isDraggingRef.current = true
@@ -156,7 +157,7 @@ export const SchematicWithoutContext = ({
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       e.preventDefault()
-      const scaleMultiplier = Math.pow(0.999, e.deltaY)
+      const scaleMultiplier = 0.999 ** e.deltaY
 
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect()
@@ -228,7 +229,7 @@ export const SchematicWithoutContext = ({
           transform={transformRef.current}
         />
         {elements?.map((elm, i) => (
-          <ErrorBoundary key={i} fallbackRender={fallbackRender(elm)}>
+          <ErrorBoundary key={`${elm}`} fallbackRender={fallbackRender(elm)}>
             <SchematicElement
               element={elm}
               allElements={elements}

@@ -1,4 +1,4 @@
-import { SchematicText as SchematicTextType } from "circuit-json"
+import type { SchematicText as SchematicTextType } from "circuit-json"
 import { useGlobalStore } from "lib/render-context"
 import useMeasure from "react-use-measure"
 import { applyToPoint } from "transformation-matrix"
