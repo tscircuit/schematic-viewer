@@ -1,4 +1,4 @@
-import {
+import type {
   AnyCircuitElement,
   SchematicComponent as SchematicComponentType,
 } from "circuit-json"

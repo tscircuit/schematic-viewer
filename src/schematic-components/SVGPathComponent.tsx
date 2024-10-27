@@ -8,7 +8,7 @@ import {
   toSVG,
   translate,
 } from "transformation-matrix"
-
+import "../pages/style.css"
 interface PathProps {
   type?: "path"
   strokeWidth: number
@@ -27,7 +27,19 @@ interface CircleProps {
   fill?: string
 }
 
-export type SVGElement = PathProps | CircleProps
+interface TextProps {
+  type: "text"
+  cx: number
+  cy: number
+  text: string
+  fontSize?: number
+  fill: string
+  anchor?: "start" | "middle" | "end"
+  rotation?: number
+  stroke?: string
+}
+
+export type SVGElement = PathProps | CircleProps | TextProps
 
 interface Props {
   rotation: number
@@ -52,9 +64,10 @@ export const SVGPathComponent = ({
 }: Props) => {
   const ct = useGlobalStore((s) => s.camera_transform)
   const pathBounds = getSVGPathBounds(
-    paths.filter((p): p is PathProps => p.type !== "circle").map((p) => p.d),
+    paths
+      .filter((p): p is PathProps => p.type !== "circle" && p.type !== "text")
+      .map((p) => p.d),
   )
-
   const padding = { x: 0, y: 0 }
   const absoluteCenter = applyToPoint(ct, center)
   const innerSize = {
@@ -65,17 +78,13 @@ export const SVGPathComponent = ({
     width: innerSize.width + padding.x * 2,
     height: innerSize.height + padding.y * 2,
   }
-
   const [hovering, setHovering] = useState(false)
-
   const svgLeft = absoluteCenter.x - fullSize.width / 2
   const svgTop = absoluteCenter.y - fullSize.height / 2
-
   const preferredRatio =
     pathBounds.width === 0
       ? innerSize.height / pathBounds.height
       : innerSize.width / pathBounds.width
-
   const svgToScreen = compose(
     scale(
       pathBounds.width === 0
@@ -88,10 +97,15 @@ export const SVGPathComponent = ({
     translate(-pathBounds.minX, -pathBounds.minY),
   )
 
+  const baseFontSize = 0.15 // Fixed base font size in schematic units
+
   return (
+    // biome-ignore lint/a11y/noSvgWithoutTitle: <explanation>
     <svg
       onMouseOver={() => setHovering(Boolean(hoverContent))}
+      onFocus={() => setHovering(Boolean(hoverContent))}
       onMouseOut={() => setHovering(false)}
+      onBlur={() => setHovering(false)}
       style={{
         position: "absolute",
         cursor: hovering ? "pointer" : undefined,
@@ -108,26 +122,51 @@ export const SVGPathComponent = ({
       width={fullSize.width}
       height={fullSize.height}
     >
-      {paths.map((p, i) =>
-        p.type === "circle" ? (
-          <circle
-            key={i}
-            transform={toSVG(
-              compose(
-                scale(1, 1), // Add a smaller scale factor for circles
-                svgToScreen,
-              ),
-            )}
-            cx={p.cx}
-            cy={p.cy}
-            r={p.r}
-            fill={"none"}
-            strokeWidth={2.25 * (p.strokeWidth || 1)}
-            stroke={p.stroke || "red"}
-          />
-        ) : (
+      {paths.map((p, i) => {
+        if (p.type === "circle") {
+          return (
+            <circle
+              key={`${p.type}-${i}`}
+              transform={toSVG(compose(scale(1, 1), svgToScreen))}
+              cx={p.cx}
+              cy={p.cy}
+              r={p.r}
+              fill={"none"}
+              strokeWidth={2.25 * (p.strokeWidth || 1)}
+              stroke={p.stroke || "red"}
+            />
+          )
+        }
+        if (p.type === "text") {
+          const transformedPos = applyToPoint(svgToScreen, { x: p.cx, y: p.cy })
+          const scaleFactor = fullSize.width / pathBounds.width || 1
+
+          return (
+            <g key={`${p.type}-${i}`}>
+              <text
+                className="schematic-text"
+                x={transformedPos.x}
+                y={transformedPos.y}
+                fill={p.fill}
+                fontSize={baseFontSize * scaleFactor}
+                textAnchor={p.anchor || "middle"}
+                dominantBaseline="middle"
+                transform={`scale(1,-1) rotate(${p.rotation || 0})`}
+                style={{
+                  transformBox: "fill-box",
+                  transformOrigin: "center",
+                }}
+                stroke={p.stroke}
+              >
+                {p.text}
+              </text>
+            </g>
+          )
+        }
+        // Handle the "path" type directly
+        return (
           <path
-            key={i}
+            key={`${p.type}-${i}`}
             transform={toSVG(svgToScreen)}
             fill={p.fill ?? "none"}
             strokeLinecap="round"
@@ -135,8 +174,8 @@ export const SVGPathComponent = ({
             stroke={p.stroke || "red"}
             d={p.d || ""}
           />
-        ),
-      )}
+        )
+      })}
     </svg>
   )
 }

@@ -1,10 +1,9 @@
-import * as Type from "lib/types"
-import SVGPathComponent from "./SVGPathComponent"
-import Path from "svg-path-generator"
-import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
-import RenderError from "./RenderError"
-import SVGPathComponent2 from "./SVGPathComponent2"
+import type * as Type from "lib/types"
 import { colorMap } from "lib/utils/colors"
+import getSVGPathBounds from "lib/utils/get-svg-path-bounds"
+import Path from "svg-path-generator"
+import RenderError from "./RenderError"
+import SVGPathComponent from "./SVGPathComponent"
 
 interface Props {
   trace: {

@@ -1,11 +1,11 @@
-import {
+import type {
   AnyCircuitElement,
   SchematicPort as OriginalSchematicPort,
   SchematicComponent,
 } from "circuit-json"
-import * as Type from "lib/types"
+import type * as Type from "lib/types"
 import { colorMap } from "lib/utils/colors"
-import React from "react"
+import type React from "react"
 import SVGPathComponent from "./SVGPathComponent"
 import SchematicText from "./SchematicText"
 
@@ -37,7 +37,7 @@ export const SchematicChip: React.FC<Props> = ({
   const chipHeight = size.height
 
   const paths: Array<{
-    type?: "path" | "circle"
+    type: "path" | "circle" | "text"
     strokeWidth: number
     stroke: string
     fill?: string
@@ -45,6 +45,9 @@ export const SchematicChip: React.FC<Props> = ({
     cx?: number
     cy?: number
     r?: number
+    text?: string
+    anchor?: string
+    rotation?: number
   }> = []
 
   // Main chip rectangle
@@ -62,31 +65,23 @@ export const SchematicChip: React.FC<Props> = ({
       item.schematic_component_id === schematic_component_id,
   )
 
-  const portLength = 0.2
-  const circleRadius = 0.05
+  const portLength = 0.5
+  const circleRadius = 0.04
   const labelOffset = 0.1
 
-  const pinLabels: Array<{
-    x: number
-    y: number
-    text: string
-    anchor: string
-    rotation: number
-  }> = []
-
-  schematicPorts.forEach((port) => {
+  for (const port of schematicPorts) {
     const { side, pinNumber, distanceFromEdge } = port.center
-    let x = 0,
-      y = 0,
-      endX = 0,
-      endY = 0
-    let labelX = 0,
-      labelY = 0
+    let x = 0
+    let y = 0
+    let endX = 0
+    let endY = 0
+    let pinX = 0
+    let pinY = 0
     let textAnchor = "middle"
     let rotation = 0
 
     if (side === "center") {
-      return
+      continue
     }
 
     switch (side) {
@@ -95,17 +90,17 @@ export const SchematicChip: React.FC<Props> = ({
         y = -chipHeight / 2 + distanceFromEdge
         endX = x - portLength
         endY = y
-        labelX = endX
-        labelY = y + labelOffset
-        textAnchor = "end"
+        pinX = x - portLength / 2
+        pinY = y + labelOffset
+        textAnchor = "middle"
         break
       case "right":
         x = chipWidth / 2
         y = chipHeight / 2 - distanceFromEdge
         endX = x + portLength
         endY = y
-        labelX = endX - labelOffset
-        labelY = y + labelOffset
+        pinX = x + portLength / 2 - labelOffset
+        pinY = y + labelOffset
         textAnchor = "start"
         break
       case "bottom":
@@ -113,8 +108,8 @@ export const SchematicChip: React.FC<Props> = ({
         y = -chipHeight / 2
         endX = x
         endY = y - portLength
-        labelX = x
-        labelY = endY + labelOffset
+        pinX = x - labelOffset
+        pinY = y - portLength / 2
         rotation = -90
         break
       case "top":
@@ -122,8 +117,8 @@ export const SchematicChip: React.FC<Props> = ({
         y = chipHeight / 2
         endX = x
         endY = y + portLength
-        labelX = x
-        labelY = endY + labelOffset
+        pinX = x - labelOffset
+        pinY = y + portLength / 2
         rotation = -90
         break
     }
@@ -142,22 +137,25 @@ export const SchematicChip: React.FC<Props> = ({
       cx: endX,
       cy: endY,
       r: circleRadius,
-      strokeWidth: 0.01,
+      strokeWidth: 0.005,
       stroke: colorMap.schematic.component_outline,
       fill: colorMap.schematic.component_outline,
     })
 
-    // Add pin label
+    // Add pin number
     if (pinNumber !== undefined) {
-      pinLabels.push({
-        x: labelX,
-        y: labelY,
+      paths.push({
+        type: "text",
+        cx: pinX,
+        cy: pinY,
         text: `${pinNumber}`,
         anchor: textAnchor,
         rotation: rotation,
+        strokeWidth: 0.005,
+        stroke: colorMap.schematic.pin_number,
       })
     }
-  })
+  }
 
   return (
     <>
@@ -167,24 +165,6 @@ export const SchematicChip: React.FC<Props> = ({
         size={size}
         paths={paths as any}
       />
-      {pinLabels.map((label, index) => (
-        <SchematicText
-          key={index}
-          schematic_text={{
-            anchor: label.anchor as any,
-            rotation: 0,
-            position: {
-              x: center.x + label.x,
-              y: center.y + label.y,
-            },
-            schematic_component_id: "SYNTHETIC",
-            schematic_text_id: `PIN_LABEL_${index}`,
-            text: label.text,
-            type: "schematic_text",
-            color: colorMap.schematic.pin_number,
-          }}
-        />
-      ))}
       <SchematicText
         schematic_text={{
           anchor: "right",

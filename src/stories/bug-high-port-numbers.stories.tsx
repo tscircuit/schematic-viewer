@@ -26,8 +26,13 @@ export const BugHighPortNumbers = () => {
             pins: [29],
             direction: "left-to-right",
           },
+          topSide: {
+            pins: [30],
+            direction: "left-to-right",
+          },
         }}
-        schWidth={1}
+        schWidth={3}
+        schHeight={6}
         footprint="ssop28Db"
         pinLabels={{
           "1": "TXD",
