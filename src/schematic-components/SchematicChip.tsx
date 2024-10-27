@@ -65,17 +65,9 @@ export const SchematicChip: React.FC<Props> = ({
       item.schematic_component_id === schematic_component_id,
   )
 
-  const portLength = 0.4
-  const circleRadius = 0.05
+  const portLength = 0.5
+  const circleRadius = 0.04
   const labelOffset = 0.1
-
-  const pinNumberList: Array<{
-    x: number
-    y: number
-    text: string
-    anchor: string
-    rotation: number
-  }> = []
 
   for (const port of schematicPorts) {
     const { side, pinNumber, distanceFromEdge } = port.center
