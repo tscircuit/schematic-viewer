@@ -50,13 +50,13 @@ export const SchematicChip: React.FC<Props> = ({
     rotation?: number
   }> = []
 
-  // Main chip rectangle
+  // Main chip rectangle - flipped across Y axis
   paths.push({
     type: "path",
     strokeWidth: 0.02,
     stroke: colorMap.schematic.component_outline,
     fill: colorMap.schematic.component_body,
-    d: `M ${-chipWidth / 2},${-chipHeight / 2} h ${chipWidth} v ${chipHeight} h ${-chipWidth} Z`,
+    d: `M ${chipWidth / 2},${-chipHeight / 2} h ${-chipWidth} v ${chipHeight} h ${chipWidth} Z`,
   })
 
   const schematicPorts = allElements.filter(
@@ -84,10 +84,11 @@ export const SchematicChip: React.FC<Props> = ({
       continue
     }
 
+    // Calculate positions based on original side but with mirrored distanceFromEdge
     switch (side) {
       case "left":
         x = -chipWidth / 2
-        y = -chipHeight / 2 + distanceFromEdge
+        y = chipHeight / 2 - distanceFromEdge  // Mirror the Y position
         endX = x - portLength
         endY = y
         pinX = x - portLength / 2
@@ -96,7 +97,7 @@ export const SchematicChip: React.FC<Props> = ({
         break
       case "right":
         x = chipWidth / 2
-        y = chipHeight / 2 - distanceFromEdge
+        y = -chipHeight / 2 + distanceFromEdge  // Mirror the Y position
         endX = x + portLength
         endY = y
         pinX = x + portLength / 2 - labelOffset
@@ -104,7 +105,7 @@ export const SchematicChip: React.FC<Props> = ({
         textAnchor = "start"
         break
       case "bottom":
-        x = -chipWidth / 2 + distanceFromEdge
+        x = chipWidth / 2 - distanceFromEdge
         y = -chipHeight / 2
         endX = x
         endY = y - portLength
@@ -113,7 +114,7 @@ export const SchematicChip: React.FC<Props> = ({
         rotation = -90
         break
       case "top":
-        x = chipWidth / 2 - distanceFromEdge
+        x = -chipWidth / 2 + distanceFromEdge
         y = chipHeight / 2
         endX = x
         endY = y + portLength
@@ -131,7 +132,7 @@ export const SchematicChip: React.FC<Props> = ({
       d: `M ${x},${y} L ${endX},${endY}`,
     })
 
-    // Port circle at the end of the line
+    // Port circle
     paths.push({
       type: "circle",
       cx: endX,
@@ -157,6 +158,9 @@ export const SchematicChip: React.FC<Props> = ({
     }
   }
 
+  // Mirror the center point for text positions
+  const mirroredCenterX = -center.x
+
   return (
     <>
       <SVGPathComponent
@@ -167,10 +171,10 @@ export const SchematicChip: React.FC<Props> = ({
       />
       <SchematicText
         schematic_text={{
-          anchor: "right",
+          anchor: "left",
           rotation: 0,
           position: {
-            x: center.x,
+            x: mirroredCenterX,
             y: center.y - chipHeight / 2 - 0.2,
           },
           schematic_component_id: "SYNTHETIC",
@@ -182,10 +186,10 @@ export const SchematicChip: React.FC<Props> = ({
       />
       <SchematicText
         schematic_text={{
-          anchor: "right",
+          anchor: "left",
           rotation: 0,
           position: {
-            x: center.x,
+            x: mirroredCenterX,
             y: center.y + chipHeight / 2 + 0.2,
           },
           schematic_component_id: "SYNTHETIC",
