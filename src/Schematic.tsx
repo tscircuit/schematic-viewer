@@ -138,12 +138,16 @@ export const SchematicWithoutContext = ({
       const dy = e.clientY - lastMousePosRef.current.y
       lastMousePosRef.current = { x: e.clientX, y: e.clientY }
 
-      const scale = transformRef.current.a // Assuming uniform scaling
-      const dragSensitivity = 150 / scale // Adjust this value to change drag speed
+      // Transform the mouse movement to world space
+      const inverseTransform = inverse(transformRef.current)
+      const dragStart = applyToPoint(inverseTransform, { x: 0, y: 0 })
+      const dragEnd = applyToPoint(inverseTransform, { x: dx, y: dy })
+      const worldDx = dragEnd.x - dragStart.x
+      const worldDy = dragEnd.y - dragStart.y
 
       const newTransform = compose(
-        translate(dx * dragSensitivity, dy * dragSensitivity),
         transformRef.current,
+        translate(worldDx, worldDy),
       )
       updateTransform(newTransform)
     },
