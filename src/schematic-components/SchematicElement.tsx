@@ -1,6 +1,7 @@
-import { AnyCircuitElement } from "circuit-json"
+import type { AnyCircuitElement } from "circuit-json"
 import { collectElementRefs } from "lib/utils/collect-element-refs"
 import SchematicComponent from "./SchematicComponent"
+import SchematicDebug from "./SchematicDebug"
 import { SchematicNetLabel } from "./SchematicNetLabel"
 import SchematicText from "./SchematicText"
 import SchematicTrace from "./SchematicTrace"
@@ -37,6 +38,10 @@ export const SchematicElement = ({
 
   if (element.type === "schematic_net_label") {
     return <SchematicNetLabel net_label={element} />
+  }
+
+  if (element.type === "schematic_debug_object") {
+    return <SchematicDebug debugObject={element} />
   }
 
   return null

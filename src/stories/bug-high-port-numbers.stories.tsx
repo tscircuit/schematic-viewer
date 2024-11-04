@@ -9,13 +9,19 @@ export const BugHighPortNumbers = () => {
       width={10}
       height={10}
       // @ts-ignore
+      _schDebugObjectsEnabled
     >
       <chip
         name="U1"
         manufacturerPartNumber="part-number"
+        schPinStyle={{
+          pin15: {
+            bottomMargin: 2,
+          },
+        }}
         schPortArrangement={{
           leftSide: {
-            pins: [16, 15, 20, 17, 4, 27, 28, 19, 26, 25, 7, 18, 21],
+            pins: [16, 15, 20],
             direction: "top-to-bottom",
           },
           rightSide: {
