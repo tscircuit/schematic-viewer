@@ -68,7 +68,7 @@
     "@tscircuit/core": "^0.0.132",
     "@tscircuit/layout": "^0.0.25",
     "@tscircuit/props": "^0.0.23",
-    "@tscircuit/soup-util": "^0.0.38",
+    "@tscircuit/soup-util": "^0.0.41",
     "circuit-to-svg": "^0.0.54",
     "convert-units": "^2.3.4",
     "react-error-boundary": "^4.0.4",
