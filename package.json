@@ -4,7 +4,9 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "build": "tsup --dts --format esm --sourcemap ./lib/index.ts"
+    "start": "cosmos",
+    "build": "tsup --dts --format esm --sourcemap ./lib/index.ts",
+    "build:site": "cosmos-export"
   },
   "devDependencies": {
     "@types/bun": "latest",
