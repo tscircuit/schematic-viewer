@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "cosmos",
-    "build": "tsup --dts --format esm --sourcemap ./lib/index.ts",
+    "build": "tsup-node ./lib/index.ts --dts --format esm --sourcemap",
     "build:site": "cosmos-export"
   },
   "devDependencies": {
@@ -21,7 +21,8 @@
     "react-cosmos-plugin-vite": "^6.2.0",
     "react-dom": "18",
     "tsup": "^8.3.5",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "react-reconciler": "^0.31.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -30,7 +31,6 @@
     "circuit-to-svg": "^0.0.90",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
-    "react-reconciler": "^0.31.0",
     "use-mouse-matrix-transform": "^1.1.13"
   }
 }
