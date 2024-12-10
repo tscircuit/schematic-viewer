@@ -1,5 +1,7 @@
 # Schematic Viewer for TSCircuit
 
+> This is the V1 schematic viewer, it's recommended to use the new V2 version.
+
 [![npm version](https://badge.fury.io/js/@tscircuit%2Fschematic-viewer.svg)](https://badge.fury.io/js/@tscircuit%2Fschematic-viewer)
 
 [Examples](https://schematic-viewer.vercel.app/) &middot; [TSCircuit](https://tscircuit.com) &middot; [Open in CodeSandbox](https://codesandbox.io/s/github/tscircuit/schematic-viewer) &middot; [discord](https://tscircuit.com/join)
