@@ -10,5 +10,6 @@ export default () => (
         <trace from=".R1 .pin2" to=".C1 .pin1" />
       </board>,
     )}
+    containerStyle={{ height: "100%" }}
   />
 )

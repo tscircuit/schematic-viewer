@@ -14,6 +14,7 @@ root.render(
             <resistor name="R1" resistance={1000} />
           </board>,
         )}
+        containerStyle={{ height: "100%" }}
       />
     </div>
   </React.StrictMode>,
