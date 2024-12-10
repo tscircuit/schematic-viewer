@@ -1,0 +1,15 @@
+node_modules
+.next
+yarn-error.log
+.yalc
+yalc.lock
+dist
+.vercel
+storybook-static
+
+.deeper
+.aider*
+*.log
+.vscode
+.tool-versions
+.DS_Store

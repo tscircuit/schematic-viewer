@@ -1,0 +1,27 @@
+{
+  "name": "@tscircuit/schematic-viewer",
+  "version": "2.0.0",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsup --dts --format esm --sourcemap ./lib/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "react": "^19.0.0",
+    "react-cosmos": "^6.2.1",
+    "react-cosmos-plugin-vite": "^6.2.0",
+    "react-dom": "^19.0.0",
+    "tsup": "^8.3.5",
+    "vite": "^6.0.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "circuit-to-svg": "^0.0.90"
+  }
+}
