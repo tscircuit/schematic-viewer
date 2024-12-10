@@ -5,9 +5,10 @@ import { toString as transformToString } from "transformation-matrix"
 
 interface Props {
   circuitJson: Array<{ type: string }>
+  containerStyle?: React.CSSProperties
 }
 
-export const SchematicViewer = ({ circuitJson }: Props) => {
+export const SchematicViewer = ({ circuitJson, containerStyle }: Props) => {
   const svgDivRef = useRef<HTMLDivElement>(null)
   const { ref: containerRef } = useMouseMatrixTransform({
     onSetTransform(transform) {
@@ -61,7 +62,7 @@ export const SchematicViewer = ({ circuitJson }: Props) => {
         overflow: "hidden",
         cursor: "grab",
         minHeight: "300px",
-        height: "100%",
+        ...containerStyle,
       }}
     >
       <div
