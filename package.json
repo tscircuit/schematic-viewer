@@ -9,14 +9,17 @@
     "build:site": "cosmos-export"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@tscircuit/core": "^0.0.222",
     "@types/bun": "latest",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react": "^4.3.4",
-    "react": "^19.0.0",
+    "circuit-json": "^0.0.111",
+    "react": "18",
     "react-cosmos": "^6.2.1",
     "react-cosmos-plugin-vite": "^6.2.0",
-    "react-dom": "^19.0.0",
+    "react-dom": "18",
     "tsup": "^8.3.5",
     "vite": "^6.0.3"
   },
@@ -24,6 +27,10 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "circuit-to-svg": "^0.0.90"
+    "circuit-to-svg": "^0.0.90",
+    "debug": "^4.4.0",
+    "performance-now": "^2.1.0",
+    "react-reconciler": "^0.31.0",
+    "use-mouse-matrix-transform": "^1.1.13"
   }
 }
