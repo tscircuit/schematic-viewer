@@ -6,7 +6,8 @@
   "scripts": {
     "start": "cosmos",
     "build": "tsup-node ./lib/index.ts --dts --format esm --sourcemap",
-    "build:site": "cosmos-export"
+    "build:site": "cosmos-export",
+    "vercel-build": "bun run build:site"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
