@@ -23,20 +23,20 @@ export const SchematicViewer = ({
   onEditEvent,
 }: Props) => {
   const svgDivRef = useRef<HTMLDivElement>(null)
-  const [activeEditEvent, setActiveEditEvent] =
-    useState<ManualEditEventWithElement | null>(null)
-  const [dragStartPos, setDragStartPos] = useState<{
+
+  const dragStartPosRef = useRef<{
     x: number
     y: number
   } | null>(null)
 
-  const { ref: containerRef } = useMouseMatrixTransform({
+  const activeEditEventRef = useRef<ManualEditEventWithElement | null>(null)
+
+  const { ref: containerRef, cancelDrag } = useMouseMatrixTransform({
     onSetTransform(transform) {
       if (!svgDivRef.current) return
-      if (activeEditEvent) return
+      if (activeEditEventRef.current) return
       svgDivRef.current.style.transform = transformToString(transform)
     },
-    enabled: !activeEditEvent,
   })
 
   const handleMouseDown = useCallback(
@@ -45,10 +45,6 @@ export const SchematicViewer = ({
       const componentGroup = target.closest(
         '[data-circuit-json-type="schematic_component"]',
       )
-      console.log({
-        target,
-        componentGroup,
-      })
       if (!componentGroup) return
 
       const componentId = componentGroup.getAttribute(
@@ -56,11 +52,12 @@ export const SchematicViewer = ({
       )
       if (!componentId) return
 
+      cancelDrag()
       const rect = componentGroup.getBoundingClientRect()
       const centerX = rect.left + rect.width / 2
       const centerY = rect.top + rect.height / 2
 
-      setDragStartPos({ x: centerX, y: centerY })
+      dragStartPosRef.current = { x: centerX, y: centerY }
 
       const newEditEvent: ManualEditEventWithElement = {
         edit_event_id: Math.random().toString(36).substr(2, 9),
@@ -73,46 +70,46 @@ export const SchematicViewer = ({
         _element: componentGroup as any,
       }
 
-      setActiveEditEvent(newEditEvent)
+      activeEditEventRef.current = newEditEvent
       if (onEditEvent) onEditEvent(newEditEvent)
     },
     [onEditEvent],
   )
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!activeEditEvent || !dragStartPos) return
+    console.log("activeEditEventRef.current", activeEditEventRef.current)
+    if (!activeEditEventRef.current || !dragStartPosRef.current) return
 
     const delta = {
-      x: e.clientX - dragStartPos.x,
-      y: e.clientY - dragStartPos.y,
+      x: e.clientX - dragStartPosRef.current.x,
+      y: e.clientY - dragStartPosRef.current.y,
     }
 
     const newEditEvent = {
-      ...activeEditEvent,
+      ...activeEditEventRef.current,
       new_center: {
-        x: activeEditEvent.original_center.x + delta.x,
-        y: activeEditEvent.original_center.y + delta.y,
+        x: activeEditEventRef.current.original_center.x + delta.x,
+        y: activeEditEventRef.current.original_center.y + delta.y,
       },
     }
 
     // Find the element on the page and move it
     // console.log(activeEditEvent._element)
-    console.log(e.clientX, e.clientY)
-    activeEditEvent._element.style.transform = `translate(${delta.x}px, ${delta.y}px)`
+    activeEditEventRef.current._element.style.transform = `translate(${delta.x}px, ${delta.y}px)`
 
-    setActiveEditEvent(newEditEvent)
+    activeEditEventRef.current = newEditEvent
     if (onEditEvent) onEditEvent(newEditEvent)
   }
 
   const handleMouseUp = () => {
-    if (!activeEditEvent) return
+    if (!activeEditEventRef.current) return
     const finalEvent = {
-      ...activeEditEvent,
+      ...activeEditEventRef.current,
       in_progress: false,
     }
     if (onEditEvent) onEditEvent(finalEvent)
-    setActiveEditEvent(null)
-    setDragStartPos(null)
+    activeEditEventRef.current = null
+    dragStartPosRef.current = null
   }
 
   useEffect(() => {
@@ -122,7 +119,7 @@ export const SchematicViewer = ({
       window.removeEventListener("mousemove", handleMouseMove)
       window.removeEventListener("mouseup", handleMouseUp)
     }
-  }, [Boolean(activeEditEvent)])
+  }, [])
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
 
   const svg = useMemo(() => {
@@ -140,7 +137,7 @@ export const SchematicViewer = ({
       style={{
         backgroundColor: "#F5F1ED",
         overflow: "hidden",
-        cursor: activeEditEvent ? "grabbing" : "grab",
+        cursor: activeEditEventRef.current ? "grabbing" : "grab",
         minHeight: "300px",
         ...containerStyle,
       }}
