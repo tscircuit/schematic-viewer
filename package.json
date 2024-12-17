@@ -33,6 +33,6 @@
     "circuit-to-svg": "^0.0.90",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
-    "use-mouse-matrix-transform": "^1.2.0"
+    "use-mouse-matrix-transform": "^1.2.2"
   }
 }
