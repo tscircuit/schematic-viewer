@@ -29,6 +29,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@tscircuit/props": "^0.0.112",
     "circuit-to-svg": "^0.0.90",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
