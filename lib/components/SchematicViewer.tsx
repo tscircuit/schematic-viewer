@@ -1,6 +1,7 @@
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { convertCircuitJsonToSchematicSvg } from "circuit-to-svg"
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
+import { useResizeHandling } from "../hooks/use-resize-handling"
 import type { ManualEditEvent } from "lib/types/edit-events"
 import { toString as transformToString } from "transformation-matrix"
 
@@ -29,10 +30,10 @@ export const SchematicViewer = ({
     y: number
   } | null>(null)
 
-  const { ref: containerRef, matrix } = useMouseMatrixTransform({
+  const { ref: containerRef } = useMouseMatrixTransform({
     onSetTransform(transform) {
       if (!svgDivRef.current) return
-      if (!activeEditEvent) return
+      if (activeEditEvent) return
       svgDivRef.current.style.transform = transformToString(transform)
     },
     enabled: !activeEditEvent,
@@ -122,34 +123,7 @@ export const SchematicViewer = ({
       window.removeEventListener("mouseup", handleMouseUp)
     }
   }, [Boolean(activeEditEvent)])
-  const [containerWidth, setContainerWidth] = useState(0)
-  const [containerHeight, setContainerHeight] = useState(0)
-
-  useEffect(() => {
-    if (!containerRef.current) return
-
-    const updateDimensions = () => {
-      const rect = containerRef.current?.getBoundingClientRect()
-
-      setContainerWidth(rect?.width || 0)
-      setContainerHeight(rect?.height || 0)
-    }
-
-    // Set initial dimensions
-    updateDimensions()
-
-    // Add resize listener
-    const resizeObserver = new ResizeObserver(updateDimensions)
-    resizeObserver.observe(containerRef.current)
-
-    // Fallback to window resize
-    window.addEventListener("resize", updateDimensions)
-
-    return () => {
-      resizeObserver.disconnect()
-      window.removeEventListener("resize", updateDimensions)
-    }
-  }, [])
+  const { containerWidth, containerHeight } = useResizeHandling(containerRef)
 
   const svg = useMemo(() => {
     if (!containerWidth || !containerHeight) return ""
