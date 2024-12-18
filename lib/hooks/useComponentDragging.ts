@@ -1,23 +1,30 @@
 import { useCallback, useEffect, useRef } from "react"
-import type { ManualEditEvent } from "../types/edit-events"
-
-type ManualEditEventWithElement = ManualEditEvent & {
-  _element: SVGElement
-}
+import type {
+  EditSchematicComponentLocationEventWithElement,
+  ManualEditEvent,
+} from "../types/edit-events"
+import { type Matrix, applyToPoint, inverse } from "transformation-matrix"
 
 export const useComponentDragging = ({
   onEditEvent,
   cancelDrag,
+  realToScreenProjection,
 }: {
+  realToScreenProjection: Matrix
   onEditEvent?: (event: ManualEditEvent) => void
   cancelDrag?: () => void
-}) => {
+}): {
+  handleMouseDown: (e: React.MouseEvent) => void
+  isDragging: boolean
+  activeEditEvent: EditSchematicComponentLocationEventWithElement | null
+} => {
   const dragStartPosRef = useRef<{
     x: number
     y: number
   } | null>(null)
 
-  const activeEditEventRef = useRef<ManualEditEventWithElement | null>(null)
+  const activeEditEventRef =
+    useRef<EditSchematicComponentLocationEventWithElement | null>(null)
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -39,7 +46,7 @@ export const useComponentDragging = ({
 
       dragStartPosRef.current = { x: centerX, y: centerY }
 
-      const newEditEvent: ManualEditEventWithElement = {
+      const newEditEvent: EditSchematicComponentLocationEventWithElement = {
         edit_event_id: Math.random().toString(36).substr(2, 9),
         edit_event_type: "edit_schematic_component_location",
         schematic_component_id: componentId,
@@ -73,12 +80,16 @@ export const useComponentDragging = ({
         },
       }
 
+      // The delta is in screen space, so we need to transform it to the component space
+      delta.x /= realToScreenProjection.a
+      delta.y /= realToScreenProjection.d
+
       activeEditEventRef.current._element.style.transform = `translate(${delta.x}px, ${delta.y}px)`
 
       activeEditEventRef.current = newEditEvent
       if (onEditEvent) onEditEvent(newEditEvent)
     },
-    [onEditEvent],
+    [onEditEvent, realToScreenProjection],
   )
 
   const handleMouseUp = useCallback(() => {
@@ -104,5 +115,6 @@ export const useComponentDragging = ({
   return {
     handleMouseDown,
     isDragging: !!activeEditEventRef.current,
+    activeEditEvent: activeEditEventRef.current,
   }
 }

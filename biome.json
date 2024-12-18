@@ -29,7 +29,7 @@
         "noExplicitAny": "off"
       },
       "complexity": {
-        "noForEach": "info"
+        "noForEach": "off"
       },
       "correctness": {
         "useExhaustiveDependencies": "off"

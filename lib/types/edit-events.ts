@@ -1,15 +1,16 @@
-export interface BaseManualEditEvent {
-  edit_event_id: string
-  in_progress?: boolean
-  created_at: number
-}
+import type {
+  BaseManualEditEvent,
+  EditSchematicComponentLocationEvent,
+  ManualEditEvent,
+} from "@tscircuit/props"
 
-export interface EditSchematicComponentLocationEvent
-  extends BaseManualEditEvent {
-  edit_event_type: "edit_schematic_component_location"
-  schematic_component_id: string
-  original_center: { x: number; y: number }
-  new_center: { x: number; y: number }
-}
+export type EditSchematicComponentLocationEventWithElement =
+  EditSchematicComponentLocationEvent & {
+    _element: SVGElement
+  }
 
-export type ManualEditEvent = EditSchematicComponentLocationEvent
+export type {
+  BaseManualEditEvent,
+  EditSchematicComponentLocationEvent,
+  ManualEditEvent,
+}

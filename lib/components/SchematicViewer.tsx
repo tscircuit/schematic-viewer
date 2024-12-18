@@ -5,6 +5,7 @@ import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
 import type { ManualEditEvent } from "../types/edit-events"
 import { toString as transformToString } from "transformation-matrix"
+import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 
 interface Props {
   circuitJson: Array<{ type: string }>
@@ -21,7 +22,11 @@ export const SchematicViewer = ({
 }: Props) => {
   const svgDivRef = useRef<HTMLDivElement>(null)
 
-  const { ref: containerRef, cancelDrag } = useMouseMatrixTransform({
+  const {
+    ref: containerRef,
+    cancelDrag,
+    transform: realToScreenProjection,
+  } = useMouseMatrixTransform({
     onSetTransform(transform) {
       if (!svgDivRef.current) return
       svgDivRef.current.style.transform = transformToString(transform)
@@ -31,10 +36,11 @@ export const SchematicViewer = ({
   const { handleMouseDown, isDragging } = useComponentDragging({
     onEditEvent,
     cancelDrag,
+    realToScreenProjection,
   })
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
 
-  const svg = useMemo(() => {
+  const svgString = useMemo(() => {
     if (!containerWidth || !containerHeight) return ""
 
     return convertCircuitJsonToSchematicSvg(circuitJson as any, {
@@ -42,6 +48,8 @@ export const SchematicViewer = ({
       height: containerHeight || 720,
     })
   }, [circuitJson, containerWidth, containerHeight])
+
+  // useChangeSchematicComponentLocationsInSvg(svgDivRef, editEvents)
 
   return (
     <div
@@ -62,7 +70,7 @@ export const SchematicViewer = ({
           transformOrigin: "0 0",
         }}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
-        dangerouslySetInnerHTML={{ __html: svg }}
+        dangerouslySetInnerHTML={{ __html: svgString }}
       />
     </div>
   )
