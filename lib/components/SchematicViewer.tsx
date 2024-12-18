@@ -49,7 +49,7 @@ export const SchematicViewer = ({
     })
   }, [circuitJson, containerWidth, containerHeight])
 
-  // useChangeSchematicComponentLocationsInSvg(svgDivRef, editEvents)
+  useChangeSchematicComponentLocationsInSvg(svgDivRef, editEvents)
 
   return (
     <div

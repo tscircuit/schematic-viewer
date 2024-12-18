@@ -47,10 +47,15 @@ export const useChangeSchematicComponentLocationsInSvg = (
       if (editEvent.edit_event_type !== "edit_schematic_component_location")
         return
 
-      const componentId = editEvent.schematic_component_id
+      const schematic_component_id = editEvent.schematic_component_id
       const component = svg.querySelector(
-        `[data-schematic-component-id="${componentId}"]`,
+        `[data-schematic-component-id="${schematic_component_id}"]`,
       )
+
+      console.log({
+        schematic_component_id,
+        component,
+      })
       if (!component) return
 
       const delta = {

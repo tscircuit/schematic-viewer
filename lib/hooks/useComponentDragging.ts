@@ -58,9 +58,8 @@ export const useComponentDragging = ({
       }
 
       activeEditEventRef.current = newEditEvent
-      if (onEditEvent) onEditEvent(newEditEvent)
     },
-    [onEditEvent, cancelDrag],
+    [cancelDrag],
   )
 
   const handleMouseMove = useCallback(
@@ -87,9 +86,8 @@ export const useComponentDragging = ({
       activeEditEventRef.current._element.style.transform = `translate(${delta.x}px, ${delta.y}px)`
 
       activeEditEventRef.current = newEditEvent
-      if (onEditEvent) onEditEvent(newEditEvent)
     },
-    [onEditEvent, realToScreenProjection],
+    [realToScreenProjection],
   )
 
   const handleMouseUp = useCallback(() => {
