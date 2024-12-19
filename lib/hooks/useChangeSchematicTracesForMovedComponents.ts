@@ -68,9 +68,12 @@ export const useChangeSchematicTracesForMovedComponents = ({
               `[data-schematic-trace-id="${trace.schematic_trace_id}"] path`,
             )
             for (const traceElement of Array.from(traceElements)) {
+              if (traceElement.getAttribute("class")?.includes("invisible"))
+                continue
               traceElement.setAttribute("stroke-dasharray", "20,20")
               traceElement.style.animation =
-                "dash-animation 250ms linear infinite"
+                "dash-animation 350ms linear infinite, pulse-animation 900ms linear infinite"
+
               if (!svg.querySelector("style#dash-animation")) {
                 const style = document.createElement("style")
                 style.id = "dash-animation"
@@ -79,6 +82,11 @@ export const useChangeSchematicTracesForMovedComponents = ({
                     to {
                       stroke-dashoffset: -40;
                     }
+                  }
+                  @keyframes pulse-animation {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.2; }
+                    100% { opacity: 1; }
                   }
                 `
                 svg.appendChild(style)
@@ -91,5 +99,17 @@ export const useChangeSchematicTracesForMovedComponents = ({
 
     // Apply styles immediately
     updateTraceStyles()
+
+    // Cleanup function
+    const observer = new MutationObserver(updateTraceStyles)
+    observer.observe(svg, {
+      childList: true, // Watch for changes to the child elements
+      subtree: false, // Watch for changes in the entire subtree
+      characterData: false, // Watch for changes to text content
+    })
+
+    return () => {
+      observer.disconnect()
+    }
   }, [svgDivRef, activeEditEvent, circuitJson])
 }

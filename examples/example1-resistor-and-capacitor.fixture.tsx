@@ -11,5 +11,6 @@ export default () => (
       </board>,
     )}
     containerStyle={{ height: "100%" }}
+    debugGrid
   />
 )

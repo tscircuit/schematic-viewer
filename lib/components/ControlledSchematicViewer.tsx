@@ -1,13 +1,16 @@
 import { useState } from "react"
 import { SchematicViewer } from "./SchematicViewer"
 import type { ManualEditEvent } from "@tscircuit/props"
+import type { CircuitJson } from "circuit-json"
 
 export const ControlledSchematicViewer = ({
   circuitJson,
   containerStyle,
+  debugGrid = false,
 }: {
-  circuitJson: Array<{ type: string }>
+  circuitJson: CircuitJson
   containerStyle?: React.CSSProperties
+  debugGrid?: boolean
 }) => {
   const [editEvents, setEditEvents] = useState<ManualEditEvent[]>([])
 
@@ -17,6 +20,7 @@ export const ControlledSchematicViewer = ({
       editEvents={editEvents}
       onEditEvent={(event) => setEditEvents([...editEvents, event])}
       containerStyle={containerStyle}
+      debugGrid={debugGrid}
     />
   )
 }
