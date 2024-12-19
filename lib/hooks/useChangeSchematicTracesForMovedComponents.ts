@@ -30,6 +30,12 @@ export const useChangeSchematicTracesForMovedComponents = ({
         '[data-circuit-json-type="schematic_trace"] path',
       )
 
+      // Reset all traces to solid
+      for (const trace of Array.from(allTraces)) {
+        trace.setAttribute("stroke-dasharray", "0")
+        ;(trace as any).style.animation = ""
+      }
+
       // If there's an active edit event, make connected traces dashed
       for (const editEvent of [
         ...editEvents,
@@ -71,7 +77,7 @@ export const useChangeSchematicTracesForMovedComponents = ({
               if (traceElement.getAttribute("class")?.includes("invisible"))
                 continue
               traceElement.setAttribute("stroke-dasharray", "20,20")
-              traceElement.style.animation =
+              ;(traceElement as any).style.animation =
                 "dash-animation 350ms linear infinite, pulse-animation 900ms linear infinite"
 
               if (!svg.querySelector("style#dash-animation")) {
@@ -111,5 +117,5 @@ export const useChangeSchematicTracesForMovedComponents = ({
     return () => {
       observer.disconnect()
     }
-  }, [svgDivRef, activeEditEvent, circuitJson])
+  }, [svgDivRef, activeEditEvent, circuitJson, editEvents])
 }
