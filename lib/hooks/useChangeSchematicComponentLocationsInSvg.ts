@@ -73,11 +73,6 @@ export const useChangeSchematicComponentLocationsInSvg = ({
           "data-schematic-component-id",
         )!
 
-        if (!componentsThatHaveBeenMoved.has(schematic_component_id)) {
-          component.setAttribute("style", "")
-          continue
-        }
-
         const offsetMm = getComponentOffsetDueToEvents({
           editEvents: [
             ...editEvents,
@@ -91,10 +86,16 @@ export const useChangeSchematicComponentLocationsInSvg = ({
           y: offsetMm.y * realToSvgProjection.d,
         }
 
-        component.setAttribute(
-          "style",
-          `transform: translate(${offsetPx.x}px, ${offsetPx.y}px)`,
-        )
+        const style: any = (component as any).style
+        style.transform = `translate(${offsetPx.x}px, ${offsetPx.y}px)`
+        if (
+          activeEditEvent?.schematic_component_id === schematic_component_id
+        ) {
+          style.outline = "solid 2px rgba(255,0,0,0.5)"
+          style.outlineOffset = "5px"
+        } else if (style.outline) {
+          style.outline = ""
+        }
       }
     }
 
