@@ -29,10 +29,6 @@ export const useChangeSchematicComponentLocationsInSvg = ({
   activeEditEvent: EditSchematicComponentLocationEventWithElement | null
   editEvents: ManualEditEvent[]
 }) => {
-  const realToScreenProjection = compose(
-    realToSvgProjection,
-    svgToScreenProjection,
-  )
   // Keep track of the last known SVG content
   const lastSvgContentRef = useRef<string | null>(null)
 

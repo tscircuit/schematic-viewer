@@ -11,9 +11,11 @@ import {
   toString as transformToString,
 } from "transformation-matrix"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
+import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import type { CircuitJson } from "circuit-json"
 
 interface Props {
-  circuitJson: Array<{ type: string }>
+  circuitJson: CircuitJson
   containerStyle?: React.CSSProperties
   editEvents?: ManualEditEvent[]
   onEditEvent?: (event: ManualEditEvent) => void
@@ -89,6 +91,27 @@ export const SchematicViewer = ({
     activeEditEvent,
   })
 
+  useChangeSchematicTracesForMovedComponents({
+    svgDivRef,
+    circuitJson,
+    activeEditEvent,
+  })
+
+  const svgDiv = useMemo(
+    () => (
+      <div
+        ref={svgDivRef}
+        style={{
+          pointerEvents: "auto",
+          transformOrigin: "0 0",
+        }}
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
+        dangerouslySetInnerHTML={{ __html: svgString }}
+      />
+    ),
+    [svgString],
+  )
+
   return (
     <div
       ref={containerRef}
@@ -106,15 +129,7 @@ export const SchematicViewer = ({
         active={editModeEnabled}
         onClick={() => setEditModeEnabled(!editModeEnabled)}
       />
-      <div
-        ref={svgDivRef}
-        style={{
-          pointerEvents: "auto",
-          transformOrigin: "0 0",
-        }}
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
-        dangerouslySetInnerHTML={{ __html: svgString }}
-      />
+      {svgDiv}
     </div>
   )
 }
