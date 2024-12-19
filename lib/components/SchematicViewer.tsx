@@ -21,6 +21,7 @@ interface Props {
   onEditEvent?: (event: ManualEditEvent) => void
   defaultEditMode?: boolean
   debugGrid?: boolean
+  editingEnabled?: boolean
 }
 
 export const SchematicViewer = ({
@@ -30,6 +31,7 @@ export const SchematicViewer = ({
   onEditEvent,
   defaultEditMode = false,
   debugGrid = false,
+  editingEnabled = false,
 }: Props) => {
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
   const svgDivRef = useRef<HTMLDivElement>(null)
@@ -130,10 +132,12 @@ export const SchematicViewer = ({
       }}
       onMouseDown={handleMouseDown}
     >
-      <EditIcon
-        active={editModeEnabled}
-        onClick={() => setEditModeEnabled(!editModeEnabled)}
-      />
+      {editingEnabled && (
+        <EditIcon
+          active={editModeEnabled}
+          onClick={() => setEditModeEnabled(!editModeEnabled)}
+        />
+      )}
       {svgDiv}
     </div>
   )

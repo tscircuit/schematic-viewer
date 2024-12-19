@@ -38,6 +38,7 @@ export default () => (
         <trace from=".U1 .pin1" to=".U1 .pin5" />
       </board>,
     )}
+    editingEnabled
     containerStyle={{ height: "100%" }}
   />
 )

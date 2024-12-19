@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 
-export const useResizeHandling = (containerRef: React.RefObject<HTMLElement>) => {
+export const useResizeHandling = (
+  containerRef: React.RefObject<HTMLElement>,
+) => {
   const [containerWidth, setContainerWidth] = useState(0)
   const [containerHeight, setContainerHeight] = useState(0)
 
