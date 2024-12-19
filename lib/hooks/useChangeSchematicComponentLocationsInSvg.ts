@@ -1,3 +1,4 @@
+import { su } from "@tscircuit/soup-util"
 import type {
   ManualEditEvent,
   EditSchematicComponentLocationEventWithElement,
@@ -5,6 +6,7 @@ import type {
 import { type Matrix, compose, applyToPoint } from "transformation-matrix"
 import { useEffect, useRef } from "react"
 import { getComponentOffsetDueToEvents } from "lib/utils/get-component-offset-due-to-events"
+import type { CircuitJson } from "circuit-json"
 
 /**
  * This hook automatically applies the edit events to the schematic components
@@ -52,22 +54,37 @@ export const useChangeSchematicComponentLocationsInSvg = ({
 
     // Function to apply transforms to components
     const applyTransforms = () => {
+      const componentsThatHaveBeenMoved = new Set<string>()
+      for (const event of editEvents) {
+        if (
+          "edit_event_type" in event &&
+          event.edit_event_type === "edit_schematic_component_location"
+        ) {
+          componentsThatHaveBeenMoved.add(event.schematic_component_id)
+        }
+      }
+
       // Reset all transforms
       const allComponents = svg.querySelectorAll(
         '[data-circuit-json-type="schematic_component"]',
       )
 
       for (const component of Array.from(allComponents)) {
-        component.setAttribute("style", "")
+        const schematic_component_id = component.getAttribute(
+          "data-schematic-component-id",
+        )!
+
+        if (!componentsThatHaveBeenMoved.has(schematic_component_id)) {
+          component.setAttribute("style", "")
+          continue
+        }
 
         const offsetMm = getComponentOffsetDueToEvents({
           editEvents: [
             ...editEvents,
             ...(activeEditEvent ? [activeEditEvent] : []),
           ],
-          schematic_component_id: component.getAttribute(
-            "data-schematic-component-id",
-          )!,
+          schematic_component_id,
         })
 
         const offsetPx = {
