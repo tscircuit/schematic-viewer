@@ -52,10 +52,12 @@ export const SchematicViewer = ({
     return convertCircuitJsonToSchematicSvg(circuitJson as any, {
       width: containerWidth,
       height: containerHeight || 720,
-      grid: {
-        cellSize: 1,
-        labelCells: true,
-      },
+      grid: !debugGrid
+        ? undefined
+        : {
+            cellSize: 1,
+            labelCells: true,
+          },
     })
   }, [circuitJson, containerWidth, containerHeight])
 

@@ -59,6 +59,9 @@ export const useChangeSchematicComponentLocationsInSvg = ({
           componentsThatHaveBeenMoved.add(event.schematic_component_id)
         }
       }
+      if (activeEditEvent) {
+        componentsThatHaveBeenMoved.add(activeEditEvent.schematic_component_id)
+      }
 
       // Reset all transforms
       const allComponents = svg.querySelectorAll(

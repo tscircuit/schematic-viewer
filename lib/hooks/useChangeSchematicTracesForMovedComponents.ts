@@ -84,9 +84,9 @@ export const useChangeSchematicTracesForMovedComponents = ({
                     }
                   }
                   @keyframes pulse-animation {
-                    0% { opacity: 1; }
+                    0% { opacity: 0.6; }
                     50% { opacity: 0.2; }
-                    100% { opacity: 1; }
+                    100% { opacity: 0.6; }
                   }
                 `
                 svg.appendChild(style)
