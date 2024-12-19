@@ -71,8 +71,8 @@ export const useChangeSchematicComponentLocationsInSvg = ({
         })
 
         const offsetPx = {
-          x: offsetMm.x * realToScreenProjection.a,
-          y: offsetMm.y * realToScreenProjection.d,
+          x: offsetMm.x * realToSvgProjection.a,
+          y: offsetMm.y * realToSvgProjection.d,
         }
 
         component.setAttribute(

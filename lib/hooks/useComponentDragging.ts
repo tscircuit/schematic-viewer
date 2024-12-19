@@ -120,6 +120,11 @@ export const useComponentDragging = ({
         y: screenDelta.y / realToScreenProjection.d,
       }
 
+      // console.log({
+      //   screenDelta,
+      //   mmDelta,
+      // })
+
       const newEditEvent = {
         ...activeEditEventRef.current,
         new_center: {
@@ -128,14 +133,7 @@ export const useComponentDragging = ({
         },
       }
 
-      // The delta is in screen space, so we need to transform it to the component space
-      screenDelta.x /= svgToScreenProjection.a
-      screenDelta.y /= svgToScreenProjection.d
-
-      // activeEditEventRef.current._element.style.transform = `translate(${screenDelta.x}px, ${screenDelta.y}px)`
-
       activeEditEventRef.current = newEditEvent
-
       setActiveEditEvent(newEditEvent)
     },
     [realToScreenProjection],
@@ -150,6 +148,7 @@ export const useComponentDragging = ({
     if (onEditEvent) onEditEvent(finalEvent)
     activeEditEventRef.current = null
     dragStartPosRef.current = null
+    setActiveEditEvent(null)
   }, [onEditEvent])
 
   useEffect(() => {
@@ -164,6 +163,6 @@ export const useComponentDragging = ({
   return {
     handleMouseDown,
     isDragging: !!activeEditEventRef.current,
-    activeEditEvent: activeEditEventRef.current,
+    activeEditEvent: activeEditEvent,
   }
 }
