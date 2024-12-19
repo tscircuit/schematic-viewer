@@ -2,7 +2,9 @@ import type {
   ManualEditEvent,
   EditSchematicComponentLocationEventWithElement,
 } from "lib/types/edit-events"
+import { type Matrix, compose, applyToPoint } from "transformation-matrix"
 import { useEffect, useRef } from "react"
+import { getComponentOffsetDueToEvents } from "lib/utils/get-component-offset-due-to-events"
 
 /**
  * This hook automatically applies the edit events to the schematic components
@@ -12,10 +14,23 @@ import { useEffect, useRef } from "react"
  * attribute equal to "schematic_component", these elements also have a
  * data-schematic-component-id attribute equal to the schematic_component_id
  */
-export const useChangeSchematicComponentLocationsInSvg = (
-  svgDivRef: React.RefObject<HTMLDivElement | null>,
-  editEvents: ManualEditEvent[],
-) => {
+export const useChangeSchematicComponentLocationsInSvg = ({
+  svgDivRef,
+  realToSvgProjection,
+  svgToScreenProjection,
+  activeEditEvent,
+  editEvents,
+}: {
+  svgDivRef: React.RefObject<HTMLDivElement | null>
+  realToSvgProjection: Matrix
+  svgToScreenProjection: Matrix
+  activeEditEvent: EditSchematicComponentLocationEventWithElement | null
+  editEvents: ManualEditEvent[]
+}) => {
+  const realToScreenProjection = compose(
+    realToSvgProjection,
+    svgToScreenProjection,
+  )
   // Keep track of the last known SVG content
   const lastSvgContentRef = useRef<string | null>(null)
 
@@ -41,33 +56,30 @@ export const useChangeSchematicComponentLocationsInSvg = (
       const allComponents = svg.querySelectorAll(
         '[data-circuit-json-type="schematic_component"]',
       )
-      allComponents.forEach((component) => {
+
+      for (const component of Array.from(allComponents)) {
         component.setAttribute("style", "")
-      })
 
-      // Apply transforms from edit events
-      editEvents.forEach((editEvent) => {
-        if (!("edit_event_type" in editEvent)) return
-        if (editEvent.edit_event_type !== "edit_schematic_component_location")
-          return
+        const offsetMm = getComponentOffsetDueToEvents({
+          editEvents: [
+            ...editEvents,
+            ...(activeEditEvent ? [activeEditEvent] : []),
+          ],
+          schematic_component_id: component.getAttribute(
+            "data-schematic-component-id",
+          )!,
+        })
 
-        const schematic_component_id = editEvent.schematic_component_id
-        const component = svg.querySelector(
-          `[data-schematic-component-id="${schematic_component_id}"]`,
-        )
-
-        if (!component) return
-
-        const delta = {
-          x: editEvent.new_center.x - editEvent.original_center.x,
-          y: editEvent.new_center.y - editEvent.original_center.y,
+        const offsetPx = {
+          x: offsetMm.x * realToScreenProjection.a,
+          y: offsetMm.y * realToScreenProjection.d,
         }
 
         component.setAttribute(
           "style",
-          `transform: translate(${delta.x}px, ${delta.y}px)`,
+          `transform: translate(${offsetPx.x}px, ${offsetPx.y}px)`,
         )
-      })
+      }
     }
 
     // Start observing the div for changes
@@ -84,5 +96,5 @@ export const useChangeSchematicComponentLocationsInSvg = (
     return () => {
       observer.disconnect()
     }
-  }, [svgDivRef, editEvents]) // Dependencies remain the same
+  }, [svgDivRef, editEvents, activeEditEvent]) // Dependencies remain the same
 }

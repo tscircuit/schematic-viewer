@@ -34,6 +34,10 @@
       "correctness": {
         "useExhaustiveDependencies": "off"
       },
+      "a11y": {
+        "useKeyWithClickEvents": "off",
+        "noSvgWithoutTitle": "off"
+      },
       "style": {
         "noUselessElse": "off",
         "noNonNullAssertion": "off",
