@@ -1,70 +1,111 @@
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { convertCircuitJsonToSchematicSvg } from "circuit-to-svg"
-import { useEffect, useMemo, useRef, useState } from "react"
-import { toString as transformToString } from "transformation-matrix"
+import { useMemo, useRef, useState } from "react"
+import { EditIcon } from "./EditIcon"
+import { useResizeHandling } from "../hooks/use-resize-handling"
+import { useComponentDragging } from "../hooks/useComponentDragging"
+import type { ManualEditEvent } from "../types/edit-events"
+import {
+  identity,
+  fromString,
+  toString as transformToString,
+} from "transformation-matrix"
+import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
+import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import type { CircuitJson } from "circuit-json"
 
 interface Props {
-  circuitJson: Array<{ type: string }>
+  circuitJson: CircuitJson
   containerStyle?: React.CSSProperties
+  editEvents?: ManualEditEvent[]
+  onEditEvent?: (event: ManualEditEvent) => void
+  defaultEditMode?: boolean
+  debugGrid?: boolean
+  editingEnabled?: boolean
 }
 
-export const SchematicViewer = ({ circuitJson, containerStyle }: Props) => {
+export const SchematicViewer = ({
+  circuitJson,
+  containerStyle,
+  editEvents = [],
+  onEditEvent,
+  defaultEditMode = false,
+  debugGrid = false,
+  editingEnabled = false,
+}: Props) => {
+  const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
   const svgDivRef = useRef<HTMLDivElement>(null)
-  const { ref: containerRef } = useMouseMatrixTransform({
+
+  const {
+    ref: containerRef,
+    cancelDrag,
+    transform: svgToScreenProjection,
+  } = useMouseMatrixTransform({
     onSetTransform(transform) {
       if (!svgDivRef.current) return
       svgDivRef.current.style.transform = transformToString(transform)
     },
   })
-  const [containerWidth, setContainerWidth] = useState(0)
-  const [containerHeight, setContainerHeight] = useState(0)
 
-  useEffect(() => {
-    if (!containerRef.current) return
-
-    const updateDimensions = () => {
-      const rect = containerRef.current?.getBoundingClientRect()
-
-      setContainerWidth(rect?.width || 0)
-      setContainerHeight(rect?.height || 0)
-    }
-
-    // Set initial dimensions
-    updateDimensions()
-
-    // Add resize listener
-    const resizeObserver = new ResizeObserver(updateDimensions)
-    resizeObserver.observe(containerRef.current)
-
-    // Fallback to window resize
-    window.addEventListener("resize", updateDimensions)
-
-    return () => {
-      resizeObserver.disconnect()
-      window.removeEventListener("resize", updateDimensions)
-    }
-  }, [])
-
-  const svg = useMemo(() => {
+  const { containerWidth, containerHeight } = useResizeHandling(containerRef)
+  const svgString = useMemo(() => {
     if (!containerWidth || !containerHeight) return ""
 
     return convertCircuitJsonToSchematicSvg(circuitJson as any, {
       width: containerWidth,
       height: containerHeight || 720,
+      grid: !debugGrid
+        ? undefined
+        : {
+            cellSize: 1,
+            labelCells: true,
+          },
     })
   }, [circuitJson, containerWidth, containerHeight])
 
-  return (
-    <div
-      ref={containerRef}
-      style={{
-        backgroundColor: "#F5F1ED",
-        overflow: "hidden",
-        cursor: "grab",
-        minHeight: "300px",
-        ...containerStyle,
-      }}
-    >
+  const realToSvgProjection = useMemo(() => {
+    if (!svgString) return identity()
+    const transformString = svgString.match(
+      /data-real-to-screen-transform="([^"]+)"/,
+    )?.[1]!
+
+    try {
+      return fromString(transformString)
+    } catch (e) {
+      console.error(e)
+      return identity()
+    }
+  }, [svgString])
+
+  const { handleMouseDown, isDragging, activeEditEvent } = useComponentDragging(
+    {
+      onEditEvent,
+      cancelDrag,
+      realToSvgProjection,
+      svgToScreenProjection,
+      circuitJson,
+      editEvents,
+      enabled: editModeEnabled,
+    },
+  )
+
+  useChangeSchematicComponentLocationsInSvg({
+    svgDivRef,
+    editEvents,
+    realToSvgProjection,
+    svgToScreenProjection,
+    activeEditEvent,
+  })
+
+  useChangeSchematicTracesForMovedComponents({
+    svgDivRef,
+    circuitJson,
+    activeEditEvent,
+    editEvents,
+  })
+
+  const svgDiv = useMemo(
+    () => (
       <div
         ref={svgDivRef}
         style={{
@@ -72,8 +113,32 @@ export const SchematicViewer = ({ circuitJson, containerStyle }: Props) => {
           transformOrigin: "0 0",
         }}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
-        dangerouslySetInnerHTML={{ __html: svg }}
+        dangerouslySetInnerHTML={{ __html: svgString }}
       />
+    ),
+    [svgString],
+  )
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: "relative",
+        backgroundColor: "#F5F1ED",
+        overflow: "hidden",
+        cursor: isDragging ? "grabbing" : "grab",
+        minHeight: "300px",
+        ...containerStyle,
+      }}
+      onMouseDown={handleMouseDown}
+    >
+      {editingEnabled && (
+        <EditIcon
+          active={editModeEnabled}
+          onClick={() => setEditModeEnabled(!editModeEnabled)}
+        />
+      )}
+      {svgDiv}
     </div>
   )
 }

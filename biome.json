@@ -29,10 +29,14 @@
         "noExplicitAny": "off"
       },
       "complexity": {
-        "noForEach": "info"
+        "noForEach": "off"
       },
       "correctness": {
         "useExhaustiveDependencies": "off"
+      },
+      "a11y": {
+        "useKeyWithClickEvents": "off",
+        "noSvgWithoutTitle": "off"
       },
       "style": {
         "noUselessElse": "off",
