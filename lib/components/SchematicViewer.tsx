@@ -95,6 +95,7 @@ export const SchematicViewer = ({
     svgDivRef,
     circuitJson,
     activeEditEvent,
+    editEvents,
   })
 
   const svgDiv = useMemo(
