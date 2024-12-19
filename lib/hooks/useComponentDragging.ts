@@ -120,11 +120,6 @@ export const useComponentDragging = ({
         y: screenDelta.y / realToScreenProjection.d,
       }
 
-      // console.log({
-      //   screenDelta,
-      //   mmDelta,
-      // })
-
       const newEditEvent = {
         ...activeEditEventRef.current,
         new_center: {
