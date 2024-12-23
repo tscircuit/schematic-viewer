@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@tscircuit/core": "^0.0.222",
+    "@tscircuit/core": "^0.0.236",
     "@types/bun": "latest",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",
@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@tscircuit/props": "^0.0.113",
-    "circuit-to-svg": "^0.0.95",
+    "circuit-to-svg": "^0.0.96",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
     "use-mouse-matrix-transform": "^1.2.2"
