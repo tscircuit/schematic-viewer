@@ -25,14 +25,17 @@
     "react-dom": "18",
     "tsup": "^8.3.5",
     "vite": "^6.0.3",
-    "react-reconciler": "^0.31.0"
+    "react-reconciler": "^0.31.0",
+    "@tscircuit/props": "^0.0.113",
+    "circuit-to-svg": "^0.0.96"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@tscircuit/core": "*",
+    "@tscircuit/props": "*",
+    "circuit-to-svg": "*"
   },
   "dependencies": {
-    "@tscircuit/props": "^0.0.113",
-    "circuit-to-svg": "^0.0.96",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
     "use-mouse-matrix-transform": "^1.2.2"
