@@ -1,6 +1,6 @@
 # @tscircuit/schematic-viewer
 
-React component for viewing Circuit JSON or tscircuit as a schematic
+React component for viewing [Circuit JSON](https://github.com/tscircuit/circuit-json) or tscircuit as a schematic
 
 > [!WARNING]
 > This is the 2.X.X schematic viewer, you may want to use the [old 1.X.X version](https://github.com/tscircuit/schematic-viewer/tree/v1)
