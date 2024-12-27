@@ -41,5 +41,6 @@ export default () => (
     editingEnabled
     containerStyle={{ height: "100%" }}
     debugGrid
+    debug
   />
 )
