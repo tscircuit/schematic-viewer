@@ -13,6 +13,7 @@ import {
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import type { CircuitJson } from "circuit-json"
+import { enableDebug } from "lib/utils/debug"
 
 interface Props {
   circuitJson: CircuitJson
@@ -22,6 +23,7 @@ interface Props {
   defaultEditMode?: boolean
   debugGrid?: boolean
   editingEnabled?: boolean
+  debug?: boolean
 }
 
 export const SchematicViewer = ({
@@ -32,7 +34,11 @@ export const SchematicViewer = ({
   defaultEditMode = false,
   debugGrid = false,
   editingEnabled = false,
+  debug = false,
 }: Props) => {
+  if (debug) {
+    enableDebug()
+  }
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
   const svgDivRef = useRef<HTMLDivElement>(null)
 

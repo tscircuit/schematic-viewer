@@ -8,11 +8,13 @@ export const ControlledSchematicViewer = ({
   containerStyle,
   debugGrid = false,
   editingEnabled = false,
+  debug = false,
 }: {
   circuitJson: CircuitJson
   containerStyle?: React.CSSProperties
   debugGrid?: boolean
   editingEnabled?: boolean
+  debug?: boolean
 }) => {
   const [editEvents, setEditEvents] = useState<ManualEditEvent[]>([])
 
@@ -24,6 +26,7 @@ export const ControlledSchematicViewer = ({
       containerStyle={containerStyle}
       debugGrid={debugGrid}
       editingEnabled={editingEnabled}
+      debug={debug}
     />
   )
 }

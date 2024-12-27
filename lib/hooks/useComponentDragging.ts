@@ -12,6 +12,9 @@ import {
 import { getComponentOffsetDueToEvents } from "lib/utils/get-component-offset-due-to-events"
 import type { CircuitJson } from "circuit-json"
 import { su } from "@tscircuit/soup-util"
+import Debug from "lib/utils/debug"
+
+const debug = Debug.extend("useComponentDragging")
 
 export const useComponentDragging = ({
   onEditEvent,
@@ -140,6 +143,9 @@ export const useComponentDragging = ({
       ...activeEditEventRef.current,
       in_progress: false,
     }
+    debug("handleMouseUp calling onEditEvent with new edit event", {
+      newEditEvent: finalEvent,
+    })
     if (onEditEvent) onEditEvent(finalEvent)
     activeEditEventRef.current = null
     dragStartPosRef.current = null
