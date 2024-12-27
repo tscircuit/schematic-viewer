@@ -106,7 +106,7 @@ export const useComponentDragging = ({
 
       activeEditEventRef.current = newEditEvent
     },
-    [cancelDrag, enabled],
+    [cancelDrag, enabled, circuitJson],
   )
 
   const handleMouseMove = useCallback(

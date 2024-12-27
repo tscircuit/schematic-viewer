@@ -31,21 +31,23 @@ export default () => {
       <SchematicViewer
         editEvents={editEvents}
         onEditEvent={(event) => setEditEvents([...editEvents, event])}
-        circuitJson={renderToCircuitJson(
-          <board width="10mm" height="10mm">
-            <resistor name="R1" resistance={1000} schX={-2} />
-            <capacitor name="C1" capacitance="1uF" schX={2} schY={2} />
-            <capacitor
-              name="C2"
-              schRotation={90}
-              capacitance="1uF"
-              schX={0}
-              schY={-4}
-            />
-            <trace from=".R1 .pin2" to=".C1 .pin1" />
-            <trace from=".C1 .pin2" to=".C2 .pin1" />
-          </board>,
-        )}
+        circuitJson={
+          renderToCircuitJson(
+            <board width="10mm" height="10mm">
+              <resistor name="R1" resistance={1000} schX={-2} />
+              <capacitor name="C1" capacitance="1uF" schX={2} schY={2} />
+              <capacitor
+                name="C2"
+                schRotation={90}
+                capacitance="1uF"
+                schX={0}
+                schY={-4}
+              />
+              <trace from=".R1 .pin2" to=".C1 .pin1" />
+              <trace from=".C1 .pin2" to=".C2 .pin1" />
+            </board>,
+          ) as any
+        }
         containerStyle={{ height: "100%" }}
         debugGrid
         editingEnabled
