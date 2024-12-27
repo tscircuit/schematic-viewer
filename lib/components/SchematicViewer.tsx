@@ -16,7 +16,7 @@ import type { CircuitJson } from "circuit-json"
 import { enableDebug } from "lib/utils/debug"
 
 interface Props {
-  circuitJson: CircuitJson
+  circuitJson: any[]
   containerStyle?: React.CSSProperties
   editEvents?: ManualEditEvent[]
   onEditEvent?: (event: ManualEditEvent) => void
