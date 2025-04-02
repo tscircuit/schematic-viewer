@@ -40,7 +40,8 @@ export const SchematicViewer = ({
     enableDebug()
   }
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
-  const [interactionEnabled, setInteractionEnabled] = useState<boolean>(false)
+  const [isInteractionEnabled, setIsInteractionEnabled] =
+    useState<boolean>(false)
   const svgDivRef = useRef<HTMLDivElement>(null)
 
   const {
@@ -53,7 +54,7 @@ export const SchematicViewer = ({
       svgDivRef.current.style.transform = transformToString(transform)
     },
     // @ts-ignore disabled is a valid prop but not typed
-    disabled: !interactionEnabled,
+    disabled: !isInteractionEnabled,
   })
 
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
@@ -94,7 +95,7 @@ export const SchematicViewer = ({
       svgToScreenProjection,
       circuitJson,
       editEvents,
-      enabled: editModeEnabled && interactionEnabled,
+      enabled: editModeEnabled && isInteractionEnabled,
     },
   )
 
@@ -118,14 +119,14 @@ export const SchematicViewer = ({
       <div
         ref={svgDivRef}
         style={{
-          pointerEvents: interactionEnabled ? "auto" : "none",
+          pointerEvents: isInteractionEnabled ? "auto" : "none",
           transformOrigin: "0 0",
         }}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
         dangerouslySetInnerHTML={{ __html: svgString }}
       />
     ),
-    [svgString, interactionEnabled],
+    [svgString, isInteractionEnabled],
   )
 
   return (
@@ -137,14 +138,14 @@ export const SchematicViewer = ({
         overflow: "hidden",
         cursor: isDragging
           ? "grabbing"
-          : interactionEnabled
+          : isInteractionEnabled
             ? "grab"
             : "pointer",
         minHeight: "300px",
         ...containerStyle,
       }}
       onMouseDown={(e) => {
-        if (!interactionEnabled) {
+        if (!isInteractionEnabled) {
           e.preventDefault()
           e.stopPropagation()
           return
@@ -152,19 +153,19 @@ export const SchematicViewer = ({
         handleMouseDown(e)
       }}
       onMouseDownCapture={(e) => {
-        if (!interactionEnabled) {
+        if (!isInteractionEnabled) {
           e.preventDefault()
           e.stopPropagation()
           return
         }
       }}
     >
-      {!interactionEnabled && (
+      {!isInteractionEnabled && (
         <div
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            setInteractionEnabled(true)
+            setIsInteractionEnabled(true)
           }}
           style={{
             position: "absolute",
