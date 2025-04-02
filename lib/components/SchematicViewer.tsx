@@ -24,6 +24,7 @@ interface Props {
   debugGrid?: boolean
   editingEnabled?: boolean
   debug?: boolean
+  clickToInteractEnabled?: boolean
 }
 
 export const SchematicViewer = ({
@@ -35,13 +36,15 @@ export const SchematicViewer = ({
   debugGrid = false,
   editingEnabled = false,
   debug = false,
+  clickToInteractEnabled = true,
 }: Props) => {
   if (debug) {
     enableDebug()
   }
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
-  const [isInteractionEnabled, setIsInteractionEnabled] =
-    useState<boolean>(false)
+  const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
+    !clickToInteractEnabled,
+  )
   const svgDivRef = useRef<HTMLDivElement>(null)
 
   const {
@@ -54,7 +57,7 @@ export const SchematicViewer = ({
       svgDivRef.current.style.transform = transformToString(transform)
     },
     // @ts-ignore disabled is a valid prop but not typed
-    disabled: !isInteractionEnabled,
+    enabled: isInteractionEnabled,
   })
 
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
@@ -119,14 +122,18 @@ export const SchematicViewer = ({
       <div
         ref={svgDivRef}
         style={{
-          pointerEvents: isInteractionEnabled ? "auto" : "none",
+          pointerEvents: clickToInteractEnabled
+            ? isInteractionEnabled
+              ? "auto"
+              : "none"
+            : "auto",
           transformOrigin: "0 0",
         }}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
         dangerouslySetInnerHTML={{ __html: svgString }}
       />
     ),
-    [svgString, isInteractionEnabled],
+    [svgString, isInteractionEnabled, clickToInteractEnabled],
   )
 
   return (
@@ -138,14 +145,14 @@ export const SchematicViewer = ({
         overflow: "hidden",
         cursor: isDragging
           ? "grabbing"
-          : isInteractionEnabled
-            ? "grab"
-            : "pointer",
+          : clickToInteractEnabled && !isInteractionEnabled
+            ? "pointer"
+            : "grab",
         minHeight: "300px",
         ...containerStyle,
       }}
       onMouseDown={(e) => {
-        if (!isInteractionEnabled) {
+        if (clickToInteractEnabled && !isInteractionEnabled) {
           e.preventDefault()
           e.stopPropagation()
           return
@@ -153,14 +160,14 @@ export const SchematicViewer = ({
         handleMouseDown(e)
       }}
       onMouseDownCapture={(e) => {
-        if (!isInteractionEnabled) {
+        if (clickToInteractEnabled && !isInteractionEnabled) {
           e.preventDefault()
           e.stopPropagation()
           return
         }
       }}
     >
-      {!isInteractionEnabled && (
+      {!isInteractionEnabled && clickToInteractEnabled && (
         <div
           onClick={(e) => {
             e.preventDefault()
