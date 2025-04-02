@@ -40,6 +40,7 @@ export const SchematicViewer = ({
     enableDebug()
   }
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
+  const [interactionEnabled, setInteractionEnabled] = useState<boolean>(false)
   const svgDivRef = useRef<HTMLDivElement>(null)
 
   const {
@@ -51,6 +52,8 @@ export const SchematicViewer = ({
       if (!svgDivRef.current) return
       svgDivRef.current.style.transform = transformToString(transform)
     },
+    // @ts-ignore disabled is a valid prop but not typed
+    disabled: !interactionEnabled,
   })
 
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
@@ -91,7 +94,7 @@ export const SchematicViewer = ({
       svgToScreenProjection,
       circuitJson,
       editEvents,
-      enabled: editModeEnabled,
+      enabled: editModeEnabled && interactionEnabled,
     },
   )
 
@@ -115,14 +118,14 @@ export const SchematicViewer = ({
       <div
         ref={svgDivRef}
         style={{
-          pointerEvents: "auto",
+          pointerEvents: interactionEnabled ? "auto" : "none",
           transformOrigin: "0 0",
         }}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
         dangerouslySetInnerHTML={{ __html: svgString }}
       />
     ),
-    [svgString],
+    [svgString, interactionEnabled],
   )
 
   return (
@@ -132,12 +135,62 @@ export const SchematicViewer = ({
         position: "relative",
         backgroundColor: "#F5F1ED",
         overflow: "hidden",
-        cursor: isDragging ? "grabbing" : "grab",
+        cursor: isDragging
+          ? "grabbing"
+          : interactionEnabled
+            ? "grab"
+            : "pointer",
         minHeight: "300px",
         ...containerStyle,
       }}
-      onMouseDown={handleMouseDown}
+      onMouseDown={(e) => {
+        if (!interactionEnabled) {
+          e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+        handleMouseDown(e)
+      }}
+      onMouseDownCapture={(e) => {
+        if (!interactionEnabled) {
+          e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+      }}
     >
+      {!interactionEnabled && (
+        <div
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setInteractionEnabled(true)
+          }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            cursor: "pointer",
+            zIndex: 10,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "all",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "rgba(0, 0, 0, 0.8)",
+              color: "white",
+              padding: "12px 24px",
+              borderRadius: "8px",
+              fontSize: "16px",
+              pointerEvents: "none",
+            }}
+          >
+            Click to Interact
+          </div>
+        </div>
+      )}
       {editingEnabled && (
         <EditIcon
           active={editModeEnabled}
