@@ -24,6 +24,7 @@ interface Props {
   debugGrid?: boolean
   editingEnabled?: boolean
   debug?: boolean
+  clickToInteractEnabled?: boolean
 }
 
 export const SchematicViewer = ({
@@ -35,11 +36,15 @@ export const SchematicViewer = ({
   debugGrid = false,
   editingEnabled = false,
   debug = false,
+  clickToInteractEnabled = false,
 }: Props) => {
   if (debug) {
     enableDebug()
   }
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
+  const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
+    !clickToInteractEnabled,
+  )
   const svgDivRef = useRef<HTMLDivElement>(null)
 
   const {
@@ -51,6 +56,8 @@ export const SchematicViewer = ({
       if (!svgDivRef.current) return
       svgDivRef.current.style.transform = transformToString(transform)
     },
+    // @ts-ignore disabled is a valid prop but not typed
+    enabled: isInteractionEnabled,
   })
 
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
@@ -91,7 +98,7 @@ export const SchematicViewer = ({
       svgToScreenProjection,
       circuitJson,
       editEvents,
-      enabled: editModeEnabled,
+      enabled: editModeEnabled && isInteractionEnabled,
     },
   )
 
@@ -115,14 +122,18 @@ export const SchematicViewer = ({
       <div
         ref={svgDivRef}
         style={{
-          pointerEvents: "auto",
+          pointerEvents: clickToInteractEnabled
+            ? isInteractionEnabled
+              ? "auto"
+              : "none"
+            : "auto",
           transformOrigin: "0 0",
         }}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
         dangerouslySetInnerHTML={{ __html: svgString }}
       />
     ),
-    [svgString],
+    [svgString, isInteractionEnabled, clickToInteractEnabled],
   )
 
   return (
@@ -132,12 +143,63 @@ export const SchematicViewer = ({
         position: "relative",
         backgroundColor: "#F5F1ED",
         overflow: "hidden",
-        cursor: isDragging ? "grabbing" : "grab",
+        cursor: isDragging
+          ? "grabbing"
+          : clickToInteractEnabled && !isInteractionEnabled
+            ? "pointer"
+            : "grab",
         minHeight: "300px",
         ...containerStyle,
       }}
-      onMouseDown={handleMouseDown}
+      onMouseDown={(e) => {
+        if (clickToInteractEnabled && !isInteractionEnabled) {
+          e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+        handleMouseDown(e)
+      }}
+      onMouseDownCapture={(e) => {
+        if (clickToInteractEnabled && !isInteractionEnabled) {
+          e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+      }}
     >
+      {!isInteractionEnabled && clickToInteractEnabled && (
+        <div
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setIsInteractionEnabled(true)
+          }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            cursor: "pointer",
+            zIndex: 10,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "all",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "rgba(0, 0, 0, 0.8)",
+              color: "white",
+              padding: "12px 24px",
+              borderRadius: "8px",
+              fontSize: "16px",
+              fontFamily: "sans-serif",
+              pointerEvents: "none",
+            }}
+          >
+            Click to Interact
+          </div>
+        </div>
+      )}
       {editingEnabled && (
         <EditIcon
           active={editModeEnabled}
