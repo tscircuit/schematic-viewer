@@ -36,7 +36,7 @@ export const SchematicViewer = ({
   debugGrid = false,
   editingEnabled = false,
   debug = false,
-  clickToInteractEnabled = true,
+  clickToInteractEnabled = false,
 }: Props) => {
   if (debug) {
     enableDebug()
@@ -192,6 +192,7 @@ export const SchematicViewer = ({
               padding: "12px 24px",
               borderRadius: "8px",
               fontSize: "16px",
+              fontFamily: "sans-serif",
               pointerEvents: "none",
             }}
           >
