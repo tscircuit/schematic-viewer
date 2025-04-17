@@ -1,18 +1,15 @@
+import { su } from "@tscircuit/soup-util"
+import Debug from "lib/utils/debug"
+import { getComponentOffsetDueToEvents } from "lib/utils/get-component-offset-due-to-events"
 import { useCallback, useEffect, useRef, useState } from "react"
+import {
+  type Matrix,
+  compose
+} from "transformation-matrix"
 import type {
   EditSchematicComponentLocationEventWithElement,
   ManualEditEvent,
 } from "../types/edit-events"
-import {
-  type Matrix,
-  applyToPoint,
-  inverse,
-  compose,
-} from "transformation-matrix"
-import { getComponentOffsetDueToEvents } from "lib/utils/get-component-offset-due-to-events"
-import type { CircuitJson } from "circuit-json"
-import { su } from "@tscircuit/soup-util"
-import Debug from "lib/utils/debug"
 
 const debug = Debug.extend("useComponentDragging")
 
@@ -88,7 +85,7 @@ export const useComponentDragging = ({
         y: e.clientY,
       }
 
-      const original_center = {
+      const current_position = {
         x: schematic_component.center.x + editEventOffset.x,
         y: schematic_component.center.y + editEventOffset.y,
       }
@@ -97,8 +94,8 @@ export const useComponentDragging = ({
         edit_event_id: Math.random().toString(36).substr(2, 9),
         edit_event_type: "edit_schematic_component_location",
         schematic_component_id: schematic_component_id,
-        original_center,
-        new_center: { ...original_center },
+        original_center: current_position,
+        new_center: { ...current_position },
         in_progress: true,
         created_at: Date.now(),
         _element: componentGroup as any,
@@ -106,7 +103,7 @@ export const useComponentDragging = ({
 
       activeEditEventRef.current = newEditEvent
     },
-    [cancelDrag, enabled, circuitJson],
+    [cancelDrag, enabled, circuitJson, editEvents],
   )
 
   const handleMouseMove = useCallback(
