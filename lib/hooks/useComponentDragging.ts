@@ -54,6 +54,26 @@ export const useComponentDragging = ({
   const activeEditEventRef =
     useRef<EditSchematicComponentLocationEventWithElement | null>(null)
 
+  // Store the latest positions of components being tracked
+  const componentPositionsRef = useRef<Map<string, {x: number, y: number}>>(new Map())
+  
+  // Update position map with the latest positions from edit events
+  useEffect(() => {
+    // Process completed edit events to track latest positions
+    editEvents.forEach(event => {
+      if (
+        "edit_event_type" in event && 
+        event.edit_event_type === "edit_schematic_component_location" && 
+        !event.in_progress
+      ) {
+        componentPositionsRef.current.set(
+          event.schematic_component_id, 
+          {...event.new_center}
+        )
+      }
+    })
+  }, [editEvents])
+
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (!enabled) return
@@ -75,19 +95,34 @@ export const useComponentDragging = ({
         schematic_component_id,
       )
       if (!schematic_component) return
-      const editEventOffset = getComponentOffsetDueToEvents({
-        editEvents,
-        schematic_component_id: schematic_component_id,
-      })
-
+      
       dragStartPosRef.current = {
         x: e.clientX,
         y: e.clientY,
       }
 
-      const current_position = {
-        x: schematic_component.center.x + editEventOffset.x,
-        y: schematic_component.center.y + editEventOffset.y,
+      // Get the current position of the component
+      // Check if we're already tracking this component
+      let current_position: {x: number, y: number}
+      const trackedPosition = componentPositionsRef.current.get(schematic_component_id)
+      
+      if (trackedPosition) {
+        // Use the tracked position from previous edits
+        current_position = {...trackedPosition}
+      } else {
+        // Calculate position based on component data and edit events
+        const editEventOffset = getComponentOffsetDueToEvents({
+          editEvents,
+          schematic_component_id: schematic_component_id,
+        })
+        
+        current_position = {
+          x: schematic_component.center.x + editEventOffset.x,
+          y: schematic_component.center.y + editEventOffset.y,
+        }
+        
+        // Store this initial position
+        componentPositionsRef.current.set(schematic_component_id, {...current_position})
       }
 
       const newEditEvent: EditSchematicComponentLocationEventWithElement = {
@@ -102,6 +137,7 @@ export const useComponentDragging = ({
       }
 
       activeEditEventRef.current = newEditEvent
+      setActiveEditEvent(newEditEvent)
     },
     [cancelDrag, enabled, circuitJson, editEvents],
   )
@@ -140,6 +176,13 @@ export const useComponentDragging = ({
       ...activeEditEventRef.current,
       in_progress: false,
     }
+    
+    // Update our stored position for this component
+    componentPositionsRef.current.set(
+      finalEvent.schematic_component_id, 
+      {...finalEvent.new_center}
+    )
+    
     debug("handleMouseUp calling onEditEvent with new edit event", {
       newEditEvent: finalEvent,
     })
