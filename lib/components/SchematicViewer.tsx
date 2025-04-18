@@ -1,22 +1,22 @@
-import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { convertCircuitJsonToSchematicSvg } from "circuit-to-svg"
-import { useMemo, useRef, useState } from "react"
-import { EditIcon } from "./EditIcon"
+import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
+import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import { enableDebug } from "lib/utils/debug"
+import { useEffect, useMemo, useRef, useState } from "react"
+import {
+  fromString,
+  identity,
+  toString as transformToString,
+} from "transformation-matrix"
+import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
 import type { ManualEditEvent } from "../types/edit-events"
-import {
-  identity,
-  fromString,
-  toString as transformToString,
-} from "transformation-matrix"
-import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
-import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import { EditIcon } from "./EditIcon"
 import type { CircuitJson } from "circuit-json"
-import { enableDebug } from "lib/utils/debug"
 
 interface Props {
-  circuitJson: any[]
+  circuitJson: CircuitJson
   containerStyle?: React.CSSProperties
   editEvents?: ManualEditEvent[]
   onEditEvent?: (event: ManualEditEvent) => void
@@ -46,6 +46,23 @@ export const SchematicViewer = ({
     !clickToInteractEnabled,
   )
   const svgDivRef = useRef<HTMLDivElement>(null)
+
+  const [internalEditEvents, setInternalEditEvents] = useState<ManualEditEvent[]>([])
+  const circuitJsonRef = useRef<CircuitJson>(circuitJson)
+
+  const getCircuitHash = (circuitJson: CircuitJson) => {
+    return `${circuitJson?.length || 0}_${(circuitJson as any)?.editCount || 0}`
+  }
+
+  useEffect(() => {
+    const circuitHash = getCircuitHash(circuitJson)
+    const circuitHashRef = getCircuitHash(circuitJsonRef.current)
+
+    if (circuitHash !== circuitHashRef) {
+      setInternalEditEvents([])
+      circuitJsonRef.current = circuitJson
+    }
+  }, [circuitJson])
 
   const {
     ref: containerRef,
@@ -90,21 +107,28 @@ export const SchematicViewer = ({
     }
   }, [svgString])
 
+  const handleEditEvent = (event: ManualEditEvent) => {
+    setInternalEditEvents((prev) => [...prev, event])
+    if (onEditEvent) {
+      onEditEvent(event)
+    }
+  }
+
   const { handleMouseDown, isDragging, activeEditEvent } = useComponentDragging(
     {
-      onEditEvent,
+      onEditEvent: handleEditEvent,
       cancelDrag,
       realToSvgProjection,
       svgToScreenProjection,
       circuitJson,
-      editEvents,
+      editEvents: [...editEvents, ...internalEditEvents],
       enabled: editModeEnabled && isInteractionEnabled,
     },
   )
 
   useChangeSchematicComponentLocationsInSvg({
     svgDivRef,
-    editEvents,
+    editEvents: [...editEvents, ...internalEditEvents],
     realToSvgProjection,
     svgToScreenProjection,
     activeEditEvent,
@@ -114,7 +138,7 @@ export const SchematicViewer = ({
     svgDivRef,
     circuitJson,
     activeEditEvent,
-    editEvents,
+    editEvents: [...editEvents, ...internalEditEvents],
   })
 
   const svgDiv = useMemo(
