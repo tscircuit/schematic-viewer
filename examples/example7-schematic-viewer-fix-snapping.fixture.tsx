@@ -3,11 +3,8 @@ import type { CircuitJson } from "circuit-json"
 import { renderToCircuitJson } from "lib/dev/render-to-circuit-json"
 import { SchematicViewer } from "lib/index"
 import type { ManualEditEvent } from "lib/types/edit-events"
-import { useCallback, useEffect, useState } from "react"
-
-interface ManualEditsFile {
-  [key: string]: any
-}
+import { useEffect, useState } from "react"
+import type { ManualEditsFile } from "@tscircuit/props"
 
 export default () => {
   const [editEvents, setEditEvents] = useState<ManualEditEvent[]>([])

@@ -30,7 +30,7 @@ interface Props {
 export const SchematicViewer = ({
   circuitJson,
   containerStyle,
-  editEvents = [],
+  editEvents: unappliedEditEvents = [],
   onEditEvent,
   defaultEditMode = false,
   debugGrid = false,
@@ -114,6 +114,10 @@ export const SchematicViewer = ({
     }
   }
 
+  const editEventsWithUnappliedEditEvents = useMemo(() => {
+    return [...unappliedEditEvents, ...internalEditEvents]
+  }, [unappliedEditEvents, internalEditEvents])
+
   const { handleMouseDown, isDragging, activeEditEvent } = useComponentDragging(
     {
       onEditEvent: handleEditEvent,
@@ -121,14 +125,14 @@ export const SchematicViewer = ({
       realToSvgProjection,
       svgToScreenProjection,
       circuitJson,
-      editEvents: [...editEvents, ...internalEditEvents],
+      editEvents: editEventsWithUnappliedEditEvents,
       enabled: editModeEnabled && isInteractionEnabled,
     },
   )
 
   useChangeSchematicComponentLocationsInSvg({
     svgDivRef,
-    editEvents: [...editEvents, ...internalEditEvents],
+    editEvents: editEventsWithUnappliedEditEvents,
     realToSvgProjection,
     svgToScreenProjection,
     activeEditEvent,
@@ -138,7 +142,7 @@ export const SchematicViewer = ({
     svgDivRef,
     circuitJson,
     activeEditEvent,
-    editEvents: [...editEvents, ...internalEditEvents],
+    editEvents: editEventsWithUnappliedEditEvents,
   })
 
   const svgDiv = useMemo(
