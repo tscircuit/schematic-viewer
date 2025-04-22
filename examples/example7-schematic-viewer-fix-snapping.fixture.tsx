@@ -10,14 +10,16 @@ export default () => {
   const [editEvents, setEditEvents] = useState<ManualEditEvent[]>([])
   const [circuitJson, setCircuitJson] = useState<CircuitJson | null>(null)
   const [manualEdits, setManualEdits] = useState<ManualEditsFile>({
-    schematic_placements: [{
-      center: {
-        x: 2,
-        y: 3,
+    schematic_placements: [
+      {
+        center: {
+          x: 2,
+          y: 3,
+        },
+        relative_to: "group_center",
+        selector: "C1",
       },
-      relative_to: "group_center",
-      selector: "C1",
-    }],
+    ],
   })
 
   const rerenderCircuitJson = () => {
@@ -34,12 +36,12 @@ export default () => {
 
   useEffect(() => {
     rerenderCircuitJson()
-  },[])
+  }, [])
 
   useEffect(() => {
     // Apply edit events to manual edits for persistence between renders
     const updatedManualEdits = applyEditEventsToManualEditsFile({
-      circuitJson: circuitJson ?? [] as any,
+      circuitJson: circuitJson ?? ([] as any),
       editEvents,
       manualEditsFile: manualEdits,
     })
