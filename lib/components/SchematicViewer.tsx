@@ -1,4 +1,7 @@
-import { convertCircuitJsonToSchematicSvg } from "circuit-to-svg"
+import {
+  convertCircuitJsonToSchematicSvg,
+  type ColorOverrides,
+} from "circuit-to-svg"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { enableDebug } from "lib/utils/debug"
@@ -25,6 +28,7 @@ interface Props {
   editingEnabled?: boolean
   debug?: boolean
   clickToInteractEnabled?: boolean
+  colorOverrides?: ColorOverrides
 }
 
 export const SchematicViewer = ({
@@ -37,6 +41,7 @@ export const SchematicViewer = ({
   editingEnabled = false,
   debug = false,
   clickToInteractEnabled = false,
+  colorOverrides,
 }: Props) => {
   if (debug) {
     enableDebug()
@@ -47,7 +52,9 @@ export const SchematicViewer = ({
   )
   const svgDivRef = useRef<HTMLDivElement>(null)
 
-  const [internalEditEvents, setInternalEditEvents] = useState<ManualEditEvent[]>([])
+  const [internalEditEvents, setInternalEditEvents] = useState<
+    ManualEditEvent[]
+  >([])
   const circuitJsonRef = useRef<CircuitJson>(circuitJson)
 
   const getCircuitHash = (circuitJson: CircuitJson) => {
@@ -90,6 +97,7 @@ export const SchematicViewer = ({
             cellSize: 1,
             labelCells: true,
           },
+      colorOverrides,
     })
   }, [circuitJson, containerWidth, containerHeight])
 
