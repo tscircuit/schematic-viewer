@@ -177,7 +177,7 @@ export const SchematicViewer = ({
       ref={containerRef}
       style={{
         position: "relative",
-        backgroundColor: "#F5F1ED",
+        backgroundColor: "transparent",
         overflow: "hidden",
         cursor: isDragging
           ? "grabbing"
