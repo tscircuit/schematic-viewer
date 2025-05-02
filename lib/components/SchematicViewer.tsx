@@ -67,7 +67,9 @@ export const SchematicViewer = ({
     containerRef as React.RefObject<HTMLElement>,
   )
 
-  const [internalEditEvents, setInternalEditEvents] = useState<ManualEditEvent[]>([])
+  const [internalEditEvents, setInternalEditEvents] = useState<
+    ManualEditEvent[]
+  >([])
   const circuitJsonRef = useRef<CircuitJson>(circuitJson)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
 
@@ -88,17 +90,14 @@ export const SchematicViewer = ({
     return convertCircuitJsonToSchematicSvg(circuitJson as any, {
       width: containerWidth,
       height: containerHeight,
-      grid: debugGrid
-        ? { cellSize: 1, labelCells: true }
-        : undefined,
+      grid: debugGrid ? { cellSize: 1, labelCells: true } : undefined,
       colorOverrides,
     })
   }, [circuitJson, containerWidth, containerHeight, debugGrid, colorOverrides])
 
   const realToSvgProjection = useMemo(() => {
     if (!svgString) return identity()
-    const match = svgString.match(
-      /data-real-to-screen-transform="([^"]+)"/,)
+    const match = svgString.match(/data-real-to-screen-transform="([^"]+)"/)
     if (!match) return identity()
     try {
       return fromString(match[1])
@@ -107,18 +106,21 @@ export const SchematicViewer = ({
     }
   }, [svgString])
 
-  const handleEditEvent = useCallback((e: ManualEditEvent) => {
-    setInternalEditEvents((prev) => [...prev, e])
-    onEditEvent?.(e)
-  }, [onEditEvent])
+  const handleEditEvent = useCallback(
+    (e: ManualEditEvent) => {
+      setInternalEditEvents((prev) => [...prev, e])
+      onEditEvent?.(e)
+    },
+    [onEditEvent],
+  )
 
   const allEditEvents = useMemo(
     () => [...unappliedEditEvents, ...internalEditEvents],
     [unappliedEditEvents, internalEditEvents],
   )
 
-  const { handleMouseDown, isDragging, activeEditEvent } =
-    useComponentDragging({
+  const { handleMouseDown, isDragging, activeEditEvent } = useComponentDragging(
+    {
       onEditEvent: handleEditEvent,
       cancelDrag,
       realToSvgProjection,
@@ -126,7 +128,8 @@ export const SchematicViewer = ({
       circuitJson,
       editEvents: allEditEvents,
       enabled: editModeEnabled && isInteractionEnabled,
-    })
+    },
+  )
 
   useChangeSchematicComponentLocationsInSvg({
     svgDivRef,
@@ -153,7 +156,8 @@ export const SchematicViewer = ({
           button: 0,
         }),
       )
-    }, [containerRef]
+    },
+    [containerRef],
   )
 
   const handleTouchStart = useCallback(
@@ -161,7 +165,8 @@ export const SchematicViewer = ({
       const t = e.touches[0]
       touchStart.current = { x: t.clientX, y: t.clientY }
       dispatchMouseEvent("mousedown", t)
-    }, [dispatchMouseEvent]
+    },
+    [dispatchMouseEvent],
   )
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
@@ -169,7 +174,8 @@ export const SchematicViewer = ({
       e.preventDefault()
       const t = e.touches[0]
       dispatchMouseEvent("mousemove", t)
-    }, [dispatchMouseEvent, isInteractionEnabled]
+    },
+    [dispatchMouseEvent, isInteractionEnabled],
   )
   const handleTouchEnd = useCallback(
     (e: TouchEvent) => {
@@ -186,20 +192,21 @@ export const SchematicViewer = ({
           setIsInteractionEnabled(true)
         }
       }
-    }, [dispatchMouseEvent, clickToInteractEnabled, isInteractionEnabled]
+    },
+    [dispatchMouseEvent, clickToInteractEnabled, isInteractionEnabled],
   )
 
   // Attach non-passive native listeners for touch events
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    el.addEventListener('touchstart', handleTouchStart, { passive: false })
-    el.addEventListener('touchmove', handleTouchMove, { passive: false })
-    el.addEventListener('touchend', handleTouchEnd)
+    el.addEventListener("touchstart", handleTouchStart, { passive: false })
+    el.addEventListener("touchmove", handleTouchMove, { passive: false })
+    el.addEventListener("touchend", handleTouchEnd)
     return () => {
-      el.removeEventListener('touchstart', handleTouchStart)
-      el.removeEventListener('touchmove', handleTouchMove)
-      el.removeEventListener('touchend', handleTouchEnd)
+      el.removeEventListener("touchstart", handleTouchStart)
+      el.removeEventListener("touchmove", handleTouchMove)
+      el.removeEventListener("touchend", handleTouchEnd)
     }
   }, [containerRef, handleTouchStart, handleTouchMove, handleTouchEnd])
 
@@ -214,7 +221,6 @@ export const SchematicViewer = ({
           : "auto",
         transformOrigin: "0 0",
       }}
-      // biome-ignore lint/security/noDangerouslySetInnerHtml
       dangerouslySetInnerHTML={{ __html: svgString }}
     />
   )
@@ -230,8 +236,8 @@ export const SchematicViewer = ({
         cursor: isDragging
           ? "grabbing"
           : clickToInteractEnabled && !isInteractionEnabled
-          ? "pointer"
-          : "grab",
+            ? "pointer"
+            : "grab",
         minHeight: 300,
         ...containerStyle,
       }}
