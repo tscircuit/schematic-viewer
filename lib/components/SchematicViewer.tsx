@@ -164,30 +164,33 @@ export const SchematicViewer = ({
     [containerRef],
   )
 
-  // --- PINCH / PAN setup ---
+  // pinch-pan state
   const pinchStartDistance = useRef<number | null>(null)
   const pinchStartTransform = useRef<DOMMatrix | null>(null)
 
+  // —— UPDATED: cancel drag when two fingers start —— 
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
       if (!containerRef.current) return
       const tl = e.touches
       const t0 = tl[0]!
-      const t1 = tl.length > 1 ? tl[1]! : null
 
-      if (t1) {
-        // begin pinch
+      if (tl.length === 2) {
+        // two-finger pinch: cancel any drag and record baseline
+        cancelDrag()
+        const t1 = tl[1]!
         const dx = t1.clientX - t0.clientX
         const dy = t1.clientY - t0.clientY
         pinchStartDistance.current = Math.hypot(dx, dy)
         pinchStartTransform.current = svgToScreenProjection as unknown as DOMMatrix
+        return
       }
 
-      // always start a drag
+      // single-finger: start normal drag
       touchStart.current = { x: t0.clientX, y: t0.clientY }
       dispatchMouseEvent("mousedown", t0)
     },
-    [containerRef, dispatchMouseEvent, svgToScreenProjection],
+    [containerRef, cancelDrag, dispatchMouseEvent, svgToScreenProjection],
   )
 
   const handleTouchMove = useCallback(
