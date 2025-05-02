@@ -50,6 +50,43 @@ export const SchematicViewer = ({
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
     !clickToInteractEnabled,
   )
+  const [isTouchScrolling, setIsTouchScrolling] = useState(false)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (clickToInteractEnabled && !isInteractionEnabled) {
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      }
+      setIsTouchScrolling(false)
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (
+      clickToInteractEnabled &&
+      !isInteractionEnabled &&
+      touchStartRef.current
+    ) {
+      const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x)
+      const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y)
+
+      // If the user moves their finger significantly, assume scrolling
+      if (deltaX > 10 || deltaY > 10) {
+        setIsTouchScrolling(true)
+      }
+    }
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (clickToInteractEnabled && !isInteractionEnabled && !isTouchScrolling) {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsInteractionEnabled(true)
+    }
+    touchStartRef.current = null
+  }
   const svgDivRef = useRef<HTMLDivElement>(null)
 
   const [internalEditEvents, setInternalEditEvents] = useState<
@@ -205,16 +242,14 @@ export const SchematicViewer = ({
     >
       {!isInteractionEnabled && clickToInteractEnabled && (
         <div
-          onTouchStart={(e) => {
-            if (e.target !== e.currentTarget) return
-            e.preventDefault()
-            e.stopPropagation()
-          }}
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
             setIsInteractionEnabled(true)
           }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           style={{
             position: "absolute",
             inset: 0,
