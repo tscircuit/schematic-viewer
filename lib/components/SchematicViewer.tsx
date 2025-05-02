@@ -83,7 +83,7 @@ export const SchematicViewer = ({
     containerRef as React.RefObject<HTMLElement>,
   )
 
-  // Edit‐mode events buffering
+  // Edit‑mode events buffering
   const [internalEditEvents, setInternalEditEvents] = useState<
     ManualEditEvent[]
   >([])
@@ -199,7 +199,7 @@ export const SchematicViewer = ({
           initialMatrix: svgToScreenProjection,
         }
       } else if (e.touches.length === 1) {
-        // single‐finger drag fallback
+        // single-finger drag fallback
         const t = e.touches[0]
         touchStart.current = { x: t.clientX, y: t.clientY }
         dispatchMouseEvent("mousedown", t)
@@ -240,30 +240,32 @@ export const SchematicViewer = ({
 
   const handleTouchEnd = useCallback(
     (e: TouchEvent) => {
-      // end pinch when fewer than two touches remain
+      // 1) clear pinch state once fewer than two touches remain
       if (e.touches.length < 2) {
         pinchState.current = null
+        // cancelDrag()   // ← uncomment if you need to forcibly end any ongoing drag
       }
-      // end single‐finger drag
-      if (e.changedTouches.length === 1) {
-        const t = e.changedTouches[0]
-        dispatchMouseEvent("mouseup", t)
 
-        // click‐to‐interact logic
-        if (
-          clickToInteractEnabled &&
-          !isInteractionEnabled &&
-          touchStart.current
-        ) {
-          const dx = Math.abs(t.clientX - touchStart.current.x)
-          const dy = Math.abs(t.clientY - touchStart.current.y)
-          if (dx < 10 && dy < 10) {
-            setIsInteractionEnabled(true)
-          }
+      // 2) dispatch a mouseup for EACH finger that lifted
+      Array.from(e.changedTouches).forEach((t) =>
+        dispatchMouseEvent("mouseup", t),
+      )
+
+      // 3) click-to-interact logic (single-tap enable)
+      if (
+        clickToInteractEnabled &&
+        !isInteractionEnabled &&
+        touchStart.current
+      ) {
+        const t = e.changedTouches[0]
+        const dx = Math.abs(t.clientX - touchStart.current.x)
+        const dy = Math.abs(t.clientY - touchStart.current.y)
+        if (dx < 10 && dy < 10) {
+          setIsInteractionEnabled(true)
         }
       }
     },
-    [dispatchMouseEvent, clickToInteractEnabled, isInteractionEnabled],
+    [dispatchMouseEvent, clickToInteractEnabled, isInteractionEnabled /*, cancelDrag */],
   )
 
   // Attach non-passive touch listeners
@@ -306,7 +308,6 @@ export const SchematicViewer = ({
         handleMouseDown(e as any)
       }}
     >
-      {/* Overlay “Click to Interact” */}
       {!isInteractionEnabled && clickToInteractEnabled && (
         <div
           onClick={(e) => {
@@ -341,7 +342,6 @@ export const SchematicViewer = ({
         </div>
       )}
 
-      {/* Edit-mode toggle */}
       {editingEnabled && (
         <EditIcon
           active={editModeEnabled}
@@ -349,7 +349,6 @@ export const SchematicViewer = ({
         />
       )}
 
-      {/* SVG container */}
       <div
         ref={svgDivRef}
         style={{
