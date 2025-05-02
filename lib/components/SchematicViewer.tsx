@@ -51,10 +51,12 @@ export const SchematicViewer = ({
   )
   const svgDivRef = useRef<HTMLDivElement>(null)
 
+  // pull in transform + setter
   const {
     ref: containerRef,
     cancelDrag,
     transform: svgToScreenProjection,
+    setTransform,
   } = useMouseMatrixTransform({
     onSetTransform: (t) => {
       if (!svgDivRef.current) return
@@ -67,6 +69,7 @@ export const SchematicViewer = ({
     containerRef as React.RefObject<HTMLElement>,
   )
 
+  // manual-edit state
   const [internalEditEvents, setInternalEditEvents] = useState<
     ManualEditEvent[]
   >([])
@@ -85,6 +88,7 @@ export const SchematicViewer = ({
     }
   }, [circuitJson])
 
+  // render to SVG string
   const svgString = useMemo(() => {
     if (!containerWidth || !containerHeight) return ""
     return convertCircuitJsonToSchematicSvg(circuitJson as any, {
@@ -145,7 +149,7 @@ export const SchematicViewer = ({
     editEvents: allEditEvents,
   })
 
-  // Dispatch simulated mouse events for touch
+  // helper to simulate mouse events
   const dispatchMouseEvent = useCallback(
     (type: string, touch: Touch) => {
       containerRef.current?.dispatchEvent(
@@ -160,27 +164,74 @@ export const SchematicViewer = ({
     [containerRef],
   )
 
+  // --- PINCH / PAN setup ---
+  const pinchStartDistance = useRef<number | null>(null)
+  const pinchStartTransform = useRef<DOMMatrix | null>(null)
+
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
-      const t = e.touches[0]
-      touchStart.current = { x: t.clientX, y: t.clientY }
-      dispatchMouseEvent("mousedown", t)
+      if (!containerRef.current) return
+      const tl = e.touches
+      const t0 = tl[0]!
+      const t1 = tl.length > 1 ? tl[1]! : null
+
+      if (t1) {
+        // begin pinch
+        const dx = t1.clientX - t0.clientX
+        const dy = t1.clientY - t0.clientY
+        pinchStartDistance.current = Math.hypot(dx, dy)
+        pinchStartTransform.current = svgToScreenProjection as unknown as DOMMatrix
+      }
+
+      // always start a drag
+      touchStart.current = { x: t0.clientX, y: t0.clientY }
+      dispatchMouseEvent("mousedown", t0)
     },
-    [dispatchMouseEvent],
+    [containerRef, dispatchMouseEvent, svgToScreenProjection],
   )
+
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
       if (!isInteractionEnabled) return
       e.preventDefault()
-      const t = e.touches[0]
-      dispatchMouseEvent("mousemove", t)
+
+      const tl = e.touches
+      // pinch-to-zoom
+      if (
+        tl.length === 2 &&
+        pinchStartDistance.current != null &&
+        pinchStartTransform.current
+      ) {
+        const t0 = tl[0]!
+        const t1 = tl[1]!
+        const dx = t1.clientX - t0.clientX
+        const dy = t1.clientY - t0.clientY
+        const newDist = Math.hypot(dx, dy)
+        const scale = newDist / pinchStartDistance.current
+
+        const midX = (t0.clientX + t1.clientX) / 2
+        const midY = (t0.clientY + t1.clientY) / 2
+
+        const m = pinchStartTransform.current
+          .translate(midX, midY)
+          .scale(scale)
+          .translate(-midX, -midY)
+
+        setTransform(m)
+        return
+      }
+
+      // single-finger pan
+      dispatchMouseEvent("mousemove", tl[0]!)
     },
-    [dispatchMouseEvent, isInteractionEnabled],
+    [isInteractionEnabled, setTransform, dispatchMouseEvent],
   )
+
   const handleTouchEnd = useCallback(
     (e: TouchEvent) => {
-      const t = e.changedTouches[0]
+      const t = e.changedTouches[0]!
       dispatchMouseEvent("mouseup", t)
+
       if (
         clickToInteractEnabled &&
         !isInteractionEnabled &&
@@ -192,11 +243,14 @@ export const SchematicViewer = ({
           setIsInteractionEnabled(true)
         }
       }
+
+      // reset pinch state
+      pinchStartDistance.current = null
+      pinchStartTransform.current = null
     },
     [dispatchMouseEvent, clickToInteractEnabled, isInteractionEnabled],
   )
 
-  // Attach non-passive native listeners for touch events
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -210,6 +264,7 @@ export const SchematicViewer = ({
     }
   }, [containerRef, handleTouchStart, handleTouchMove, handleTouchEnd])
 
+  // render SVG
   const svgDiv = (
     <div
       ref={svgDivRef}
