@@ -244,7 +244,7 @@ export const SchematicViewer = ({
       // 1) clear pinch state once fewer than two touches remain
       if (e.touches.length < 2) {
         pinchState.current = null
-        // cancelDrag()   // ← uncomment if you need to forcibly end any ongoing drag
+
       }
 
       // 2) dispatch a mouseup for EACH finger that lifted
@@ -338,7 +338,9 @@ export const SchematicViewer = ({
               pointerEvents: "none",
             }}
           >
-            Click to Interact
+            {navigator.maxTouchPoints > 0
+        ? "Touch to Interact"
+        : "Click to Interact"}
           </div>
         </div>
       )}
