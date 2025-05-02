@@ -69,6 +69,7 @@ export const SchematicViewer = ({
     ref: containerRef,
     cancelDrag,
     transform: svgToScreenProjection,
+    setTransform,
   } = useMouseMatrixTransform({
     onSetTransform: (t) => {
       if (svgDivRef.current) {
@@ -228,7 +229,7 @@ export const SchematicViewer = ({
         )
 
         if (svgDivRef.current) {
-          svgDivRef.current.style.transform = transformToString(m)
+          setTransform(m)
         }
       } else if (e.touches.length === 1) {
         const t = e.touches[0]
