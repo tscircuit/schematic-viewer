@@ -280,7 +280,7 @@ export const SchematicViewer = ({
       {editingEnabled && (
         <EditIcon
           active={editModeEnabled}
-          onClick={() => setEditModeEnabled((m) => !m)}
+          onClick={() => setEditModeEnabled(!editModeEnabled)}
         />
       )}
       {svgDiv}
