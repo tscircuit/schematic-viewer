@@ -195,21 +195,6 @@ export const SchematicViewer = ({
         }
         handleMouseDown(e)
       }}
-      onTouchStart={(e) => {
-        if (clickToInteractEnabled && !isInteractionEnabled) {
-          e.preventDefault()
-          e.stopPropagation()
-          return
-        }
-        const touch = e.touches[0]
-        handleMouseDown({
-          ...e,
-          clientX: touch.clientX,
-          clientY: touch.clientY,
-          preventDefault: e.preventDefault.bind(e),
-          stopPropagation: e.stopPropagation.bind(e),
-        } as unknown as React.MouseEvent)
-      }}
       onMouseDownCapture={(e) => {
         if (clickToInteractEnabled && !isInteractionEnabled) {
           e.preventDefault()
@@ -220,6 +205,11 @@ export const SchematicViewer = ({
     >
       {!isInteractionEnabled && clickToInteractEnabled && (
         <div
+          onTouchStart={(e) => {
+            if (e.target !== e.currentTarget) return
+            e.preventDefault()
+            e.stopPropagation()
+          }}
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
