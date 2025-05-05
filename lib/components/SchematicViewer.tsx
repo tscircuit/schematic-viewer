@@ -50,44 +50,39 @@ export const SchematicViewer = ({
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
     !clickToInteractEnabled,
   )
-  const [isTouchScrolling, setIsTouchScrolling] = useState(false)
+  const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (clickToInteractEnabled && !isInteractionEnabled) {
-      touchStartRef.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-      }
-      setIsTouchScrolling(false)
+  const resetTransform = () => {
+    if (svgDivRef.current) {
+      svgDivRef.current.style.transform = transformToString(identity())
     }
   }
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (
-      clickToInteractEnabled &&
-      !isInteractionEnabled &&
-      touchStartRef.current
-    ) {
-      const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x)
-      const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y)
-
-      // If the user moves their finger significantly, assume scrolling
-      if (deltaX > 10 || deltaY > 10) {
-        setIsTouchScrolling(true)
-      }
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
     }
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (clickToInteractEnabled && !isInteractionEnabled && !isTouchScrolling) {
+    const touch = e.changedTouches[0]
+    const start = touchStartRef.current
+    if (!start) return
+
+    const deltaX = Math.abs(touch.clientX - start.x)
+    const deltaY = Math.abs(touch.clientY - start.y)
+
+    if (deltaX < 10 && deltaY < 10) {
       e.preventDefault()
-      e.stopPropagation()
       setIsInteractionEnabled(true)
+      resetTransform()
     }
+
     touchStartRef.current = null
   }
-  const svgDivRef = useRef<HTMLDivElement>(null)
 
   const [internalEditEvents, setInternalEditEvents] = useState<
     ManualEditEvent[]
@@ -239,6 +234,8 @@ export const SchematicViewer = ({
           return
         }
       }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       {!isInteractionEnabled && clickToInteractEnabled && (
         <div
@@ -247,9 +244,6 @@ export const SchematicViewer = ({
             e.stopPropagation()
             setIsInteractionEnabled(true)
           }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
           style={{
             position: "absolute",
             inset: 0,
@@ -259,6 +253,7 @@ export const SchematicViewer = ({
             alignItems: "center",
             justifyContent: "center",
             pointerEvents: "all",
+            touchAction: "pan-x pan-y pinch-zoom",
           }}
         >
           <div
@@ -272,7 +267,10 @@ export const SchematicViewer = ({
               pointerEvents: "none",
             }}
           >
-            Click to Interact
+            {typeof window !== "undefined" &&
+            ("ontouchstart" in window || navigator.maxTouchPoints > 0)
+              ? "Touch to Interact"
+              : "Click to Interact"}
           </div>
         </div>
       )}
