@@ -53,12 +53,6 @@ export const SchematicViewer = ({
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
-  const resetTransform = () => {
-    if (svgDivRef.current) {
-      svgDivRef.current.style.transform = transformToString(identity())
-    }
-  }
-
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
     touchStartRef.current = {
@@ -78,7 +72,6 @@ export const SchematicViewer = ({
     if (deltaX < 10 && deltaY < 10) {
       e.preventDefault()
       setIsInteractionEnabled(true)
-      resetTransform()
     }
 
     touchStartRef.current = null
