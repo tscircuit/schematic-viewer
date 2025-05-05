@@ -22,10 +22,10 @@
     "@vitejs/plugin-react": "^4.3.4",
     "circuit-json": "^0.0.154",
     "circuit-to-svg": "^0.0.120",
-    "react": "18",
+    "react": "^19.1.0",
     "react-cosmos": "^6.2.1",
     "react-cosmos-plugin-vite": "^6.2.0",
-    "react-dom": "18",
+    "react-dom": "^19.1.0",
     "react-reconciler": "^0.31.0",
     "tsup": "^8.3.5",
     "vite": "^6.0.3"
