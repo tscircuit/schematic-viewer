@@ -51,6 +51,7 @@ export const SchematicViewer = ({
     !clickToInteractEnabled,
   )
   const svgDivRef = useRef<HTMLDivElement>(null)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
   const [internalEditEvents, setInternalEditEvents] = useState<
     ManualEditEvent[]
@@ -210,6 +211,28 @@ export const SchematicViewer = ({
             e.stopPropagation()
             setIsInteractionEnabled(true)
           }}
+          onTouchStart={(e) => {
+            const touch = e.touches[0]
+            touchStartRef.current = {
+              x: touch.clientX,
+              y: touch.clientY,
+            }
+          }}
+          onTouchEnd={(e) => {
+            const touch = e.changedTouches[0]
+            const start = touchStartRef.current
+            if (!start) return
+
+            const deltaX = Math.abs(touch.clientX - start.x)
+            const deltaY = Math.abs(touch.clientY - start.y)
+
+            if (deltaX < 10 && deltaY < 10) {
+              e.preventDefault()
+              setIsInteractionEnabled(true)
+            }
+
+            touchStartRef.current = null
+          }}
           style={{
             position: "absolute",
             inset: 0,
@@ -219,6 +242,7 @@ export const SchematicViewer = ({
             alignItems: "center",
             justifyContent: "center",
             pointerEvents: "all",
+            touchAction: "pan-x pan-y pinch-zoom",
           }}
         >
           <div
