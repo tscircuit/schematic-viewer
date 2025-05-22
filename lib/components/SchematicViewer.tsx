@@ -17,6 +17,7 @@ import { useComponentDragging } from "../hooks/useComponentDragging"
 import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
 import type { CircuitJson } from "circuit-json"
+import { zIndexMap } from "../utils/z-index-map"
 
 interface Props {
   circuitJson: CircuitJson
@@ -241,7 +242,7 @@ export const SchematicViewer = ({
             position: "absolute",
             inset: 0,
             cursor: "pointer",
-            zIndex: 10,
+            zIndex: zIndexMap.clickToInteractOverlay,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
