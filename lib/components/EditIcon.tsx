@@ -1,3 +1,5 @@
+import { zIndexMap } from "../utils/z-index-map"
+
 export const EditIcon = ({
   onClick,
   active,
@@ -18,7 +20,7 @@ export const EditIcon = ({
         display: "flex",
         alignItems: "center",
         gap: "4px",
-        zIndex: 1000,
+        zIndex: zIndexMap.schematicEditIcon,
       }}
     >
       <svg
