@@ -18,7 +18,7 @@ export const EditIcon = ({
         display: "flex",
         alignItems: "center",
         gap: "4px",
-        zIndex: 1000,
+        zIndex: 50,
       }}
     >
       <svg
