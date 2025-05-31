@@ -127,6 +127,13 @@ export const SchematicViewer = ({
     })
   }, [circuitJson, containerWidth, containerHeight])
 
+  const containerBackgroundColor = useMemo(() => {
+    const match = svgString.match(
+      /<svg[^>]*style="[^"]*background-color:\s*([^;\"]+)/i,
+    )
+    return match?.[1] ?? "transparent"
+  }, [svgString])
+
   const realToSvgProjection = useMemo(() => {
     if (!svgString) return identity()
     const transformString = svgString.match(
@@ -203,7 +210,7 @@ export const SchematicViewer = ({
       ref={containerRef}
       style={{
         position: "relative",
-        backgroundColor: "transparent",
+        backgroundColor: containerBackgroundColor,
         overflow: "hidden",
         cursor: isDragging
           ? "grabbing"
