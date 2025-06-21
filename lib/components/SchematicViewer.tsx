@@ -16,6 +16,7 @@ import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
 import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
+import { GridIcon } from "./GridIcon"
 import type { CircuitJson } from "circuit-json"
 import { zIndexMap } from "../utils/z-index-map"
 
@@ -48,6 +49,7 @@ export const SchematicViewer = ({
     enableDebug()
   }
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
+  const [snapToGrid, setSnapToGrid] = useState(true)
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
     !clickToInteractEnabled,
   )
@@ -168,6 +170,7 @@ export const SchematicViewer = ({
       circuitJson,
       editEvents: editEventsWithUnappliedEditEvents,
       enabled: editModeEnabled && isInteractionEnabled,
+      snapToGrid,
     },
   )
 
@@ -279,6 +282,12 @@ export const SchematicViewer = ({
         <EditIcon
           active={editModeEnabled}
           onClick={() => setEditModeEnabled(!editModeEnabled)}
+        />
+      )}
+      {editingEnabled && editModeEnabled && (
+        <GridIcon
+          active={snapToGrid}
+          onClick={() => setSnapToGrid(!snapToGrid)}
         />
       )}
       {svgDiv}

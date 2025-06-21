@@ -18,6 +18,7 @@ export const useComponentDragging = ({
   svgToScreenProjection,
   realToSvgProjection,
   enabled = false,
+  snapToGrid = false,
 }: {
   circuitJson: any[]
   editEvents: ManualEditEvent[]
@@ -28,6 +29,7 @@ export const useComponentDragging = ({
   onEditEvent?: (event: ManualEditEvent) => void
   cancelDrag?: () => void
   enabled?: boolean
+  snapToGrid?: boolean
 }): {
   handleMouseDown: (e: React.MouseEvent) => void
   isDragging: boolean
@@ -158,18 +160,24 @@ export const useComponentDragging = ({
         y: screenDelta.y / realToScreenProjection.d,
       }
 
+      let newCenter = {
+        x: activeEditEventRef.current.original_center.x + mmDelta.x,
+        y: activeEditEventRef.current.original_center.y + mmDelta.y,
+      }
+      if (snapToGrid) {
+        const snap = (v: number) => Math.round(v * 10) / 10
+        newCenter = { x: snap(newCenter.x), y: snap(newCenter.y) }
+      }
+
       const newEditEvent = {
         ...activeEditEventRef.current,
-        new_center: {
-          x: activeEditEventRef.current.original_center.x + mmDelta.x,
-          y: activeEditEventRef.current.original_center.y + mmDelta.y,
-        },
+        new_center: newCenter,
       }
 
       activeEditEventRef.current = newEditEvent
       setActiveEditEvent(newEditEvent)
     },
-    [realToScreenProjection],
+    [realToScreenProjection, snapToGrid],
   )
 
   const handleMouseUp = useCallback(() => {
