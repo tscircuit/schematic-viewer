@@ -56,6 +56,14 @@ export const SchematicViewer = ({
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
+  const [hoveredPortInfo, setHoveredPortInfo] = useState<{
+    left: number
+    top: number
+    width: number
+    height: number
+    label?: string
+  } | null>(null)
+
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
     touchStartRef.current = {
@@ -189,6 +197,57 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
   })
 
+  useEffect(() => {
+    const svgEl = svgDivRef.current
+    if (!svgEl) return
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.classList?.contains("component-pin")) return
+      const rect = target.getBoundingClientRect()
+      const containerRect = containerRef.current?.getBoundingClientRect()
+      if (!containerRect) return
+      let label = ""
+      const group = target.closest(
+        '[data-circuit-json-type="schematic_component"]',
+      ) as SVGGElement | null
+      if (group) {
+        const texts = Array.from(group.querySelectorAll("text"))
+        const cx = rect.x + rect.width / 2
+        const cy = rect.y + rect.height / 2
+        let minDist = Infinity
+        for (const t of texts) {
+          const r = t.getBoundingClientRect()
+          const tx = r.x + r.width / 2
+          const ty = r.y + r.height / 2
+          const d = (tx - cx) ** 2 + (ty - cy) ** 2
+          if (d < minDist) {
+            minDist = d
+            label = t.textContent || ""
+          }
+        }
+      }
+      setHoveredPortInfo({
+        left: rect.x - containerRect.x,
+        top: rect.y - containerRect.y,
+        width: rect.width,
+        height: rect.height,
+        label: label.trim() || undefined,
+      })
+    }
+    const handleMouseOut = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.classList?.contains("component-pin")) {
+        setHoveredPortInfo(null)
+      }
+    }
+    svgEl.addEventListener("mouseover", handleMouseOver)
+    svgEl.addEventListener("mouseout", handleMouseOut)
+    return () => {
+      svgEl.removeEventListener("mouseover", handleMouseOver)
+      svgEl.removeEventListener("mouseout", handleMouseOut)
+    }
+  }, [svgString, isInteractionEnabled])
+
   const svgDiv = useMemo(
     () => (
       <div
@@ -289,6 +348,41 @@ export const SchematicViewer = ({
           active={snapToGrid}
           onClick={() => setSnapToGrid(!snapToGrid)}
         />
+      )}
+      {hoveredPortInfo && (
+        <>
+          <div
+            style={{
+              position: "absolute",
+              left: hoveredPortInfo.left - 2,
+              top: hoveredPortInfo.top - 2,
+              width: hoveredPortInfo.width + 4,
+              height: hoveredPortInfo.height + 4,
+              border: "1px solid red",
+              pointerEvents: "none",
+              boxSizing: "border-box",
+              zIndex: zIndexMap.schematicPortHover,
+            }}
+          />
+          {hoveredPortInfo.label && (
+            <div
+              style={{
+                position: "absolute",
+                left: hoveredPortInfo.left + hoveredPortInfo.width + 6,
+                top: hoveredPortInfo.top - 4,
+                backgroundColor: "white",
+                border: "1px solid #333",
+                padding: "2px 4px",
+                fontSize: 12,
+                fontFamily: "sans-serif",
+                pointerEvents: "none",
+                zIndex: zIndexMap.schematicPortHover,
+              }}
+            >
+              {hoveredPortInfo.label}
+            </div>
+          )}
+        </>
       )}
       {svgDiv}
     </div>
