@@ -6,6 +6,7 @@ import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSc
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { enableDebug } from "lib/utils/debug"
 import { useEffect, useMemo, useRef, useState } from "react"
+import { su } from "@tscircuit/soup-util"
 import {
   fromString,
   identity,
@@ -54,6 +55,11 @@ export const SchematicViewer = ({
     !clickToInteractEnabled,
   )
   const svgDivRef = useRef<HTMLDivElement>(null)
+  const [hoverLabel, setHoverLabel] = useState<{
+    name: string
+    x: number
+    y: number
+  } | null>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -189,6 +195,46 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
   })
 
+  useEffect(() => {
+    const svg = svgDivRef.current
+    if (!svg) return
+
+    const container = containerRef.current
+    if (!container) return
+
+    const handleEnter = (e: Event) => {
+      const target = e.currentTarget as SVGGElement
+      const id = target.getAttribute("data-schematic-port-id")
+      if (!id) return
+      const port = su(circuitJson).source_port.get(id as any)
+      const name = (port as any)?.name || id
+      const ev = e as MouseEvent
+      setHoverLabel({ name, x: ev.clientX, y: ev.clientY })
+    }
+    const handleMove = (e: Event) => {
+      const ev = e as MouseEvent
+      setHoverLabel((prev) =>
+        prev ? { ...prev, x: ev.clientX, y: ev.clientY } : prev,
+      )
+    }
+    const handleLeave = () => setHoverLabel(null)
+
+    const portEls = svg.querySelectorAll<SVGGElement>(".schematic-port-hover")
+    portEls.forEach((el) => {
+      el.addEventListener("mouseenter", handleEnter)
+      el.addEventListener("mousemove", handleMove)
+      el.addEventListener("mouseleave", handleLeave)
+    })
+
+    return () => {
+      portEls.forEach((el) => {
+        el.removeEventListener("mouseenter", handleEnter)
+        el.removeEventListener("mousemove", handleMove)
+        el.removeEventListener("mouseleave", handleLeave)
+      })
+    }
+  }, [svgString, circuitJson])
+
   const svgDiv = useMemo(
     () => (
       <div
@@ -207,6 +253,33 @@ export const SchematicViewer = ({
     ),
     [svgString, isInteractionEnabled, clickToInteractEnabled],
   )
+
+  const hoverLabelDiv = useMemo(() => {
+    if (!hoverLabel) return null
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return null
+    const left = hoverLabel.x - rect.left + 10
+    const top = hoverLabel.y - rect.top + 10
+    return (
+      <div
+        style={{
+          position: "absolute",
+          pointerEvents: "none",
+          backgroundColor: "rgba(0,0,0,0.75)",
+          color: "white",
+          padding: "2px 4px",
+          borderRadius: "4px",
+          fontFamily: "sans-serif",
+          fontSize: "12px",
+          left,
+          top,
+          zIndex: 200,
+        }}
+      >
+        {hoverLabel.name}
+      </div>
+    )
+  }, [hoverLabel])
 
   return (
     <div
@@ -291,6 +364,7 @@ export const SchematicViewer = ({
         />
       )}
       {svgDiv}
+      {hoverLabelDiv}
     </div>
   )
 }
