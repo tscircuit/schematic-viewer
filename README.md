@@ -2,8 +2,7 @@
 
 React component for viewing [Circuit JSON](https://github.com/tscircuit/circuit-json) or tscircuit as a schematic
 
-> [!WARNING]
-> This is the 2.X.X schematic viewer, you may want to use the [old 1.X.X version](https://github.com/tscircuit/schematic-viewer/tree/v1)
+<img width="2448" height="1472" alt="image" src="https://github.com/user-attachments/assets/41e21b85-4aea-4ca2-b0f4-e57a7c477eca" />
 
 ```tsx
 import { SchematicViewer } from "@tscircuit/schematic-viewer"
