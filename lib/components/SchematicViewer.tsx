@@ -19,6 +19,8 @@ import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
 import type { CircuitJson } from "circuit-json"
 import { zIndexMap } from "../utils/z-index-map"
+import { useSchematicPortHover } from "../hooks/useSchematicPortHover"
+import { SchematicPortHoverTooltip } from "./SchematicPortHoverTooltip"
 
 interface Props {
   circuitJson: CircuitJson
@@ -128,6 +130,12 @@ export const SchematicViewer = ({
       colorOverrides,
     })
   }, [circuitJson, containerWidth, containerHeight])
+
+  const { hoverLabel } = useSchematicPortHover({
+    svgDivRef,
+    circuitJson,
+    svgString,
+  })
 
   const containerBackgroundColor = useMemo(() => {
     const match = svgString.match(
@@ -291,6 +299,10 @@ export const SchematicViewer = ({
         />
       )}
       {svgDiv}
+      <SchematicPortHoverTooltip
+        containerRef={containerRef}
+        hoverLabel={hoverLabel}
+      />
     </div>
   )
 }
