@@ -54,7 +54,7 @@ export const SpicePlot = ({ spiceString }: { spiceString: string }) => {
   const { plotData, nodes, isLoading, error } = useSpiceSimulation(spiceString)
 
   if (isLoading) {
-    return <div>Simulating...</div>
+    return <div>Running simulation...</div>
   }
 
   if (error) {
