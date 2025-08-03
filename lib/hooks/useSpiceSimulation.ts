@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react"
+// @ts-ignore
+import { Simulation } from "https://cdn.jsdelivr.net/npm/eecircuit-engine@1.5.2/+esm"
 
 // Types from eecircuit-engine interface
 type RealDataType = {
@@ -93,8 +95,9 @@ export const useSpiceSimulation = (spiceString: string) => {
         setPlotData([])
         setNodes([])
 
-        const { Simulation } = await import("eecircuit-engine")
-        const sim = new Simulation()
+        const sim = new Simulation({
+          wasmPath: "https://cdn.jsdelivr.net/npm/eecircuit-engine@1.5.2/",
+        })
         await sim.start()
 
         let engineSpiceString = spiceString

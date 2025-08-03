@@ -176,8 +176,7 @@ export const SchematicViewer = ({
       svgToScreenProjection,
       circuitJson,
       editEvents: editEventsWithUnappliedEditEvents,
-      enabled:
-        editModeEnabled && isInteractionEnabled && !showSpiceOverlay,
+      enabled: editModeEnabled && isInteractionEnabled && !showSpiceOverlay,
       snapToGrid,
     },
   )
