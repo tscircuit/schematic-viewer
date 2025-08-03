@@ -19,6 +19,7 @@
     "@types/debug": "^4.1.12",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",
+    "@types/recharts": "^2.0.1",
     "@vitejs/plugin-react": "^4.3.4",
     "circuit-json": "^0.0.154",
     "circuit-to-svg": "^0.0.155",
@@ -37,8 +38,12 @@
     "circuit-to-svg": "*"
   },
   "dependencies": {
+    "chart.js": "^4.5.0",
+    "circuit-json-to-spice": "^0.0.8",
     "debug": "^4.4.0",
+    "eecircuit-engine": "^1.5.2",
     "performance-now": "^2.1.0",
+    "react-chartjs-2": "^5.3.0",
     "use-mouse-matrix-transform": "^1.2.2"
   }
 }

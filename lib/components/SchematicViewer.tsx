@@ -18,6 +18,8 @@ import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
 import type { CircuitJson } from "circuit-json"
+import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
+import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
 import { zIndexMap } from "../utils/z-index-map"
 
 interface Props {
@@ -31,6 +33,8 @@ interface Props {
   debug?: boolean
   clickToInteractEnabled?: boolean
   colorOverrides?: ColorOverrides
+  spiceSimulationEnabled?: boolean
+  spiceString?: string
 }
 
 export const SchematicViewer = ({
@@ -44,10 +48,13 @@ export const SchematicViewer = ({
   debug = false,
   clickToInteractEnabled = false,
   colorOverrides,
+  spiceSimulationEnabled = false,
+  spiceString,
 }: Props) => {
   if (debug) {
     enableDebug()
   }
+  const [showSpiceOverlay, setShowSpiceOverlay] = useState(false)
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
   const [snapToGrid, setSnapToGrid] = useState(true)
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
@@ -109,7 +116,7 @@ export const SchematicViewer = ({
       svgDivRef.current.style.transform = transformToString(transform)
     },
     // @ts-ignore disabled is a valid prop but not typed
-    enabled: isInteractionEnabled,
+    enabled: isInteractionEnabled && !showSpiceOverlay,
   })
 
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
@@ -169,7 +176,8 @@ export const SchematicViewer = ({
       svgToScreenProjection,
       circuitJson,
       editEvents: editEventsWithUnappliedEditEvents,
-      enabled: editModeEnabled && isInteractionEnabled,
+      enabled:
+        editModeEnabled && isInteractionEnabled && !showSpiceOverlay,
       snapToGrid,
     },
   )
@@ -215,13 +223,20 @@ export const SchematicViewer = ({
         position: "relative",
         backgroundColor: containerBackgroundColor,
         overflow: "hidden",
-        cursor: isDragging
-          ? "grabbing"
-          : clickToInteractEnabled && !isInteractionEnabled
-            ? "pointer"
-            : "grab",
+        cursor: showSpiceOverlay
+          ? "auto"
+          : isDragging
+            ? "grabbing"
+            : clickToInteractEnabled && !isInteractionEnabled
+              ? "pointer"
+              : "grab",
         minHeight: "300px",
         ...containerStyle,
+      }}
+      onWheelCapture={(e) => {
+        if (showSpiceOverlay) {
+          e.stopPropagation()
+        }
       }}
       onMouseDown={(e) => {
         if (clickToInteractEnabled && !isInteractionEnabled) {
@@ -238,8 +253,14 @@ export const SchematicViewer = ({
           return
         }
       }}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      onTouchStart={(e) => {
+        if (showSpiceOverlay) return
+        handleTouchStart(e)
+      }}
+      onTouchEnd={(e) => {
+        if (showSpiceOverlay) return
+        handleTouchEnd(e)
+      }}
     >
       {!isInteractionEnabled && clickToInteractEnabled && (
         <div
@@ -288,6 +309,15 @@ export const SchematicViewer = ({
         <GridIcon
           active={snapToGrid}
           onClick={() => setSnapToGrid(!snapToGrid)}
+        />
+      )}
+      {spiceSimulationEnabled && (
+        <SpiceSimulationIcon onClick={() => setShowSpiceOverlay(true)} />
+      )}
+      {showSpiceOverlay && (
+        <SpiceSimulationOverlay
+          circuitSource={spiceString ?? circuitJson}
+          onClose={() => setShowSpiceOverlay(false)}
         />
       )}
       {svgDiv}
