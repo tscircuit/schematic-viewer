@@ -15,18 +15,19 @@ const circuit = (
   </board>
 )
 
-const spiceString = `* 5V DC battery connected through two resistors in series
+const spiceString = `
+* Circuit JSON to SPICE Netlist
+    RR1 N1 N2 1K
+    RR2 N2 0 2K
+    CC1 N2 0 10U
+    Vsimulation_voltage_source_0 N1 0 DC 5
 
-V1 in 0 DC 5         ; 5V DC battery
-R1 in out 1k         ; 1k ohm resistor from 'in' to 'out'
-R2 out 0 1k          ; 1k ohm resistor from 'out' to ground
+    .tran 0.1ms 50ms UIC
+    .ic V(N1)=0
+    .probe V(VOUT) V(N1)
 
-.control
-tran 1ms 10ms        ; Transient analysis: 10 ms duration, 1 ms step
-wrdata data.out v(in) v(out) i(V1)
-.endc
+    .END
 
-.end
 `
 
 export default () => {
