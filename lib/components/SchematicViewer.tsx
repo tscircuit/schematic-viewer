@@ -21,6 +21,8 @@ import type { CircuitJson } from "circuit-json"
 import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
 import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
 import { zIndexMap } from "../utils/z-index-map"
+import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
+import { getSpiceFromCircuitJson } from "../utils/spice-utils"
 
 interface Props {
   circuitJson: CircuitJson
@@ -55,6 +57,25 @@ export const SchematicViewer = ({
     enableDebug()
   }
   const [showSpiceOverlay, setShowSpiceOverlay] = useState(false)
+
+  const effectiveSpiceString = useMemo(() => {
+    if (spiceString) return spiceString
+    if (!spiceSimulationEnabled) return null
+    try {
+      return getSpiceFromCircuitJson(circuitJson)
+    } catch (e) {
+      console.error("Failed to generate SPICE string", e)
+      return null
+    }
+  }, [spiceString, JSON.stringify(circuitJson), spiceSimulationEnabled])
+
+  const {
+    plotData,
+    nodes,
+    isLoading: isSpiceSimLoading,
+    error: spiceSimError,
+  } = useSpiceSimulation(effectiveSpiceString)
+
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
   const [snapToGrid, setSnapToGrid] = useState(true)
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
@@ -315,8 +336,12 @@ export const SchematicViewer = ({
       )}
       {showSpiceOverlay && (
         <SpiceSimulationOverlay
-          circuitSource={spiceString ?? circuitJson}
+          spiceString={effectiveSpiceString}
           onClose={() => setShowSpiceOverlay(false)}
+          plotData={plotData}
+          nodes={nodes}
+          isLoading={isSpiceSimLoading}
+          error={spiceSimError}
         />
       )}
       {svgDiv}

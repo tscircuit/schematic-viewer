@@ -1,24 +1,23 @@
-import type { CircuitJson } from "circuit-json"
-import { useMemo } from "react"
-import { getSpiceFromCircuitJson } from "../utils/spice-utils"
 import { SpicePlot } from "./SpicePlot"
+import type { PlotPoint } from "../hooks/useSpiceSimulation"
 
 interface SpiceSimulationOverlayProps {
-  circuitSource: CircuitJson | string
+  spiceString: string | null
   onClose: () => void
+  plotData: PlotPoint[]
+  nodes: string[]
+  isLoading: boolean
+  error: string | null
 }
 
 export const SpiceSimulationOverlay = ({
-  circuitSource,
+  spiceString,
   onClose,
+  plotData,
+  nodes,
+  isLoading,
+  error,
 }: SpiceSimulationOverlayProps) => {
-  const spiceString = useMemo(() => {
-    if (typeof circuitSource === "string") {
-      return circuitSource
-    }
-    return getSpiceFromCircuitJson(circuitSource)
-  }, [circuitSource])
-
   return (
     <div
       style={{
@@ -81,7 +80,12 @@ export const SpiceSimulationOverlay = ({
           </button>
         </div>
         <div>
-          <SpicePlot spiceString={spiceString} />
+          <SpicePlot
+            plotData={plotData}
+            nodes={nodes}
+            isLoading={isLoading}
+            error={error}
+          />
         </div>
         <div style={{ marginTop: "24px" }}>
           <h3

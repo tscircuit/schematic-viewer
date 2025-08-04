@@ -10,7 +10,7 @@ import {
   Legend,
 } from "chart.js"
 import { Line } from "react-chartjs-2"
-import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
+import type { PlotPoint } from "../hooks/useSpiceSimulation"
 
 ChartJS.register(
   CategoryScale,
@@ -50,9 +50,17 @@ const formatTimeWithUnits = (seconds: number) => {
   return `${parseFloat((seconds * scale).toPrecision(3))}${unit}`
 }
 
-export const SpicePlot = ({ spiceString }: { spiceString: string }) => {
-  const { plotData, nodes, isLoading, error } = useSpiceSimulation(spiceString)
-
+export const SpicePlot = ({
+  plotData,
+  nodes,
+  isLoading,
+  error,
+}: {
+  plotData: PlotPoint[]
+  nodes: string[]
+  isLoading: boolean
+  error: string | null
+}) => {
   if (isLoading) {
     return (
       <div

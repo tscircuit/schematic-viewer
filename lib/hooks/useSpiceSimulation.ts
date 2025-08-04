@@ -34,7 +34,7 @@ type EecEngineResult =
       data: ComplexDataType[]
     }
 
-interface PlotPoint {
+export interface PlotPoint {
   name: string // time or sweep variable
   [key: string]: number | string
 }
@@ -87,13 +87,20 @@ type WorkerMessage =
     }
   | { type: "error"; error: string }
 
-export const useSpiceSimulation = (spiceString: string) => {
+export const useSpiceSimulation = (spiceString: string | null) => {
   const [plotData, setPlotData] = useState<PlotPoint[]>([])
   const [nodes, setNodes] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!spiceString) {
+      setIsLoading(false)
+      setPlotData([])
+      setNodes([])
+      setError(null)
+      return
+    }
     setIsLoading(true)
     setError(null)
     setPlotData([])
