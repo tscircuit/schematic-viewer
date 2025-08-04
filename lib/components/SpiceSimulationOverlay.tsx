@@ -98,7 +98,7 @@ export const SpiceSimulationOverlay = ({
           <pre
             style={{
               backgroundColor: "#fafafa",
-              padding: "16px",
+              paddingLeft: "16px",
               borderRadius: "6px",
               maxHeight: "150px",
               overflowY: "auto",

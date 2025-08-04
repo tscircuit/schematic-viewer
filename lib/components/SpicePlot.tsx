@@ -54,15 +54,52 @@ export const SpicePlot = ({ spiceString }: { spiceString: string }) => {
   const { plotData, nodes, isLoading, error } = useSpiceSimulation(spiceString)
 
   if (isLoading) {
-    return <div>Running simulation...</div>
+    return (
+      <div
+        style={{
+          height: "300px",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        Running simulation...
+      </div>
+    )
   }
 
   if (error) {
-    return <div style={{ color: "red" }}>Error: {error}</div>
+    return (
+      <div
+        style={{
+          height: "300px",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "red",
+        }}
+      >
+        Error: {error}
+      </div>
+    )
   }
 
   if (plotData.length === 0) {
-    return <div>No data to plot. Check simulation output or SPICE netlist.</div>
+    return (
+      <div
+        style={{
+          height: "300px",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        No data to plot. Check simulation output or SPICE netlist.
+      </div>
+    )
   }
 
   const chartData = {
