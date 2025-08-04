@@ -16,16 +16,37 @@ const circuit = (
         VOUT: { providesPower: true, providesVoltage: 5 },
         GND: { providesGround: true },
       }}
+      connections={{
+        pin3: "net.NC",
+      }}
     />
 
-    <resistor name="R1" resistance="1k" footprint="0402" pcbX={4} pcbY={4} />
-    <resistor name="R2" resistance="2k" footprint="0402" pcbX={-4} pcbY={-4} />
+    <resistor
+      name="R1"
+      resistance="1k"
+      footprint="0402"
+      pcbX={4}
+      pcbY={4}
+      schX={-2}
+      schY={2}
+    />
+    <resistor
+      name="R2"
+      resistance="2k"
+      footprint="0402"
+      pcbX={-4}
+      pcbY={-4}
+      schX={0}
+      schY={4}
+    />
     <capacitor
       name="C1"
       capacitance="10uF"
       footprint="0402"
       pcbX={0}
       pcbY={-2}
+      schX={0}
+      schY={2}
     />
 
     <trace from={"net.VOUT"} to={sel.R1.pin1} />
