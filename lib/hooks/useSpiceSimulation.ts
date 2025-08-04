@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react"
-// @ts-ignore
-import { Simulation } from "https://cdn.jsdelivr.net/npm/eecircuit-engine@1.5.2/+esm"
+import type * as EecircuitEngine from "../types/eecircuit-engine"
 
 // Types from eecircuit-engine interface
 type RealDataType = {
@@ -34,6 +33,16 @@ type EecEngineResult =
       dataType: "complex"
       data: ComplexDataType[]
     }
+
+const fetchSimulation = async (): Promise<
+  typeof EecircuitEngine.Simulation
+> => {
+  const module = await import(
+    // @ts-ignore
+    "https://cdn.jsdelivr.net/npm/eecircuit-engine@1.5.2/+esm"
+  )
+  return module.Simulation as typeof EecircuitEngine.Simulation
+}
 
 interface PlotPoint {
   name: string // time or sweep variable
@@ -95,9 +104,8 @@ export const useSpiceSimulation = (spiceString: string) => {
         setPlotData([])
         setNodes([])
 
-        const sim = new Simulation({
-          wasmPath: "https://cdn.jsdelivr.net/npm/eecircuit-engine@1.5.2/",
-        })
+        const Simulation = await fetchSimulation()
+        const sim = new Simulation()
         await sim.start()
 
         let engineSpiceString = spiceString
