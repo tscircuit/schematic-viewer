@@ -13,16 +13,13 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@tscircuit/core": "^0.0.362",
-    "@tscircuit/props": "^0.0.172",
+    "tscircuit": "^0.0.580",
     "@types/bun": "latest",
     "@types/debug": "^4.1.12",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",
     "@types/recharts": "^2.0.1",
     "@vitejs/plugin-react": "^4.3.4",
-    "circuit-json": "^0.0.154",
-    "circuit-to-svg": "^0.0.155",
     "react": "18",
     "react-cosmos": "^6.2.1",
     "react-cosmos-plugin-vite": "^6.2.0",
@@ -33,9 +30,7 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0",
-    "@tscircuit/core": "*",
-    "@tscircuit/props": "*",
-    "circuit-to-svg": "*"
+    "tscircuit": "*"
   },
   "dependencies": {
     "chart.js": "^4.5.0",
