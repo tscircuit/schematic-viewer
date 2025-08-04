@@ -34,16 +34,6 @@ type EecEngineResult =
       data: ComplexDataType[]
     }
 
-const fetchSimulation = async (): Promise<
-  typeof EecircuitEngine.Simulation
-> => {
-  const module = await import(
-    // @ts-ignore
-    "https://cdn.jsdelivr.net/npm/eecircuit-engine@1.5.2/+esm"
-  )
-  return module.Simulation as typeof EecircuitEngine.Simulation
-}
-
 interface PlotPoint {
   name: string // time or sweep variable
   [key: string]: number | string
@@ -90,6 +80,13 @@ const parseEecEngineOutput = (
   return { plotData, nodes: plotableNodes }
 }
 
+type WorkerMessage =
+  | {
+      type: "result"
+      result: EecEngineResult
+    }
+  | { type: "error"; error: string }
+
 export const useSpiceSimulation = (spiceString: string) => {
   const [plotData, setPlotData] = useState<PlotPoint[]>([])
   const [nodes, setNodes] = useState<string[]>([])
@@ -97,50 +94,43 @@ export const useSpiceSimulation = (spiceString: string) => {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const runSimulation = async () => {
-      try {
-        setIsLoading(true)
-        setError(null)
-        setPlotData([])
-        setNodes([])
+    setIsLoading(true)
+    setError(null)
+    setPlotData([])
+    setNodes([])
 
-        const Simulation = await fetchSimulation()
-        const sim = new Simulation()
-        await sim.start()
+    const worker = new Worker(
+      new URL("../workers/spice-simulation.worker.ts", import.meta.url),
+      { type: "module" },
+    )
 
-        let engineSpiceString = spiceString
-        const wrdataMatch = spiceString.match(/wrdata\s+(\S+)\s+(.*)/i)
-        if (wrdataMatch) {
-          const variables = wrdataMatch[2].trim().split(/\s+/)
-          const probeLine = `.probe ${variables.join(" ")}`
-          engineSpiceString = spiceString.replace(/wrdata.*/i, probeLine)
-        } else if (!spiceString.match(/\.probe/i)) {
-          const plotMatch = spiceString.match(/plot\s+(.*)/i)
-          if (plotMatch) {
-            throw new Error(
-              "The 'plot' command is not supported for data extraction. Please use 'wrdata <filename> <var1> ...' or '.probe <var1> ...' instead.",
-            )
-          }
-          throw new Error(
-            "No '.probe' or 'wrdata' command found in SPICE file. Use 'wrdata <filename> <var1> ...' to specify output.",
-          )
+    worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+      if (event.data.type === "result") {
+        try {
+          const { plotData: parsedData, nodes: parsedNodes } =
+            parseEecEngineOutput(event.data.result)
+          setPlotData(parsedData)
+          setNodes(parsedNodes)
+        } catch (e: any) {
+          setError(e.message || "Failed to parse simulation result")
+          console.error(e)
         }
-
-        sim.setNetList(engineSpiceString)
-        const result = await sim.runSim()
-
-        const { plotData: parsedData, nodes: parsedNodes } =
-          parseEecEngineOutput(result)
-        setPlotData(parsedData)
-        setNodes(parsedNodes)
-      } catch (e: any) {
-        setError(e.message || "Failed to run simulation")
-        console.error(e)
-      } finally {
-        setIsLoading(false)
+      } else if (event.data.type === "error") {
+        setError(event.data.error)
       }
+      setIsLoading(false)
     }
-    runSimulation()
+
+    worker.onerror = (err) => {
+      setError(err.message)
+      setIsLoading(false)
+    }
+
+    worker.postMessage({ spiceString })
+
+    return () => {
+      worker.terminate()
+    }
   }, [spiceString])
 
   return { plotData, nodes, isLoading, error }
