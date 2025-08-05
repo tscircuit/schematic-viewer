@@ -56,6 +56,15 @@ export const SchematicViewer = ({
   }
   const [showSpiceOverlay, setShowSpiceOverlay] = useState(false)
 
+  const getCircuitHash = (circuitJson: CircuitJson) => {
+    return `${circuitJson?.length || 0}_${(circuitJson as any)?.editCount || 0}`
+  }
+
+  const circuitJsonKey = useMemo(
+    () => getCircuitHash(circuitJson),
+    [circuitJson],
+  )
+
   const spiceString = useMemo(() => {
     if (!spiceSimulationEnabled) return null
     try {
@@ -64,7 +73,7 @@ export const SchematicViewer = ({
       console.error("Failed to generate SPICE string", e)
       return null
     }
-  }, [JSON.stringify(circuitJson), spiceSimulationEnabled])
+  }, [circuitJsonKey, spiceSimulationEnabled])
 
   const {
     plotData,
@@ -109,10 +118,6 @@ export const SchematicViewer = ({
     ManualEditEvent[]
   >([])
   const circuitJsonRef = useRef<CircuitJson>(circuitJson)
-
-  const getCircuitHash = (circuitJson: CircuitJson) => {
-    return `${circuitJson?.length || 0}_${(circuitJson as any)?.editCount || 0}`
-  }
 
   useEffect(() => {
     const circuitHash = getCircuitHash(circuitJson)
