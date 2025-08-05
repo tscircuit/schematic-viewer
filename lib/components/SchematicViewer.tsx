@@ -36,7 +36,6 @@ interface Props {
   clickToInteractEnabled?: boolean
   colorOverrides?: ColorOverrides
   spiceSimulationEnabled?: boolean
-  spiceString?: string
 }
 
 export const SchematicViewer = ({
@@ -51,7 +50,6 @@ export const SchematicViewer = ({
   clickToInteractEnabled = false,
   colorOverrides,
   spiceSimulationEnabled = false,
-  spiceString,
 }: Props) => {
   if (debug) {
     enableDebug()
@@ -59,7 +57,6 @@ export const SchematicViewer = ({
   const [showSpiceOverlay, setShowSpiceOverlay] = useState(false)
 
   const effectiveSpiceString = useMemo(() => {
-    if (spiceString) return spiceString
     if (!spiceSimulationEnabled) return null
     try {
       return getSpiceFromCircuitJson(circuitJson)
@@ -67,8 +64,8 @@ export const SchematicViewer = ({
       console.error("Failed to generate SPICE string", e)
       return null
     }
-  }, [spiceString, JSON.stringify(circuitJson), spiceSimulationEnabled])
-
+  }, [JSON.stringify(circuitJson), spiceSimulationEnabled])
+  console.log(effectiveSpiceString)
   const {
     plotData,
     nodes,

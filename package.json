@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "chart.js": "^4.5.0",
-    "circuit-json-to-spice": "^0.0.8",
+    "circuit-json-to-spice": "^0.0.9",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
     "react-chartjs-2": "^5.3.0",

@@ -3,67 +3,79 @@ import type { CircuitJson } from "circuit-json"
 
 export const getSpiceFromCircuitJson = (circuitJson: CircuitJson): string => {
   const spiceNetlist = circuitJsonToSpice(circuitJson as any)
-  const rawSpice = spiceNetlist.toSpiceString()
+  const baseSpiceString = spiceNetlist.toSpiceString()
 
-  const lines = rawSpice.split("\n").filter((l) => l.trim() !== "")
-
-  const headerLines: string[] = []
-  const componentLines: string[] = []
-  const controlLines: string[] = []
-
-  for (const line of lines) {
-    const l = line.trim()
-    if (/^[rRcCvVlLdDiIqQmMxX]/.test(l)) {
-      componentLines.push(line)
-    } else if (l.startsWith(".")) {
-      controlLines.push(line)
-    } else {
-      headerLines.push(line)
-    }
-  }
-
-  componentLines.sort()
-  controlLines.sort()
-
-  // .end should be last if it exists
-  const endLineIndex = controlLines.findIndex((l) =>
-    l.trim().toLowerCase().startsWith(".end"),
+  const lines = baseSpiceString.split("\n").filter((l) => l.trim() !== "")
+  const componentLines = lines.filter(
+    (l) => !l.startsWith("*") && !l.startsWith(".") && l.trim() !== "",
   )
-  let endLine: string | undefined
-  if (endLineIndex > -1) {
-    endLine = controlLines.splice(endLineIndex, 1)[0]
-  }
 
-  const sortedLines = [...headerLines, ...componentLines, ...controlLines]
-  if (endLine) {
-    sortedLines.push(endLine)
-  }
+  const allNodes = new Set<string>()
+  const capacitorNodes = new Set<string>()
 
-  const result = sortedLines.join("\n")
+  for (const line of componentLines) {
+    const parts = line.trim().split(/\s+/)
+    if (parts.length < 3) continue
 
-  console.log(spiceNetlist)
-  console.log(result)
-  return result
-}
+    const componentType = parts[0][0].toUpperCase()
+    let nodesOnLine: string[] = []
 
-export const extractNodeNamesFromSpice = (spiceString: string): string[] => {
-  const nodeNames = new Set<string>()
-  const lines = spiceString.split("\n")
+    if (["R", "C", "L", "V", "I", "D"].includes(componentType)) {
+      nodesOnLine = parts.slice(1, 3)
+    } else if (componentType === "Q" && parts.length >= 4) {
+      // BJT
+      nodesOnLine = parts.slice(1, 4)
+    } else if (componentType === "M" && parts.length >= 5) {
+      // MOSFET
+      nodesOnLine = parts.slice(1, 5)
+    } else if (componentType === "X") {
+      // Subcircuit
+      // Assume last part is model name, everything in between is a node
+      nodesOnLine = parts.slice(1, -1)
+    } else {
+      continue
+    }
 
-  for (const line of lines) {
-    const trimmedLine = line.trim()
-    // Basic regex for component lines (e.g., R1 N1 N2 1k)
-    if (/^[rRcCvVlLdDiI]/.test(trimmedLine)) {
-      const parts = trimmedLine.split(/\s+/)
-      if (parts.length >= 3) {
-        // nodes are typically the 2nd and 3rd part
-        const node1 = parts[1]
-        const node2 = parts[2]
-        if (node1 && node1 !== "0") nodeNames.add(node1)
-        if (node2 && node2 !== "0") nodeNames.add(node2)
-      }
+    nodesOnLine.forEach((node) => allNodes.add(node))
+
+    if (componentType === "C") {
+      nodesOnLine.forEach((node) => capacitorNodes.add(node))
     }
   }
 
-  return Array.from(nodeNames)
+  // Do not probe/set IC for ground
+  allNodes.delete("0")
+  capacitorNodes.delete("0")
+
+  const icLines = Array.from(capacitorNodes).map((node) => `.ic V(${node})=0`)
+
+  const probeNodes = Array.from(allNodes).map((node) => `V(${node})`)
+  const probeLine =
+    probeNodes.length > 0 ? `.probe ${probeNodes.join(" ")}` : ""
+
+  const tranLine = ".tran 0.1ms 50ms UIC"
+
+  const endStatement = ".end"
+  const originalLines = baseSpiceString.split("\n")
+  let endIndex = -1
+  for (let i = originalLines.length - 1; i >= 0; i--) {
+    if (originalLines[i].trim().toLowerCase().startsWith(endStatement)) {
+      endIndex = i
+      break
+    }
+  }
+
+  const injectionLines = [...icLines, probeLine, tranLine].filter(Boolean)
+
+  let finalLines: string[]
+
+  if (endIndex !== -1) {
+    const beforeEnd = originalLines.slice(0, endIndex)
+    const endLineAndAfter = originalLines.slice(endIndex)
+    finalLines = [...beforeEnd, ...injectionLines, ...endLineAndAfter]
+  } else {
+    finalLines = [...originalLines, ...injectionLines, endStatement]
+  }
+
+  return finalLines.join("\n")
 }

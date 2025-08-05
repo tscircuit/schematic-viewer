@@ -60,21 +60,6 @@ const circuit = (
   </board>
 )
 
-const spiceString = `
-* Circuit JSON to SPICE Netlist
-    RR1 N1 N2 1K
-    RR2 N2 0 2K
-    CC1 N2 0 10U
-    Vsimulation_voltage_source_0 N1 0 DC 5
-
-    .tran 0.1ms 50ms UIC
-    .ic V(N1)=0
-    .probe V(VOUT) V(N1)
-
-    .END
-
-`
-
 export default () => {
   const circuitJson = renderToCircuitJson(circuit) as CircuitJson
 
@@ -86,7 +71,6 @@ export default () => {
         debugGrid
         editingEnabled
         spiceSimulationEnabled
-        spiceString={spiceString}
       />
     </div>
   )
