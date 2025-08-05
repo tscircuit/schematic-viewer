@@ -56,7 +56,7 @@ export const SchematicViewer = ({
   }
   const [showSpiceOverlay, setShowSpiceOverlay] = useState(false)
 
-  const effectiveSpiceString = useMemo(() => {
+  const spiceString = useMemo(() => {
     if (!spiceSimulationEnabled) return null
     try {
       return getSpiceFromCircuitJson(circuitJson)
@@ -65,13 +65,13 @@ export const SchematicViewer = ({
       return null
     }
   }, [JSON.stringify(circuitJson), spiceSimulationEnabled])
-  console.log(effectiveSpiceString)
+
   const {
     plotData,
     nodes,
     isLoading: isSpiceSimLoading,
     error: spiceSimError,
-  } = useSpiceSimulation(effectiveSpiceString)
+  } = useSpiceSimulation(spiceString)
 
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
   const [snapToGrid, setSnapToGrid] = useState(true)
@@ -333,7 +333,7 @@ export const SchematicViewer = ({
       )}
       {showSpiceOverlay && (
         <SpiceSimulationOverlay
-          spiceString={effectiveSpiceString}
+          spiceString={spiceString}
           onClose={() => setShowSpiceOverlay(false)}
           plotData={plotData}
           nodes={nodes}
