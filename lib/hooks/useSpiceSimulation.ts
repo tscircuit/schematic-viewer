@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import type * as EecircuitEngine from "../types/eecircuit-engine"
+import { getSpiceSimulationWorkerBlobUrl } from "../workers/spice-simulation.worker.blob.js"
 
 // Types from eecircuit-engine interface
 type RealDataType = {
@@ -106,10 +107,15 @@ export const useSpiceSimulation = (spiceString: string | null) => {
     setPlotData([])
     setNodes([])
 
-    const worker = new Worker(
-      new URL("../workers/spice-simulation.worker.ts", import.meta.url),
-      { type: "module" },
-    )
+    const workerUrl = getSpiceSimulationWorkerBlobUrl()
+
+    if (!workerUrl) {
+      setError("Could not create SPICE simulation worker.")
+      setIsLoading(false)
+      return
+    }
+
+    const worker = new Worker(workerUrl, { type: "module" })
 
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
       if (event.data.type === "result") {

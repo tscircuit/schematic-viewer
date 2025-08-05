@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "cosmos",
-    "build": "tsup-node ./lib/index.ts --dts --format esm --sourcemap",
+    "build:webworker": "tsup --config tsup-webworker.config.ts",
+    "build:blob-url": "bun scripts/build-worker-blob-url.ts",
+    "build": "bun run build:webworker && bun run build:blob-url && tsup-node ./lib/index.ts --dts --format esm --sourcemap",
     "build:site": "cosmos-export",
     "vercel-build": "bun run build:site",
     "format": "biome format --write .",
