@@ -9,7 +9,7 @@
     "build:blob-url": "bun scripts/build-worker-blob-url.ts",
     "build": "bun run build:webworker && bun run build:blob-url && tsup-node ./lib/index.ts --dts --format esm --sourcemap",
     "build:site": "cosmos-export",
-    "vercel-build": "bun run build:site",
+    "vercel-build": "bun run build:webworker && bun run build:blob-url && bun run build:site",
     "format": "biome format --write .",
     "format:check": "biome format ."
   },

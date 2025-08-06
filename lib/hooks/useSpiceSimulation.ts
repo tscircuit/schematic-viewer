@@ -108,15 +108,25 @@ export const useSpiceSimulation = (spiceString: string | null) => {
     setPlotData([])
     setNodes([])
 
-    const workerUrl = getSpiceSimulationWorkerBlobUrl()
+    let worker: Worker
 
-    if (!workerUrl) {
-      setError("Could not create SPICE simulation worker.")
-      setIsLoading(false)
-      return
+    // In development, Vite will handle the worker bundling.
+    // In production, we use a pre-built blob URL.
+    if (import.meta.env.DEV) {
+      worker = new Worker(
+        new URL("../workers/spice-simulation.worker.ts", import.meta.url),
+        { type: "module" },
+      )
+    } else {
+      const workerUrl = getSpiceSimulationWorkerBlobUrl()
+
+      if (!workerUrl) {
+        setError("Could not create SPICE simulation worker.")
+        setIsLoading(false)
+        return
+      }
+      worker = new Worker(workerUrl, { type: "module" })
     }
-
-    const worker = new Worker(workerUrl, { type: "module" })
 
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
       if (event.data.type === "result") {
