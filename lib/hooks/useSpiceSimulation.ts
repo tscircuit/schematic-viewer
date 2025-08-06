@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import type * as EecircuitEngine from "../types/eecircuit-engine"
+// @ts-ignore
 import { getSpiceSimulationWorkerBlobUrl } from "../workers/spice-simulation.worker.blob.js"
 
 // Types from eecircuit-engine interface
