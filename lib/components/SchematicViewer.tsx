@@ -14,9 +14,12 @@ import {
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
+import { useFilteredCircuitJson } from "../hooks/useFilteredCircuitJson"
 import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
+import { ViewMenuIcon } from "./ViewMenuIcon"
+import { ViewMenu } from "./ViewMenu"
 import type { CircuitJson } from "circuit-json"
 import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
 import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
@@ -87,6 +90,8 @@ export const SchematicViewer = ({
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
     !clickToInteractEnabled,
   )
+  const [showViewMenu, setShowViewMenu] = useState(false)
+  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined)
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
@@ -129,6 +134,9 @@ export const SchematicViewer = ({
     }
   }, [circuitJson])
 
+  // Filter circuit JSON based on selected group
+  const filteredCircuitJson = useFilteredCircuitJson(circuitJson, selectedGroupId)
+
   const {
     ref: containerRef,
     cancelDrag,
@@ -146,7 +154,7 @@ export const SchematicViewer = ({
   const svgString = useMemo(() => {
     if (!containerWidth || !containerHeight) return ""
 
-    return convertCircuitJsonToSchematicSvg(circuitJson as any, {
+    return convertCircuitJsonToSchematicSvg(filteredCircuitJson as any, {
       width: containerWidth,
       height: containerHeight || 720,
       grid: !debugGrid
@@ -157,7 +165,7 @@ export const SchematicViewer = ({
           },
       colorOverrides,
     })
-  }, [circuitJson, containerWidth, containerHeight])
+  }, [filteredCircuitJson, containerWidth, containerHeight, debugGrid, colorOverrides])
 
   const containerBackgroundColor = useMemo(() => {
     const match = svgString.match(
@@ -197,7 +205,7 @@ export const SchematicViewer = ({
       cancelDrag,
       realToSvgProjection,
       svgToScreenProjection,
-      circuitJson,
+      circuitJson: filteredCircuitJson,
       editEvents: editEventsWithUnappliedEditEvents,
       enabled: editModeEnabled && isInteractionEnabled && !showSpiceOverlay,
       snapToGrid,
@@ -214,7 +222,7 @@ export const SchematicViewer = ({
 
   useChangeSchematicTracesForMovedComponents({
     svgDivRef,
-    circuitJson,
+    circuitJson: filteredCircuitJson,
     activeEditEvent,
     editEvents: editEventsWithUnappliedEditEvents,
   })
@@ -333,6 +341,17 @@ export const SchematicViewer = ({
           onClick={() => setSnapToGrid(!snapToGrid)}
         />
       )}
+      <ViewMenuIcon
+        active={showViewMenu || !!selectedGroupId}
+        onClick={() => setShowViewMenu(!showViewMenu)}
+      />
+      <ViewMenu
+        circuitJson={circuitJson}
+        isVisible={showViewMenu}
+        onClose={() => setShowViewMenu(false)}
+        selectedGroup={selectedGroupId}
+        onGroupSelect={setSelectedGroupId}
+      />
       {spiceSimulationEnabled && (
         <SpiceSimulationIcon onClick={() => setShowSpiceOverlay(true)} />
       )}
