@@ -55,8 +55,12 @@ export const ViewMenu = ({
       
       const explicitGroups = Array.from(groupMap.values()).filter(({ components }) => components.length > 0)
       
-      // If no explicit groups, create virtual groups by component type
-      if (explicitGroups.length === 0 && schematicComponents.length > 0) {
+      // If no explicit groups, OR if there's only one group with all/most components, 
+      // create virtual groups by component type instead
+      const totalComponents = schematicComponents.length
+      const hasOneBigGroup = explicitGroups.length === 1 && explicitGroups[0].components.length >= totalComponents * 0.8
+      
+      if ((explicitGroups.length === 0 || hasOneBigGroup) && schematicComponents.length > 0) {
         const componentTypeGroups = new Map<string, any[]>()
         
         for (const comp of schematicComponents) {

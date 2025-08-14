@@ -12,6 +12,21 @@ export default () => {
 
   // Log circuit JSON to see structure
   console.log("Circuit JSON:", circuitJson)
+  
+  // Log groups specifically
+  try {
+    const { su } = require('@tscircuit/soup-util')
+    const sourceGroups = su(circuitJson).source_group?.list() || []
+    const sourceComponents = su(circuitJson).source_component?.list() || []
+    console.log("Source Groups:", sourceGroups)
+    console.log("Source Components with groups:", sourceComponents.map((c: any) => ({
+      name: c.name,
+      ftype: c.ftype,
+      source_group_id: c.source_group_id
+    })))
+  } catch (e) {
+    console.log("Error analyzing groups:", e)
+  }
 
   return (
     <div style={{ position: "relative", height: "100%" }}>
