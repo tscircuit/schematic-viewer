@@ -79,18 +79,6 @@ export const ViewMenu = ({
           zIndex: zIndexMap.viewMenu,
         }}
       >
-        <div
-          style={{
-            padding: "8px 12px",
-            borderBottom: "1px solid #444",
-            fontWeight: "bold",
-            fontSize: "14px",
-            color: "#fff",
-          }}
-        >
-          View ▲
-        </div>
-
         {/* Groups Toggle Option */}
         <div
           onClick={() => {
