@@ -92,11 +92,6 @@ export const SchematicViewer = ({
   )
   const [showViewMenu, setShowViewMenu] = useState(false)
   const [showSchematicGroups, setShowSchematicGroups] = useState(false)
-  
-  // Debug logging for state changes
-  useEffect(() => {
-    console.log("showSchematicGroups state changed:", showSchematicGroups)
-  }, [showSchematicGroups])
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 

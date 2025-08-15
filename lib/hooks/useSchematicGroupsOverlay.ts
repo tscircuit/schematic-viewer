@@ -8,13 +8,6 @@ export const useSchematicGroupsOverlay = (
   showGroups: boolean,
 ) => {
   useEffect(() => {
-    console.log("useSchematicGroupsOverlay effect triggered:", {
-      hasSvgDiv: !!svgDivRef.current,
-      showGroups,
-      hasCircuitJson: !!circuitJson,
-      circuitJsonLength: circuitJson?.length || 0
-    })
-
     if (
       !svgDivRef.current ||
       !showGroups ||
@@ -26,7 +19,6 @@ export const useSchematicGroupsOverlay = (
         const existingOverlays = svgDivRef.current.querySelectorAll(
           ".schematic-group-overlay",
         )
-        console.log("Removing existing overlays:", existingOverlays.length)
         existingOverlays.forEach((overlay) => overlay.remove())
       }
       return
@@ -34,11 +26,8 @@ export const useSchematicGroupsOverlay = (
 
     const svg = svgDivRef.current.querySelector("svg")
     if (!svg) {
-      console.log("No SVG element found")
       return
     }
-
-    console.log("Found SVG element, processing groups...")
 
     // Remove existing overlays first
     const existingOverlays = svg.querySelectorAll(".schematic-group-overlay")
@@ -49,11 +38,6 @@ export const useSchematicGroupsOverlay = (
       const sourceGroups = su(circuitJson).source_group?.list() || []
       const schematicComponents =
         su(circuitJson).schematic_component?.list() || []
-
-      console.log("Circuit analysis:", {
-        sourceGroups: sourceGroups.length,
-        schematicComponents: schematicComponents.length
-      })
 
       let groupsToRender: Array<{
         id: string
@@ -119,36 +103,11 @@ export const useSchematicGroupsOverlay = (
       }
 
       // Render group overlays
-      console.log("Groups to render:", groupsToRender.length)
-      
-      // Add a test overlay to verify SVG manipulation works
-      const testOverlay = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "rect",
-      )
-      testOverlay.setAttribute("class", "schematic-group-overlay")
-      testOverlay.setAttribute("x", "10")
-      testOverlay.setAttribute("y", "10")
-      testOverlay.setAttribute("width", "100")
-      testOverlay.setAttribute("height", "50")
-      testOverlay.setAttribute("fill", "rgba(255, 0, 0, 0.3)")
-      testOverlay.setAttribute("stroke", "red")
-      testOverlay.setAttribute("stroke-width", "2")
-      svg.appendChild(testOverlay)
-      console.log("Added test overlay to SVG")
-      
       groupsToRender.forEach((group, groupIndex) => {
-        console.log(`Processing group ${groupIndex}:`, {
-          name: group.name,
-          componentCount: group.components.length,
-          components: group.components.map(c => c.schematic_component_id)
-        })
-
         if (group.components.length === 0) return
 
         // Calculate bounding box for the group
         const groupBounds = calculateGroupBounds(group.components, svg)
-        console.log(`Group ${group.name} bounds:`, groupBounds)
         if (!groupBounds) return
 
         // Create group overlay rectangle
@@ -187,17 +146,15 @@ export const useSchematicGroupsOverlay = (
         groupLabel.setAttribute("font-size", "14")
         groupLabel.setAttribute("font-family", "Arial, sans-serif")
         groupLabel.setAttribute("font-weight", "bold")
-        groupLabel.setAttribute("stroke", "#000")
+        groupLabel.setAttribute("stroke", "#fff")
         groupLabel.setAttribute("stroke-width", "0.5")
         groupLabel.setAttribute("paint-order", "stroke fill")
         groupLabel.textContent = group.name
 
-        // Insert overlays at the beginning so they appear behind components
-        svg.insertBefore(groupOverlay, svg.firstChild)
-        svg.insertBefore(groupLabel, svg.firstChild)
-        console.log(`Added overlay and label for group: ${group.name}`)
+        // Add overlays to the SVG (use appendChild to ensure they're on top)
+        svg.appendChild(groupOverlay)
+        svg.appendChild(groupLabel)
       })
-      console.log("Finished processing all groups")
     } catch (error) {
       console.error("Error creating group overlays:", error)
     }
@@ -224,8 +181,6 @@ function calculateGroupBounds(components: any[], svg: SVGElement) {
     maxX = -Infinity,
     maxY = -Infinity
 
-  console.log("Calculating bounds for components:", components.map(c => c.schematic_component_id))
-
   for (const component of components) {
     // Look for the component group element (based on circuit-to-svg documentation)
     let componentElement = svg.querySelector(
@@ -239,22 +194,8 @@ function calculateGroupBounds(components: any[], svg: SVGElement) {
       )
     }
     
-    if (!componentElement) {
-      // Log available component elements for debugging
-      const allElements = svg.querySelectorAll("[data-schematic-component-id]")
-      console.log("Available schematic component elements:", Array.from(allElements).map(el => ({
-        tagName: el.tagName,
-        schematicId: el.getAttribute("data-schematic-component-id"),
-        id: el.id || "no-id"
-      })))
-      console.log(`Could not find element for component: ${component.schematic_component_id}`)
-    }
-    
-    console.log(`Looking for component ${component.schematic_component_id}:`, !!componentElement)
-    
     if (componentElement) {
       const bbox = (componentElement as SVGGraphicsElement).getBBox()
-      console.log(`Component ${component.schematic_component_id} bbox:`, bbox)
       minX = Math.min(minX, bbox.x)
       minY = Math.min(minY, bbox.y)
       maxX = Math.max(maxX, bbox.x + bbox.width)
@@ -263,11 +204,9 @@ function calculateGroupBounds(components: any[], svg: SVGElement) {
   }
 
   if (minX === Infinity) {
-    console.log("No valid bounding box found - no components matched")
     return null
   }
 
   const bounds = { minX, minY, maxX, maxY }
-  console.log("Final calculated bounds:", bounds)
   return bounds
 }
