@@ -7,26 +7,11 @@ export default () => {
       <resistor name="R1" resistance={1000} schX={-2} />
       <capacitor name="C1" capacitance="1uF" schX={2} />
       <trace from=".R1 .pin2" to=".C1 .pin1" />
-    </board>
+    </board>,
   )
 
   // Log circuit JSON to see structure
   console.log("Circuit JSON:", circuitJson)
-  
-  // Log groups specifically
-  try {
-    const { su } = require('@tscircuit/soup-util')
-    const sourceGroups = su(circuitJson).source_group?.list() || []
-    const sourceComponents = su(circuitJson).source_component?.list() || []
-    console.log("Source Groups:", sourceGroups)
-    console.log("Source Components with groups:", sourceComponents.map((c: any) => ({
-      name: c.name,
-      ftype: c.ftype,
-      source_group_id: c.source_group_id
-    })))
-  } catch (e) {
-    console.log("Error analyzing groups:", e)
-  }
 
   return (
     <div style={{ position: "relative", height: "100%" }}>
@@ -48,8 +33,15 @@ export default () => {
       >
         <strong>View Menu Debug</strong>
         <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
-          Simple circuit to test the view menu icon. Check console for circuit JSON structure.
-          The view menu icon should appear in the top-right corner.
+          Simple circuit to test the view menu functionality. Check console for
+          circuit JSON structure. Click the menu icon (⋮) in the top-right to
+          toggle group overlay visibility.
+          <br />
+          <br />
+          <small>
+            Groups are created automatically by component type when no explicit
+            groups exist.
+          </small>
         </div>
       </div>
       <div
@@ -70,7 +62,9 @@ export default () => {
           overflow: "auto",
         }}
       >
-        <div style={{ fontWeight: "bold", marginBottom: "4px" }}>Circuit JSON Preview:</div>
+        <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
+          Circuit JSON Preview:
+        </div>
         <pre>{JSON.stringify(circuitJson.slice(0, 3), null, 1)}</pre>
         <div style={{ marginTop: "4px", color: "#666" }}>
           ... and {circuitJson.length - 3} more items

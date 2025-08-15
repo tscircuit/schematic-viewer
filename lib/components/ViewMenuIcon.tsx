@@ -31,8 +31,9 @@ export const ViewMenuIcon = ({
         stroke="currentColor"
         strokeWidth="2"
       >
-        <path d="M3 12h18m-9-9v18" />
-        <circle cx="12" cy="12" r="3" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="12" cy="5" r="1" />
+        <circle cx="12" cy="19" r="1" />
       </svg>
     </div>
   )

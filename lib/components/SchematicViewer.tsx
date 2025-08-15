@@ -4,6 +4,7 @@ import {
 } from "circuit-to-svg"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { enableDebug } from "lib/utils/debug"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -14,7 +15,6 @@ import {
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
-import { useFilteredCircuitJson } from "../hooks/useFilteredCircuitJson"
 import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
@@ -91,7 +91,7 @@ export const SchematicViewer = ({
     !clickToInteractEnabled,
   )
   const [showViewMenu, setShowViewMenu] = useState(false)
-  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined)
+  const [showSchematicGroups, setShowSchematicGroups] = useState(false)
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
@@ -134,9 +134,6 @@ export const SchematicViewer = ({
     }
   }, [circuitJson])
 
-  // Filter circuit JSON based on selected group
-  const filteredCircuitJson = useFilteredCircuitJson(circuitJson, selectedGroupId)
-
   const {
     ref: containerRef,
     cancelDrag,
@@ -154,7 +151,7 @@ export const SchematicViewer = ({
   const svgString = useMemo(() => {
     if (!containerWidth || !containerHeight) return ""
 
-    return convertCircuitJsonToSchematicSvg(filteredCircuitJson as any, {
+    return convertCircuitJsonToSchematicSvg(circuitJson as any, {
       width: containerWidth,
       height: containerHeight || 720,
       grid: !debugGrid
@@ -165,7 +162,7 @@ export const SchematicViewer = ({
           },
       colorOverrides,
     })
-  }, [filteredCircuitJson, containerWidth, containerHeight, debugGrid, colorOverrides])
+  }, [circuitJson, containerWidth, containerHeight, debugGrid, colorOverrides])
 
   const containerBackgroundColor = useMemo(() => {
     const match = svgString.match(
@@ -205,7 +202,7 @@ export const SchematicViewer = ({
       cancelDrag,
       realToSvgProjection,
       svgToScreenProjection,
-      circuitJson: filteredCircuitJson,
+      circuitJson,
       editEvents: editEventsWithUnappliedEditEvents,
       enabled: editModeEnabled && isInteractionEnabled && !showSpiceOverlay,
       snapToGrid,
@@ -222,10 +219,13 @@ export const SchematicViewer = ({
 
   useChangeSchematicTracesForMovedComponents({
     svgDivRef,
-    circuitJson: filteredCircuitJson,
+    circuitJson,
     activeEditEvent,
     editEvents: editEventsWithUnappliedEditEvents,
   })
+
+  // Add group overlays when enabled
+  useSchematicGroupsOverlay(svgDivRef, circuitJson, showSchematicGroups)
 
   const svgDiv = useMemo(
     () => (
@@ -342,15 +342,15 @@ export const SchematicViewer = ({
         />
       )}
       <ViewMenuIcon
-        active={showViewMenu || !!selectedGroupId}
+        active={showViewMenu || showSchematicGroups}
         onClick={() => setShowViewMenu(!showViewMenu)}
       />
       <ViewMenu
         circuitJson={circuitJson}
         isVisible={showViewMenu}
         onClose={() => setShowViewMenu(false)}
-        selectedGroup={selectedGroupId}
-        onGroupSelect={setSelectedGroupId}
+        showGroups={showSchematicGroups}
+        onToggleGroups={setShowSchematicGroups}
       />
       {spiceSimulationEnabled && (
         <SpiceSimulationIcon onClick={() => setShowSpiceOverlay(true)} />
