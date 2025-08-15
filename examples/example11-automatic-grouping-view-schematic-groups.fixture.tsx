@@ -81,61 +81,8 @@ export default () => {
     </board>,
   )
 
-  // Count components by type for display
-  const sourceComponents = circuitJson.filter(item => item.type === "source_component")
-  const componentCounts = sourceComponents.reduce((acc, comp) => {
-    const type = comp.ftype || "other"
-    acc[type] = (acc[type] || 0) + 1
-    return acc
-  }, {} as Record<string, number>)
-
   return (
     <div style={{ position: "relative", height: "100%" }}>
-      <div
-        style={{
-          position: "absolute",
-          top: "16px",
-          left: "16px",
-          zIndex: 1001,
-          backgroundColor: "#fff",
-          padding: "12px",
-          borderRadius: "4px",
-          border: "1px solid #ccc",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          fontSize: "14px",
-          fontFamily: "sans-serif",
-          maxWidth: "350px",
-        }}
-      >
-        <strong>Automatic Grouping by Component Type</strong>
-        <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
-          This circuit has <strong>NO</strong> explicit <code>&lt;group&gt;</code> tags.
-          <br />
-          Groups are created automatically by component type:
-          <br />
-          <br />
-          {Object.entries(componentCounts).map(([type, count], index) => {
-            const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD"]
-            const color = colors[index % colors.length]
-            return (
-              <div key={type} style={{ marginBottom: "4px" }}>
-                <span style={{ color, fontWeight: "bold" }}>●</span>{" "}
-                <strong>{type.charAt(0).toUpperCase() + type.slice(1)}s</strong>: {count} components
-              </div>
-            )
-          })}
-          <br />
-          <strong>Click menu (⋮) → "View Schematic Groups"</strong>
-          <br />
-          Each component type will have its own colored boundary!
-          <br />
-          <br />
-          <small style={{ color: "#888" }}>
-            Note: This demonstrates the fallback grouping mechanism when no explicit groups are defined.
-          </small>
-        </div>
-      </div>
-
       <SchematicViewer
         circuitJson={circuitJson}
         containerStyle={{

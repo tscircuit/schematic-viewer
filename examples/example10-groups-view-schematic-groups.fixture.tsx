@@ -74,58 +74,6 @@ export default () => {
 
   return (
     <div style={{ position: "relative", height: "100%" }}>
-      <div
-        style={{
-          position: "absolute",
-          top: "16px",
-          left: "16px",
-          zIndex: 1001,
-          backgroundColor: "#fff",
-          padding: "12px",
-          borderRadius: "4px",
-          border: "1px solid #ccc",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          fontSize: "14px",
-          fontFamily: "sans-serif",
-          maxWidth: "400px",
-        }}
-      >
-        <strong>Multiple Groups Example</strong>
-        <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
-          This circuit contains 3 explicit groups:
-          <br />
-          <br />
-          <span style={{ color: "#FF6B6B" }}>🔴 Power Management</span>
-          <br />
-          • Voltage regulator IC (U1)
-          <br />
-          • Input/output capacitors (C1, C2)
-          <br />
-          • Enable resistor (R1)
-          <br />
-          <br />
-          <span style={{ color: "#4ECDC4" }}>🔵 Signal Processing</span>
-          <br />
-          • Op-amp IC (U2)
-          <br />
-          • Input resistors (R2, R3)
-          <br />
-          • Reference capacitor (C3)
-          <br />
-          <br />
-          <span style={{ color: "#45B7D1" }}>🟢 Status Indicators</span>
-          <br />
-          • Status LEDs (LED1, LED2)
-          <br />
-          • Current limiting resistors (R4, R5)
-          <br />
-          <br />
-          <strong>Click the menu (⋮) → "View Schematic Groups"</strong>
-          <br />
-          to see colored group boundaries!
-        </div>
-      </div>
-
       <SchematicViewer
         circuitJson={circuitJson}
         containerStyle={{
