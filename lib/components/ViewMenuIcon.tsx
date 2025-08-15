@@ -10,7 +10,7 @@ export const ViewMenuIcon = ({
       style={{
         position: "absolute",
         top: "16px",
-        right: "64px",
+        right: "16px",
         backgroundColor: active ? "#4CAF50" : "#fff",
         color: active ? "#fff" : "#000",
         padding: "8px",

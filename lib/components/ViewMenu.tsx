@@ -68,7 +68,7 @@ export const ViewMenu = ({
       <div
         style={{
           position: "absolute",
-          top: "136px",
+          top: "56px",
           right: "16px",
           backgroundColor: "#2a2a2a",
           color: "#ffffff",
