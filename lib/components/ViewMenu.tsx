@@ -94,7 +94,9 @@ export const ViewMenu = ({
         {/* Groups Toggle Option */}
         <div
           onClick={() => {
+            console.log("View groups checkbox clicked:", { hasGroups, showGroups })
             if (hasGroups) {
+              console.log("Toggling groups from", showGroups, "to", !showGroups)
               onToggleGroups(!showGroups)
             }
           }}
