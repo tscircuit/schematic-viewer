@@ -9,8 +9,8 @@ export const ViewMenuIcon = ({
       onClick={onClick}
       style={{
         position: "absolute",
-        top: "96px",
-        right: "16px",
+        top: "16px",
+        right: "64px",
         backgroundColor: active ? "#4CAF50" : "#fff",
         color: active ? "#fff" : "#000",
         padding: "8px",

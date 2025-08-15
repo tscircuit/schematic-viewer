@@ -329,6 +329,10 @@ export const SchematicViewer = ({
           </div>
         </div>
       )}
+      <ViewMenuIcon
+        active={showViewMenu || showSchematicGroups}
+        onClick={() => setShowViewMenu(!showViewMenu)}
+      />
       {editingEnabled && (
         <EditIcon
           active={editModeEnabled}
@@ -341,10 +345,6 @@ export const SchematicViewer = ({
           onClick={() => setSnapToGrid(!snapToGrid)}
         />
       )}
-      <ViewMenuIcon
-        active={showViewMenu || showSchematicGroups}
-        onClick={() => setShowViewMenu(!showViewMenu)}
-      />
       <ViewMenu
         circuitJson={circuitJson}
         isVisible={showViewMenu}
