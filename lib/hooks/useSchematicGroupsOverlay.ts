@@ -39,6 +39,21 @@ export const useSchematicGroupsOverlay = (
       const schematicComponents =
         su(circuitJson).schematic_component?.list() || []
 
+      console.log("Group detection debug:", {
+        sourceGroupsCount: sourceGroups.length,
+        schematicComponentsCount: schematicComponents.length,
+        sourceGroups: sourceGroups,
+        firstFewComponents: schematicComponents.slice(0, 3).map(c => {
+          const sourceComp = su(circuitJson).source_component.get(c.source_component_id)
+          return {
+            id: c.schematic_component_id,
+            sourceId: c.source_component_id,
+            ftype: sourceComp?.ftype,
+            hasGroupId: !!sourceComp?.source_group_id
+          }
+        })
+      })
+
       let groupsToRender: Array<{
         id: string
         name: string
@@ -47,6 +62,7 @@ export const useSchematicGroupsOverlay = (
       }> = []
 
       if (sourceGroups.length > 0) {
+        console.log("Using explicit groups path")
         // Use explicit groups
         const groupMap = new Map<string, any[]>()
 
@@ -76,6 +92,7 @@ export const useSchematicGroupsOverlay = (
           },
         )
       } else {
+        console.log("Using automatic component type grouping")
         // Create virtual groups by component type
         const componentTypeGroups = new Map<string, any[]>()
 
@@ -85,12 +102,15 @@ export const useSchematicGroupsOverlay = (
           )
           if (sourceComp) {
             const componentType = sourceComp.ftype || "other"
+            console.log(`Component ${comp.schematic_component_id}: type = ${componentType}`)
             if (!componentTypeGroups.has(componentType)) {
               componentTypeGroups.set(componentType, [])
             }
             componentTypeGroups.get(componentType)!.push(comp)
           }
         }
+
+        console.log("Component type groups:", Array.from(componentTypeGroups.entries()).map(([type, comps]) => `${type}: ${comps.length}`))
 
         groupsToRender = Array.from(componentTypeGroups.entries()).map(
           ([type, components], index) => ({
@@ -101,6 +121,8 @@ export const useSchematicGroupsOverlay = (
           }),
         )
       }
+
+      console.log("Final groups to render:", groupsToRender.map(g => `${g.name}: ${g.components.length} components`))
 
       // Render group overlays
       groupsToRender.forEach((group, groupIndex) => {
