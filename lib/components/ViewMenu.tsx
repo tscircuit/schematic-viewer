@@ -70,11 +70,11 @@ export const ViewMenu = ({
           position: "absolute",
           top: "56px",
           right: "16px",
-          backgroundColor: "#2a2a2a",
-          color: "#ffffff",
-          border: "1px solid #444",
+          backgroundColor: "#ffffff",
+          color: "#000000",
+          border: "1px solid #ccc",
           borderRadius: "4px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
           minWidth: "200px",
           zIndex: zIndexMap.viewMenu,
         }}
@@ -91,13 +91,14 @@ export const ViewMenu = ({
             cursor: hasGroups ? "pointer" : "not-allowed",
             opacity: hasGroups ? 1 : 0.5,
             fontSize: "13px",
+            color: "#000000",
             display: "flex",
             alignItems: "center",
             gap: "8px",
           }}
           onMouseEnter={(e) => {
             if (hasGroups) {
-              e.currentTarget.style.backgroundColor = "#404040"
+              e.currentTarget.style.backgroundColor = "#f0f0f0"
             }
           }}
           onMouseLeave={(e) => {
@@ -110,7 +111,7 @@ export const ViewMenu = ({
             style={{
               width: "16px",
               height: "16px",
-              border: "2px solid #fff",
+              border: "2px solid #000",
               borderRadius: "2px",
               backgroundColor: showGroups ? "#4CAF50" : "transparent",
               display: "flex",
@@ -130,7 +131,7 @@ export const ViewMenu = ({
             style={{
               padding: "8px 12px",
               fontSize: "11px",
-              color: "#999",
+              color: "#666",
               fontStyle: "italic",
             }}
           >
