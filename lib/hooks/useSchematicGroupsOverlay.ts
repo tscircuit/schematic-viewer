@@ -114,21 +114,23 @@ export const useSchematicGroupsOverlay = (
           "rect",
         )
         groupOverlay.setAttribute("class", "schematic-group-overlay")
-        groupOverlay.setAttribute("x", (groupBounds.minX - 20).toString())
-        groupOverlay.setAttribute("y", (groupBounds.minY - 20).toString())
+        groupOverlay.setAttribute("x", (groupBounds.minX - 25).toString())
+        groupOverlay.setAttribute("y", (groupBounds.minY - 25).toString())
         groupOverlay.setAttribute(
           "width",
-          (groupBounds.maxX - groupBounds.minX + 40).toString(),
+          (groupBounds.maxX - groupBounds.minX + 50).toString(),
         )
         groupOverlay.setAttribute(
           "height",
-          (groupBounds.maxY - groupBounds.minY + 40).toString(),
+          (groupBounds.maxY - groupBounds.minY + 50).toString(),
         )
         groupOverlay.setAttribute("fill", "none")
         groupOverlay.setAttribute("stroke", group.color)
-        groupOverlay.setAttribute("stroke-width", "2")
-        groupOverlay.setAttribute("stroke-dasharray", "5,5")
-        groupOverlay.setAttribute("opacity", "0.7")
+        groupOverlay.setAttribute("stroke-width", "3")
+        groupOverlay.setAttribute("stroke-dasharray", "8,4")
+        groupOverlay.setAttribute("opacity", "0.8")
+        groupOverlay.setAttribute("rx", "4")
+        groupOverlay.setAttribute("ry", "4")
 
         // Create group label
         const groupLabel = document.createElementNS(
@@ -136,12 +138,15 @@ export const useSchematicGroupsOverlay = (
           "text",
         )
         groupLabel.setAttribute("class", "schematic-group-overlay")
-        groupLabel.setAttribute("x", (groupBounds.minX - 15).toString())
-        groupLabel.setAttribute("y", (groupBounds.minY - 5).toString())
+        groupLabel.setAttribute("x", (groupBounds.minX - 10).toString())
+        groupLabel.setAttribute("y", (groupBounds.minY - 8).toString())
         groupLabel.setAttribute("fill", group.color)
-        groupLabel.setAttribute("font-size", "12")
-        groupLabel.setAttribute("font-family", "sans-serif")
+        groupLabel.setAttribute("font-size", "14")
+        groupLabel.setAttribute("font-family", "Arial, sans-serif")
         groupLabel.setAttribute("font-weight", "bold")
+        groupLabel.setAttribute("stroke", "#000")
+        groupLabel.setAttribute("stroke-width", "0.5")
+        groupLabel.setAttribute("paint-order", "stroke fill")
         groupLabel.textContent = group.name
 
         // Insert overlays at the beginning so they appear behind components
