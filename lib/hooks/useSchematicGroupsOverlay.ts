@@ -42,7 +42,7 @@ export const useSchematicGroupsOverlay = (
       console.log("Group detection debug:", {
         sourceGroupsCount: sourceGroups.length,
         schematicComponentsCount: schematicComponents.length,
-        sourceGroups: sourceGroups,
+        sourceGroups: sourceGroups.map(g => ({ id: g.source_group_id, name: g.name })),
         firstFewComponents: schematicComponents.slice(0, 3).map(c => {
           const sourceComp = su(circuitJson).source_component.get(c.source_component_id)
           return {
@@ -61,7 +61,17 @@ export const useSchematicGroupsOverlay = (
         color: string
       }> = []
 
-      if (sourceGroups.length > 0) {
+      // Check if we have meaningful explicit groups (not just auto-generated default groups)
+      const hasMeaningfulGroups = sourceGroups.length > 0 && 
+        sourceGroups.some(group => group.name && group.name !== "default" && group.name !== "")
+
+      console.log("Meaningful groups check:", {
+        sourceGroupsLength: sourceGroups.length,
+        hasMeaningfulGroups,
+        groupNames: sourceGroups.map(g => g.name)
+      })
+
+      if (hasMeaningfulGroups) {
         console.log("Using explicit groups path")
         // Use explicit groups
         const groupMap = new Map<string, any[]>()
