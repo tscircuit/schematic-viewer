@@ -4,6 +4,7 @@ import {
 } from "circuit-to-svg"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { enableDebug } from "lib/utils/debug"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -17,6 +18,8 @@ import { useComponentDragging } from "../hooks/useComponentDragging"
 import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
+import { ViewMenuIcon } from "./ViewMenuIcon"
+import { ViewMenu } from "./ViewMenu"
 import type { CircuitJson } from "circuit-json"
 import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
 import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
@@ -87,6 +90,8 @@ export const SchematicViewer = ({
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
     !clickToInteractEnabled,
   )
+  const [showViewMenu, setShowViewMenu] = useState(false)
+  const [showSchematicGroups, setShowSchematicGroups] = useState(false)
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
@@ -219,6 +224,9 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
   })
 
+  // Add group overlays when enabled
+  useSchematicGroupsOverlay(svgDivRef, circuitJson, circuitJsonKey, showSchematicGroups)
+
   const svgDiv = useMemo(
     () => (
       <div
@@ -321,6 +329,10 @@ export const SchematicViewer = ({
           </div>
         </div>
       )}
+      <ViewMenuIcon
+        active={showViewMenu}
+        onClick={() => setShowViewMenu(!showViewMenu)}
+      />
       {editingEnabled && (
         <EditIcon
           active={editModeEnabled}
@@ -333,6 +345,14 @@ export const SchematicViewer = ({
           onClick={() => setSnapToGrid(!snapToGrid)}
         />
       )}
+      <ViewMenu
+        circuitJson={circuitJson}
+        circuitJsonKey={circuitJsonKey}
+        isVisible={showViewMenu}
+        onClose={() => setShowViewMenu(false)}
+        showGroups={showSchematicGroups}
+        onToggleGroups={setShowSchematicGroups}
+      />
       {spiceSimulationEnabled && (
         <SpiceSimulationIcon onClick={() => setShowSpiceOverlay(true)} />
       )}

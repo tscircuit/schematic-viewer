@@ -12,7 +12,7 @@ export const SpiceSimulationIcon = ({
       style={{
         position: "absolute",
         top: "16px",
-        right: "56px",
+        right: "112px",
         backgroundColor: "#fff",
         color: "#000",
         padding: "8px",
