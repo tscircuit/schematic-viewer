@@ -5,6 +5,7 @@ import type { CircuitJson } from "circuit-json"
 export const useSchematicGroupsOverlay = (
   svgDivRef: React.RefObject<HTMLDivElement | null>,
   circuitJson: CircuitJson,
+  circuitJsonKey: string,
   showGroups: boolean,
 ) => {
   useEffect(() => {
@@ -162,7 +163,7 @@ export const useSchematicGroupsOverlay = (
     } catch (error) {
       console.error("Error creating group overlays:", error)
     }
-  }, [svgDivRef, circuitJson, showGroups])
+  }, [svgDivRef, circuitJsonKey, showGroups])
 }
 
 function getGroupColor(index: number): string {

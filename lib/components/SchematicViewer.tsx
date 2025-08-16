@@ -225,7 +225,7 @@ export const SchematicViewer = ({
   })
 
   // Add group overlays when enabled
-  useSchematicGroupsOverlay(svgDivRef, circuitJson, showSchematicGroups)
+  useSchematicGroupsOverlay(svgDivRef, circuitJson, circuitJsonKey, showSchematicGroups)
 
   const svgDiv = useMemo(
     () => (
@@ -330,7 +330,7 @@ export const SchematicViewer = ({
         </div>
       )}
       <ViewMenuIcon
-        active={showViewMenu || showSchematicGroups}
+        active={showViewMenu}
         onClick={() => setShowViewMenu(!showViewMenu)}
       />
       {editingEnabled && (
@@ -347,6 +347,7 @@ export const SchematicViewer = ({
       )}
       <ViewMenu
         circuitJson={circuitJson}
+        circuitJsonKey={circuitJsonKey}
         isVisible={showViewMenu}
         onClose={() => setShowViewMenu(false)}
         showGroups={showSchematicGroups}

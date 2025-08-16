@@ -5,6 +5,7 @@ import { zIndexMap } from "../utils/z-index-map"
 
 interface ViewMenuProps {
   circuitJson: CircuitJson
+  circuitJsonKey: string
   isVisible: boolean
   onClose: () => void
   showGroups: boolean
@@ -13,6 +14,7 @@ interface ViewMenuProps {
 
 export const ViewMenu = ({
   circuitJson,
+  circuitJsonKey,
   isVisible,
   onClose,
   showGroups,
@@ -47,7 +49,7 @@ export const ViewMenu = ({
       console.error("Error checking for groups:", error)
       return false
     }
-  }, [circuitJson])
+  }, [circuitJsonKey])
 
   if (!isVisible) return null
 
@@ -92,6 +94,7 @@ export const ViewMenu = ({
             opacity: hasGroups ? 1 : 0.5,
             fontSize: "13px",
             color: "#000000",
+            fontFamily: "sans-serif",
             display: "flex",
             alignItems: "center",
             gap: "8px",
@@ -113,7 +116,7 @@ export const ViewMenu = ({
               height: "16px",
               border: "2px solid #000",
               borderRadius: "2px",
-              backgroundColor: showGroups ? "#4CAF50" : "transparent",
+              backgroundColor: "transparent",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
