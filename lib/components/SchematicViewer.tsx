@@ -225,7 +225,12 @@ export const SchematicViewer = ({
   })
 
   // Add group overlays when enabled
-  useSchematicGroupsOverlay(svgDivRef, circuitJson, circuitJsonKey, showSchematicGroups)
+  useSchematicGroupsOverlay({
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey,
+    showGroups: showSchematicGroups,
+  })
 
   const svgDiv = useMemo(
     () => (

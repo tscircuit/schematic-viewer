@@ -2,12 +2,18 @@ import { useEffect } from "react"
 import { su } from "@tscircuit/soup-util"
 import type { CircuitJson } from "circuit-json"
 
+interface UseSchematicGroupsOverlayOptions {
+  svgDivRef: React.RefObject<HTMLDivElement | null>
+  circuitJson: CircuitJson
+  circuitJsonKey: string
+  showGroups: boolean
+}
+
 export const useSchematicGroupsOverlay = (
-  svgDivRef: React.RefObject<HTMLDivElement | null>,
-  circuitJson: CircuitJson,
-  circuitJsonKey: string,
-  showGroups: boolean,
+  options: UseSchematicGroupsOverlayOptions,
 ) => {
+  const { svgDivRef, circuitJson, circuitJsonKey, showGroups } = options
+  
   useEffect(() => {
     if (
       !svgDivRef.current ||
@@ -49,7 +55,7 @@ export const useSchematicGroupsOverlay = (
 
       // Check if we have meaningful explicit groups (not just auto-generated default groups)
       const hasMeaningfulGroups = sourceGroups.length > 0 && 
-        sourceGroups.some(group => group.name && group.name !== "default" && group.name !== "")
+        sourceGroups.some(group => group.name && group.name.trim() !== "")
 
       if (hasMeaningfulGroups) {
         // Use explicit groups
