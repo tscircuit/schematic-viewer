@@ -13,7 +13,7 @@ export const useSchematicGroupsOverlay = (
   options: UseSchematicGroupsOverlayOptions,
 ) => {
   const { svgDivRef, circuitJson, circuitJsonKey, showGroups } = options
-  
+
   useEffect(() => {
     if (
       !svgDivRef.current ||
@@ -54,8 +54,9 @@ export const useSchematicGroupsOverlay = (
       }> = []
 
       // Check if we have meaningful explicit groups (not just auto-generated default groups)
-      const hasMeaningfulGroups = sourceGroups.length > 0 && 
-        sourceGroups.some(group => group.name && group.name.trim() !== "")
+      const hasMeaningfulGroups =
+        sourceGroups.length > 0 &&
+        sourceGroups.some((group) => group.name && group.name.trim() !== "")
 
       if (hasMeaningfulGroups) {
         // Use explicit groups
@@ -197,14 +198,14 @@ function calculateGroupBounds(components: any[], svg: SVGElement) {
     let componentElement = svg.querySelector(
       `g[data-schematic-component-id="${component.schematic_component_id}"]`,
     )
-    
+
     if (!componentElement) {
       // Fallback to any element with the data attribute
       componentElement = svg.querySelector(
         `[data-schematic-component-id="${component.schematic_component_id}"]`,
       )
     }
-    
+
     if (componentElement) {
       const bbox = (componentElement as SVGGraphicsElement).getBBox()
       minX = Math.min(minX, bbox.x)

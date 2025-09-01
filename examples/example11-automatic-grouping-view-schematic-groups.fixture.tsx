@@ -17,39 +17,39 @@ const circuitJson = renderToCircuitJson(
     <capacitor name="C4" capacitance="100nF" schX={0} schY={0} />
 
     {/* Multiple ICs/Chips - Will form "Chips" group */}
-    <chip 
-      name="U1" 
-      footprint="soic8" 
-      schX={10} 
+    <chip
+      name="U1"
+      footprint="soic8"
+      schX={10}
       schY={5}
       pinLabels={{
         "1": "VIN",
-        "2": "GND", 
+        "2": "GND",
         "3": "EN",
-        "4": "VOUT"
+        "4": "VOUT",
       }}
     />
-    <chip 
-      name="U2" 
-      footprint="soic14" 
-      schX={15} 
+    <chip
+      name="U2"
+      footprint="soic14"
+      schX={15}
       schY={5}
       pinLabels={{
         "1": "IN",
         "2": "OUT",
         "3": "VCC",
-        "4": "GND"
+        "4": "GND",
       }}
     />
-    <chip 
-      name="U3" 
-      footprint="sot23" 
-      schX={20} 
+    <chip
+      name="U3"
+      footprint="sot23"
+      schX={20}
       schY={5}
       pinLabels={{
         "1": "A",
-        "2": "B", 
-        "3": "C"
+        "2": "B",
+        "3": "C",
       }}
     />
 
@@ -81,7 +81,6 @@ const circuitJson = renderToCircuitJson(
 )
 
 export default () => {
-
   return (
     <div style={{ position: "relative", height: "100%" }}>
       <SchematicViewer

@@ -5,20 +5,20 @@ const circuitJson = renderToCircuitJson(
   <board width="50mm" height="30mm">
     {/* Power Management Group */}
     <group name="Power Management">
-      <chip 
-        name="U1" 
-        footprint="soic8" 
-        schX={-10} 
+      <chip
+        name="U1"
+        footprint="soic8"
+        schX={-10}
         schY={5}
         pinLabels={{
           "1": "VIN",
-          "2": "GND", 
+          "2": "GND",
           "3": "EN",
           "4": "FB",
           "5": "VOUT",
           "6": "SW",
           "7": "PGND",
-          "8": "VCC"
+          "8": "VCC",
         }}
       />
       <capacitor name="C1" capacitance="100uF" schX={-15} schY={2} />
@@ -28,10 +28,10 @@ const circuitJson = renderToCircuitJson(
 
     {/* Signal Processing Group */}
     <group name="Signal Processing">
-      <chip 
-        name="U2" 
-        footprint="soic14" 
-        schX={5} 
+      <chip
+        name="U2"
+        footprint="soic14"
+        schX={5}
         schY={5}
         pinLabels={{
           "1": "IN+",
@@ -40,7 +40,7 @@ const circuitJson = renderToCircuitJson(
           "4": "GND",
           "5": "OUT1",
           "6": "OUT2",
-          "7": "REF"
+          "7": "REF",
         }}
       />
       <resistor name="R2" resistance={1000} schX={0} schY={8} />
@@ -72,7 +72,6 @@ const circuitJson = renderToCircuitJson(
 )
 
 export default () => {
-
   return (
     <div style={{ position: "relative", height: "100%" }}>
       <SchematicViewer

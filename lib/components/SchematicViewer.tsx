@@ -58,6 +58,12 @@ export const SchematicViewer = ({
     enableDebug()
   }
   const [showSpiceOverlay, setShowSpiceOverlay] = useState(false)
+  const [spiceSimOptions, setSpiceSimOptions] = useState({
+    showVoltage: true,
+    showCurrent: false,
+    startTime: 0, // in ms
+    duration: 20, // in ms
+  })
 
   const getCircuitHash = (circuitJson: CircuitJson) => {
     return `${circuitJson?.length || 0}_${(circuitJson as any)?.editCount || 0}`
@@ -71,12 +77,17 @@ export const SchematicViewer = ({
   const spiceString = useMemo(() => {
     if (!spiceSimulationEnabled) return null
     try {
-      return getSpiceFromCircuitJson(circuitJson)
+      return getSpiceFromCircuitJson(circuitJson, spiceSimOptions)
     } catch (e) {
       console.error("Failed to generate SPICE string", e)
       return null
     }
-  }, [circuitJsonKey, spiceSimulationEnabled])
+  }, [
+    circuitJsonKey,
+    spiceSimulationEnabled,
+    spiceSimOptions.startTime,
+    spiceSimOptions.duration,
+  ])
 
   const {
     plotData,
@@ -369,6 +380,8 @@ export const SchematicViewer = ({
           nodes={nodes}
           isLoading={isSpiceSimLoading}
           error={spiceSimError}
+          simOptions={spiceSimOptions}
+          onSimOptionsChange={setSpiceSimOptions}
         />
       )}
       {svgDiv}
