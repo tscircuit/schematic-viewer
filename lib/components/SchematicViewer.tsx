@@ -6,7 +6,7 @@ import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSc
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { enableDebug } from "lib/utils/debug"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   fromString,
   identity,
@@ -26,6 +26,61 @@ import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
 import { zIndexMap } from "../utils/z-index-map"
 import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
 import { getSpiceFromCircuitJson } from "../utils/spice-utils"
+
+// Optimized click-to-interact overlay component
+const ClickToInteractOverlay = ({ onEnable }: { onEnable: () => void }) => {
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      onEnable()
+    },
+    [onEnable],
+  )
+
+  const overlayStyle = useMemo(
+    () => ({
+      position: "absolute" as const,
+      inset: 0,
+      cursor: "pointer" as const,
+      zIndex: zIndexMap.clickToInteractOverlay,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      pointerEvents: "all" as const,
+      touchAction: "pan-x pan-y pinch-zoom" as const,
+    }),
+    [],
+  )
+
+  const messageStyle = useMemo(
+    () => ({
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      color: "white",
+      padding: "12px 24px",
+      borderRadius: "8px",
+      fontSize: "16px",
+      fontFamily: "sans-serif",
+      pointerEvents: "none" as const,
+    }),
+    [],
+  )
+
+  const isTouchDevice = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      ("ontouchstart" in window || navigator.maxTouchPoints > 0),
+    [],
+  )
+
+  return (
+    <div onClick={handleClick} style={overlayStyle}>
+      <div style={messageStyle}>
+        {isTouchDevice ? "Touch to Interact" : "Click to Interact"}
+      </div>
+    </div>
+  )
+}
 
 interface Props {
   circuitJson: CircuitJson
@@ -59,14 +114,9 @@ export const SchematicViewer = ({
   }
   const [showSpiceOverlay, setShowSpiceOverlay] = useState(false)
 
-  const getCircuitHash = (circuitJson: CircuitJson) => {
+  const circuitJsonKey = useMemo(() => {
     return `${circuitJson?.length || 0}_${(circuitJson as any)?.editCount || 0}`
-  }
-
-  const circuitJsonKey = useMemo(
-    () => getCircuitHash(circuitJson),
-    [circuitJson],
-  )
+  }, [circuitJson])
 
   const spiceString = useMemo(() => {
     if (!spiceSimulationEnabled) return null
@@ -95,15 +145,12 @@ export const SchematicViewer = ({
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0]
-    touchStartRef.current = {
-      x: touch.clientX,
-      y: touch.clientY,
-    }
-  }
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }, [])
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     const touch = e.changedTouches[0]
     const start = touchStartRef.current
     if (!start) return
@@ -115,9 +162,8 @@ export const SchematicViewer = ({
       e.preventDefault()
       setIsInteractionEnabled(true)
     }
-
     touchStartRef.current = null
-  }
+  }, [])
 
   const [internalEditEvents, setInternalEditEvents] = useState<
     ManualEditEvent[]
@@ -125,14 +171,14 @@ export const SchematicViewer = ({
   const circuitJsonRef = useRef<CircuitJson>(circuitJson)
 
   useEffect(() => {
-    const circuitHash = getCircuitHash(circuitJson)
-    const circuitHashRef = getCircuitHash(circuitJsonRef.current)
-
-    if (circuitHash !== circuitHashRef) {
+    if (
+      circuitJsonKey !==
+      `${circuitJsonRef.current?.length || 0}_${(circuitJsonRef.current as any)?.editCount || 0}`
+    ) {
       setInternalEditEvents([])
       circuitJsonRef.current = circuitJson
     }
-  }, [circuitJson])
+  }, [circuitJsonKey, circuitJson])
 
   const {
     ref: containerRef,
@@ -154,17 +200,19 @@ export const SchematicViewer = ({
     return convertCircuitJsonToSchematicSvg(circuitJson as any, {
       width: containerWidth,
       height: containerHeight || 720,
-      grid: !debugGrid
-        ? undefined
-        : {
-            cellSize: 1,
-            labelCells: true,
-          },
+      grid: !debugGrid ? undefined : { cellSize: 1, labelCells: true },
       colorOverrides,
     })
-  }, [circuitJsonKey, containerWidth, containerHeight])
+  }, [
+    circuitJsonKey,
+    containerWidth,
+    containerHeight,
+    debugGrid,
+    colorOverrides,
+  ])
 
   const containerBackgroundColor = useMemo(() => {
+    if (!svgString) return "transparent"
     const match = svgString.match(
       /<svg[^>]*style="[^"]*background-color:\s*([^;\"]+)/i,
     )
@@ -185,12 +233,13 @@ export const SchematicViewer = ({
     }
   }, [svgString])
 
-  const handleEditEvent = (event: ManualEditEvent) => {
-    setInternalEditEvents((prev) => [...prev, event])
-    if (onEditEvent) {
-      onEditEvent(event)
-    }
-  }
+  const handleEditEvent = useCallback(
+    (event: ManualEditEvent) => {
+      setInternalEditEvents((prev) => [...prev, event])
+      onEditEvent?.(event)
+    },
+    [onEditEvent],
+  )
 
   const editEventsWithUnappliedEditEvents = useMemo(() => {
     return [...unappliedEditEvents, ...internalEditEvents]
@@ -232,139 +281,157 @@ export const SchematicViewer = ({
     showGroups: showSchematicGroups,
   })
 
+  const svgDivStyle = useMemo(
+    () => ({
+      pointerEvents: (clickToInteractEnabled
+        ? isInteractionEnabled
+          ? "auto"
+          : "none"
+        : "auto") as const,
+      transformOrigin: "0 0" as const,
+    }),
+    [clickToInteractEnabled, isInteractionEnabled],
+  )
+
   const svgDiv = useMemo(
     () => (
       <div
         ref={svgDivRef}
-        style={{
-          pointerEvents: clickToInteractEnabled
-            ? isInteractionEnabled
-              ? "auto"
-              : "none"
-            : "auto",
-          transformOrigin: "0 0",
-        }}
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
+        style={svgDivStyle}
         dangerouslySetInnerHTML={{ __html: svgString }}
       />
     ),
-    [svgString, isInteractionEnabled, clickToInteractEnabled],
+    [svgString, svgDivStyle],
+  )
+
+  // Memoize event handlers
+  const handleWheelCapture = useCallback(
+    (e: React.WheelEvent) => {
+      if (showSpiceOverlay) {
+        e.stopPropagation()
+      }
+    },
+    [showSpiceOverlay],
+  )
+
+  const handleMouseDownMain = useCallback(
+    (e: React.MouseEvent) => {
+      if (clickToInteractEnabled && !isInteractionEnabled) {
+        e.preventDefault()
+        e.stopPropagation()
+        return
+      }
+      handleMouseDown(e)
+    },
+    [clickToInteractEnabled, isInteractionEnabled, handleMouseDown],
+  )
+
+  const handleMouseDownCapture = useCallback(
+    (e: React.MouseEvent) => {
+      if (clickToInteractEnabled && !isInteractionEnabled) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    },
+    [clickToInteractEnabled, isInteractionEnabled],
+  )
+
+  const handleTouchStartMain = useCallback(
+    (e: React.TouchEvent) => {
+      if (showSpiceOverlay) return
+      handleTouchStart(e)
+    },
+    [showSpiceOverlay, handleTouchStart],
+  )
+
+  const handleTouchEndMain = useCallback(
+    (e: React.TouchEvent) => {
+      if (showSpiceOverlay) return
+      handleTouchEnd(e)
+    },
+    [showSpiceOverlay, handleTouchEnd],
+  )
+
+  // Memoize container style
+  const containerStyleMemo = useMemo(
+    () => ({
+      position: "relative" as const,
+      backgroundColor: containerBackgroundColor,
+      overflow: "hidden" as const,
+      cursor: showSpiceOverlay
+        ? "auto"
+        : isDragging
+          ? "grabbing"
+          : clickToInteractEnabled && !isInteractionEnabled
+            ? "pointer"
+            : "grab",
+      minHeight: "300px",
+      ...containerStyle,
+    }),
+    [
+      containerBackgroundColor,
+      showSpiceOverlay,
+      isDragging,
+      clickToInteractEnabled,
+      isInteractionEnabled,
+      containerStyle,
+    ],
   )
 
   return (
     <div
       ref={containerRef}
-      style={{
-        position: "relative",
-        backgroundColor: containerBackgroundColor,
-        overflow: "hidden",
-        cursor: showSpiceOverlay
-          ? "auto"
-          : isDragging
-            ? "grabbing"
-            : clickToInteractEnabled && !isInteractionEnabled
-              ? "pointer"
-              : "grab",
-        minHeight: "300px",
-        ...containerStyle,
-      }}
-      onWheelCapture={(e) => {
-        if (showSpiceOverlay) {
-          e.stopPropagation()
-        }
-      }}
-      onMouseDown={(e) => {
-        if (clickToInteractEnabled && !isInteractionEnabled) {
-          e.preventDefault()
-          e.stopPropagation()
-          return
-        }
-        handleMouseDown(e)
-      }}
-      onMouseDownCapture={(e) => {
-        if (clickToInteractEnabled && !isInteractionEnabled) {
-          e.preventDefault()
-          e.stopPropagation()
-          return
-        }
-      }}
-      onTouchStart={(e) => {
-        if (showSpiceOverlay) return
-        handleTouchStart(e)
-      }}
-      onTouchEnd={(e) => {
-        if (showSpiceOverlay) return
-        handleTouchEnd(e)
-      }}
+      style={containerStyleMemo}
+      onWheelCapture={handleWheelCapture}
+      onMouseDown={handleMouseDownMain}
+      onMouseDownCapture={handleMouseDownCapture}
+      onTouchStart={handleTouchStartMain}
+      onTouchEnd={handleTouchEndMain}
     >
       {!isInteractionEnabled && clickToInteractEnabled && (
-        <div
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            setIsInteractionEnabled(true)
-          }}
-          style={{
-            position: "absolute",
-            inset: 0,
-            cursor: "pointer",
-            zIndex: zIndexMap.clickToInteractOverlay,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            pointerEvents: "all",
-            touchAction: "pan-x pan-y pinch-zoom",
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "rgba(0, 0, 0, 0.8)",
-              color: "white",
-              padding: "12px 24px",
-              borderRadius: "8px",
-              fontSize: "16px",
-              fontFamily: "sans-serif",
-              pointerEvents: "none",
-            }}
-          >
-            {typeof window !== "undefined" &&
-            ("ontouchstart" in window || navigator.maxTouchPoints > 0)
-              ? "Touch to Interact"
-              : "Click to Interact"}
-          </div>
-        </div>
+        <ClickToInteractOverlay
+          onEnable={() => setIsInteractionEnabled(true)}
+        />
       )}
       <ViewMenuIcon
         active={showViewMenu}
-        onClick={() => setShowViewMenu(!showViewMenu)}
+        onClick={useCallback(
+          () => setShowViewMenu(!showViewMenu),
+          [showViewMenu],
+        )}
       />
       {editingEnabled && (
         <EditIcon
           active={editModeEnabled}
-          onClick={() => setEditModeEnabled(!editModeEnabled)}
+          onClick={useCallback(
+            () => setEditModeEnabled(!editModeEnabled),
+            [editModeEnabled],
+          )}
         />
       )}
       {editingEnabled && editModeEnabled && (
         <GridIcon
           active={snapToGrid}
-          onClick={() => setSnapToGrid(!snapToGrid)}
+          onClick={useCallback(() => setSnapToGrid(!snapToGrid), [snapToGrid])}
         />
       )}
       <ViewMenu
         circuitJson={circuitJson}
         circuitJsonKey={circuitJsonKey}
         isVisible={showViewMenu}
-        onClose={() => setShowViewMenu(false)}
+        onClose={useCallback(() => setShowViewMenu(false), [])}
         showGroups={showSchematicGroups}
         onToggleGroups={setShowSchematicGroups}
       />
       {spiceSimulationEnabled && (
-        <SpiceSimulationIcon onClick={() => setShowSpiceOverlay(true)} />
+        <SpiceSimulationIcon
+          onClick={useCallback(() => setShowSpiceOverlay(true), [])}
+        />
       )}
       {showSpiceOverlay && (
         <SpiceSimulationOverlay
           spiceString={spiceString}
-          onClose={() => setShowSpiceOverlay(false)}
+          onClose={useCallback(() => setShowSpiceOverlay(false), [])}
           plotData={plotData}
           nodes={nodes}
           isLoading={isSpiceSimLoading}
