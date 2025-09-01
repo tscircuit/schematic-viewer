@@ -173,7 +173,7 @@ export const SchematicViewer = ({
           },
       colorOverrides,
     })
-  }, [circuitJson, containerWidth, containerHeight])
+  }, [circuitJsonKey, containerWidth, containerHeight])
 
   const containerBackgroundColor = useMemo(() => {
     const match = svgString.match(

@@ -2,72 +2,59 @@ import { SchematicViewer } from "lib/components/SchematicViewer"
 import { renderToCircuitJson } from "lib/dev/render-to-circuit-json"
 
 const circuitJson = renderToCircuitJson(
-  <board width="50mm" height="30mm">
-    {/* Power Management Group */}
-    <group name="Power Management">
-      <chip
-        name="U1"
-        footprint="soic8"
-        schX={-10}
-        schY={5}
-        pinLabels={{
-          "1": "VIN",
-          "2": "GND",
-          "3": "EN",
-          "4": "FB",
-          "5": "VOUT",
-          "6": "SW",
-          "7": "PGND",
-          "8": "VCC",
-        }}
-      />
-      <capacitor name="C1" capacitance="100uF" schX={-15} schY={2} />
-      <capacitor name="C2" capacitance="22uF" schX={-5} schY={2} />
-      <resistor name="R1" resistance={10000} schX={-10} schY={8} />
+  <board>
+    <group schX={-10} schY={10} name="Alpha Node">
+      <resistor resistance="1k" footprint="0402" name="R1" schX={3} />
+      <capacitor capacitance="1000pF" footprint="0402" name="C1" schX={-3} />
+      <trace from=".R1 > .pin1" to=".C1 > .pin1" />
     </group>
 
-    {/* Signal Processing Group */}
-    <group name="Signal Processing">
-      <chip
-        name="U2"
-        footprint="soic14"
-        schX={5}
-        schY={5}
-        pinLabels={{
-          "1": "IN+",
-          "2": "IN-",
-          "3": "VCC",
-          "4": "GND",
-          "5": "OUT1",
-          "6": "OUT2",
-          "7": "REF",
-        }}
-      />
-      <resistor name="R2" resistance={1000} schX={0} schY={8} />
-      <resistor name="R3" resistance={2000} schX={10} schY={8} />
-      <capacitor name="C3" capacitance="10nF" schX={5} schY={2} />
+    <group schX={15} schY={-5} name="Blue Bridge">
+      <resistor resistance="4.7k" footprint="0603" name="R2" schX={2} />
+      <capacitor capacitance="220nF" footprint="0603" name="C2" schX={-2} />
+      <trace from=".R2 > .pin1" to=".C2 > .pin1" />
     </group>
 
-    {/* Status Indicators Group */}
-    <group name="Status Indicators">
-      <led name="LED1" schX={15} schY={5} />
-      <led name="LED2" schX={20} schY={5} />
-      <resistor name="R4" resistance={330} schX={15} schY={8} />
-      <resistor name="R5" resistance={330} schX={20} schY={8} />
+    <group schX={-20} schY={-15} name="Copper Point">
+      <resistor resistance="10k" footprint="0805" name="R3" schX={1} />
     </group>
 
-    {/* Connections between groups */}
-    <trace from=".U1 .pin5" to=".U2 .pin3" />
-    <trace from=".U2 .pin5" to=".LED1 .pin1" />
-    <trace from=".U2 .pin6" to=".LED2 .pin1" />
-    <trace from=".C1 .pin1" to=".U1 .pin1" />
-    <trace from=".C2 .pin1" to=".U1 .pin5" />
-    <trace from=".R1 .pin1" to=".U1 .pin3" />
-    <trace from=".R2 .pin1" to=".U2 .pin1" />
-    <trace from=".R3 .pin1" to=".U2 .pin2" />
-    <trace from=".C3 .pin1" to=".U2 .pin7" />
-    <trace from=".R4 .pin1" to=".LED1 .pin2" />
-    <trace from=".R5 .pin1" to=".LED2 .pin2" />
+    <group schX={5} schY={20} name="Echo Ridge">
+      <capacitor capacitance="10uF" footprint="0805" name="C4" schX={-1} />
+    </group>
+
+    <group schX={12} schY={12} name="Delta Gate">
+      <resistor resistance="220" footprint="0402" name="R5" schX={3} />
+      <capacitor capacitance="470pF" footprint="0402" name="C5" schX={-3} />
+      <trace from=".R5 > .pin1" to=".C5 > .pin1" />
+    </group>
+
+    <group schX={-8} schY={-8} name="Flux Node">
+      <resistor resistance="330" footprint="0603" name="R6" schX={2} />
+    </group>
+
+    <group schX={18} schY={-12} name="Silver Pad">
+      <capacitor capacitance="1uF" footprint="0603" name="C7" schX={-2} />
+    </group>
+
+    <group schX={-14} schY={6} name="Gamma Port">
+      <resistor resistance="5.6k" footprint="0402" name="R8" schX={2} />
+      <capacitor capacitance="330pF" footprint="0402" name="C8" schX={-2} />
+      <trace from=".R8 > .pin1" to=".C8 > .pin1" />
+    </group>
+
+    {/* Nested group example */}
+    <group schX={-5} schY={-18} name="Orion Hub">
+      <resistor resistance="2k" footprint="0402" name="R9" schX={2} />
+      <capacitor capacitance="2.2uF" footprint="0603" name="C9" schX={-2} />
+      <trace from=".R9 > .pin1" to=".C9 > .pin1" />
+
+      <group schX={3} schY={-3} name="Nova Cell">
+        <resistor resistance="6.8k" footprint="0402" name="R10" schX={1} />
+        <capacitor capacitance="150pF" footprint="0402" name="C10" schX={-1} />
+        <trace from=".R10 > .pin1" to=".C10 > .pin1" />
+      </group>
+    </group>
   </board>,
 )
 
@@ -77,8 +64,8 @@ export default () => {
       <SchematicViewer
         circuitJson={circuitJson}
         containerStyle={{
-          width: "100%",
-          height: "100%",
+          width: "100vw",
+          height: "100vh",
           backgroundColor: "#f8f9fa",
         }}
         debugGrid={false}
