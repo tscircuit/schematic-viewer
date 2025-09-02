@@ -24,24 +24,33 @@ export const ViewMenu = ({
     if (!circuitJson || circuitJson.length === 0) return false
 
     try {
-      // Check if there are explicit groups
-      const sourceGroups = su(circuitJson).source_group?.list() || []
-      if (sourceGroups.length > 0) return true
+      // Quick check: if we have source_group items in the circuit JSON
+      const hasSourceGroups = circuitJson.some(item => item.type === 'source_group')
+      if (hasSourceGroups) {
+        // Check if there are meaningful groups (not just subcircuits)
+        const sourceGroups = su(circuitJson).source_group?.list() || []
+        const meaningfulGroups = sourceGroups.filter(group => !group.is_subcircuit && group.name && group.name.trim() !== "")
+        if (meaningfulGroups.length > 0) return true
+      }
 
-      // Check if we can create virtual groups by component type
-      const schematicComponents =
-        su(circuitJson).schematic_component?.list() || []
-      if (schematicComponents.length > 1) {
-        const componentTypes = new Set()
-        for (const comp of schematicComponents) {
-          const sourceComp = su(circuitJson).source_component.get(
-            comp.source_component_id,
-          )
-          if (sourceComp?.ftype) {
-            componentTypes.add(sourceComp.ftype)
+      // Quick check: if we have schematic components, check if there are multiple types
+      const hasSchematicComponents = circuitJson.some(item => item.type === 'schematic_component')
+      if (hasSchematicComponents) {
+        const schematicComponents = circuitJson.filter(item => item.type === 'schematic_component')
+        if (schematicComponents.length > 1) {
+          // Only do expensive lookup if we have multiple components
+          const componentTypes = new Set()
+          for (const comp of schematicComponents) {
+            const sourceComp = su(circuitJson).source_component.get(
+              (comp as any).source_component_id,
+            )
+            if (sourceComp?.ftype) {
+              componentTypes.add(sourceComp.ftype)
+              // Early exit if we find more than one type
+              if (componentTypes.size > 1) return true
+            }
           }
         }
-        return componentTypes.size > 1 // Only show if there are multiple types
       }
 
       return false

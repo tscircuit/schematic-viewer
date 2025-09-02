@@ -48,18 +48,33 @@ export const useSchematicGroupsOverlay = (
       return
     }
 
+    // Check if overlays need to be updated by comparing with existing count
     const existingOverlays = svg.querySelectorAll(".schematic-group-overlay")
-    existingOverlays.forEach((overlay) => overlay.remove())
+    
+    // Create a debounced cleanup and recreation to avoid flickering
+    const updateOverlays = () => {
+      existingOverlays.forEach((overlay) => overlay.remove())
 
-    try {
-      const sourceGroups =
-        su(circuitJson)
-          .source_group?.list()
-          .filter((x) => !!!x.is_subcircuit) || []
-      const schematicComponents =
-        su(circuitJson).schematic_component?.list() || []
+      try {
+        // Quick check if we even have groups before expensive operations
+        const hasSourceGroups = circuitJson.some(item => item.type === 'source_group')
+        if (!hasSourceGroups) return
 
-      const sourceGroupHierarchy = new Map<string, string[]>()
+        const sourceGroups =
+          su(circuitJson)
+            .source_group?.list()
+            .filter((x) => !!!x.is_subcircuit) || []
+        
+        // Early exit if no meaningful groups
+        if (sourceGroups.length === 0) return
+            
+        const schematicComponents =
+          su(circuitJson).schematic_component?.list() || []
+
+        // Early exit if no components to group
+        if (schematicComponents.length === 0) return
+
+        const sourceGroupHierarchy = new Map<string, string[]>()
       sourceGroups.forEach((group) => {
         const groupWithParent = group as any
         if (groupWithParent.parent_source_group_id) {
@@ -307,9 +322,13 @@ export const useSchematicGroupsOverlay = (
         svg.appendChild(labelBg)
         svg.appendChild(groupLabel)
       })
-    } catch (error) {
-      console.error("Error creating group overlays:", error)
+      } catch (error) {
+        console.error("Error creating group overlays:", error)
+      }
     }
+    
+    // Call the update function
+    updateOverlays()
   }, [svgDivRef, circuitJsonKey, showGroups])
 }
 

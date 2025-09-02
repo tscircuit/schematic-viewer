@@ -66,7 +66,37 @@ export const SchematicViewer = ({
   })
 
   const getCircuitHash = (circuitJson: CircuitJson) => {
-    return `${circuitJson?.length || 0}_${(circuitJson as any)?.editCount || 0}`
+    if (!circuitJson || circuitJson.length === 0) return "empty"
+    
+    // Create a more stable hash based on actual circuit content
+    // Use a fast hash for better performance
+    let hash = circuitJson.length.toString()
+    
+    // Sample key elements to create a representative hash without processing everything
+    const sampleSize = Math.min(10, circuitJson.length)
+    for (let i = 0; i < sampleSize; i++) {
+      const item = circuitJson[i]
+      if (item) {
+        const type = item.type
+        const id = (item as any).source_component_id || 
+                  (item as any).schematic_component_id || 
+                  (item as any).source_group_id || 
+                  (item as any).schematic_trace_id || 
+                  i.toString()
+        hash += `_${type}:${id}`
+      }
+    }
+    
+    // If there are more items, add a summary
+    if (circuitJson.length > sampleSize) {
+      const typesCounts = new Map<string, number>()
+      for (const item of circuitJson) {
+        typesCounts.set(item.type, (typesCounts.get(item.type) || 0) + 1)
+      }
+      hash += `_summary:${Array.from(typesCounts.entries()).map(([k, v]) => `${k}=${v}`).join(",")}`
+    }
+    
+    return hash
   }
 
   const circuitJsonKey = useMemo(
@@ -87,6 +117,8 @@ export const SchematicViewer = ({
     spiceSimulationEnabled,
     spiceSimOptions.startTime,
     spiceSimOptions.duration,
+    spiceSimOptions.showVoltage,
+    spiceSimOptions.showCurrent,
   ])
 
   const {
@@ -159,12 +191,24 @@ export const SchematicViewer = ({
   })
 
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
+  
+  // Throttle container dimensions to avoid excessive re-renders on small changes
+  const stableContainerDimensions = useMemo(() => {
+    if (!containerWidth || !containerHeight) return { width: 0, height: 0 }
+    
+    // Round to nearest 10px to avoid micro-adjustments causing re-renders
+    const stableWidth = Math.round(containerWidth / 10) * 10
+    const stableHeight = Math.round(containerHeight / 10) * 10
+    
+    return { width: stableWidth, height: stableHeight }
+  }, [containerWidth, containerHeight])
+  
   const svgString = useMemo(() => {
-    if (!containerWidth || !containerHeight) return ""
+    if (!stableContainerDimensions.width || !stableContainerDimensions.height) return ""
 
     return convertCircuitJsonToSchematicSvg(circuitJson as any, {
-      width: containerWidth,
-      height: containerHeight || 720,
+      width: stableContainerDimensions.width,
+      height: stableContainerDimensions.height || 720,
       grid: !debugGrid
         ? undefined
         : {
@@ -173,7 +217,7 @@ export const SchematicViewer = ({
           },
       colorOverrides,
     })
-  }, [circuitJsonKey, containerWidth, containerHeight])
+  }, [circuitJsonKey, stableContainerDimensions.width, stableContainerDimensions.height, debugGrid, colorOverrides])
 
   const containerBackgroundColor = useMemo(() => {
     const match = svgString.match(
