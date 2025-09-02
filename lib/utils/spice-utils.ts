@@ -1,7 +1,33 @@
 import { circuitJsonToSpice } from "circuit-json-to-spice"
 import type { CircuitJson } from "circuit-json"
 
-export const getSpiceFromCircuitJson = (circuitJson: CircuitJson): string => {
+export interface SpiceSimOptions {
+  showVoltage: boolean
+  showCurrent: boolean
+  startTime: number // in ms
+  duration: number // in ms
+}
+
+const formatSimTime = (seconds: number): string => {
+  if (seconds === 0) return "0"
+  const absSeconds = Math.abs(seconds)
+
+  const precision = (v: number) => v.toPrecision(4)
+
+  if (absSeconds >= 1) return precision(seconds)
+  if (absSeconds >= 1e-3) return `${precision(seconds * 1e3)}m`
+  if (absSeconds >= 1e-6) return `${precision(seconds * 1e6)}u`
+  if (absSeconds >= 1e-9) return `${precision(seconds * 1e9)}n`
+  if (absSeconds >= 1e-12) return `${precision(seconds * 1e12)}p`
+  if (absSeconds >= 1e-15) return `${precision(seconds * 1e15)}f`
+
+  return seconds.toExponential(3)
+}
+
+export const getSpiceFromCircuitJson = (
+  circuitJson: CircuitJson,
+  options?: Partial<SpiceSimOptions>,
+): string => {
   const spiceNetlist = circuitJsonToSpice(circuitJson as any)
   const baseSpiceString = spiceNetlist.toSpiceString()
 
@@ -12,16 +38,22 @@ export const getSpiceFromCircuitJson = (circuitJson: CircuitJson): string => {
 
   const allNodes = new Set<string>()
   const capacitorNodes = new Set<string>()
+  const componentNamesToProbeCurrent = new Set<string>()
 
   for (const line of componentLines) {
     const parts = line.trim().split(/\s+/)
     if (parts.length < 3) continue
 
-    const componentType = parts[0][0].toUpperCase()
+    const componentName = parts[0]
+    const componentType = componentName[0].toUpperCase()
     let nodesOnLine: string[] = []
 
     if (["R", "C", "L", "V", "I", "D"].includes(componentType)) {
       nodesOnLine = parts.slice(1, 3)
+      // Only probe current on voltage sources
+      if (componentType === "V") {
+        componentNamesToProbeCurrent.add(componentName)
+      }
     } else if (componentType === "Q" && parts.length >= 4) {
       // BJT
       nodesOnLine = parts.slice(1, 4)
@@ -49,11 +81,26 @@ export const getSpiceFromCircuitJson = (circuitJson: CircuitJson): string => {
 
   const icLines = Array.from(capacitorNodes).map((node) => `.ic V(${node})=0`)
 
-  const probeNodes = Array.from(allNodes).map((node) => `V(${node})`)
-  const probeLine =
-    probeNodes.length > 0 ? `.probe ${probeNodes.join(" ")}` : ""
+  const probes: string[] = []
+  const probeVoltages = Array.from(allNodes).map((node) => `V(${node})`)
+  probes.push(...probeVoltages)
+  const probeCurrents = Array.from(componentNamesToProbeCurrent).map(
+    (name) => `I(${name})`,
+  )
+  probes.push(...probeCurrents)
 
-  const tranLine = ".tran 0.1ms 50ms UIC"
+  const probeLine = probes.length > 0 ? `.probe ${probes.join(" ")}` : ""
+
+  const tstart_ms = options?.startTime ?? 0
+  const duration_ms = options?.duration ?? 20
+  const tstart = tstart_ms * 1e-3 // s
+  const duration = duration_ms * 1e-3 // s
+
+  const tstop = tstart + duration
+  const tstep = duration / 50
+  const tranLine = `.tran ${formatSimTime(tstep)} ${formatSimTime(
+    tstop,
+  )} ${formatSimTime(tstart)} UIC`
 
   const endStatement = ".end"
   const originalLines = baseSpiceString.split("\n")

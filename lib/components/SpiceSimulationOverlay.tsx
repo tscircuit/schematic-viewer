@@ -1,5 +1,6 @@
 import { SpicePlot } from "./SpicePlot"
 import type { PlotPoint } from "../hooks/useSpiceSimulation"
+import { useEffect, useState } from "react"
 
 interface SpiceSimulationOverlayProps {
   spiceString: string | null
@@ -8,6 +9,15 @@ interface SpiceSimulationOverlayProps {
   nodes: string[]
   isLoading: boolean
   error: string | null
+  simOptions: {
+    showVoltage: boolean
+    showCurrent: boolean
+    startTime: number
+    duration: number
+  }
+  onSimOptionsChange: (
+    options: SpiceSimulationOverlayProps["simOptions"],
+  ) => void
 }
 
 export const SpiceSimulationOverlay = ({
@@ -17,7 +27,37 @@ export const SpiceSimulationOverlay = ({
   nodes,
   isLoading,
   error,
+  simOptions,
+  onSimOptionsChange,
 }: SpiceSimulationOverlayProps) => {
+  const [startTimeDraft, setStartTimeDraft] = useState(
+    String(simOptions.startTime),
+  )
+  const [durationDraft, setDurationDraft] = useState(
+    String(simOptions.duration),
+  )
+
+  useEffect(() => {
+    setStartTimeDraft(String(simOptions.startTime))
+    setDurationDraft(String(simOptions.duration))
+  }, [simOptions.startTime, simOptions.duration])
+
+  const handleRerun = () => {
+    onSimOptionsChange({
+      ...simOptions,
+      startTime: Number(startTimeDraft),
+      duration: Number(durationDraft),
+    })
+  }
+
+  const filteredNodes = nodes.filter((node) => {
+    const isVoltage = node.toLowerCase().startsWith("v(")
+    const isCurrent = node.toLowerCase().startsWith("i(")
+    if (simOptions.showVoltage && isVoltage) return true
+    if (simOptions.showCurrent && isCurrent) return true
+    return false
+  })
+
   return (
     <div
       style={{
@@ -82,10 +122,96 @@ export const SpiceSimulationOverlay = ({
         <div>
           <SpicePlot
             plotData={plotData}
-            nodes={nodes}
+            nodes={filteredNodes}
             isLoading={isLoading}
             error={error}
           />
+        </div>
+        <div
+          style={{
+            marginTop: "16px",
+            padding: "12px",
+            backgroundColor: "#f7f7f7",
+            borderRadius: "6px",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "24px",
+            alignItems: "center",
+            fontSize: "14px",
+          }}
+        >
+          <div style={{ display: "flex", gap: "16px" }}>
+            <label
+              style={{ display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              <input
+                type="checkbox"
+                checked={simOptions.showVoltage}
+                onChange={(e) =>
+                  onSimOptionsChange({
+                    ...simOptions,
+                    showVoltage: e.target.checked,
+                  })
+                }
+              />
+              Voltage
+            </label>
+            <label
+              style={{ display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              <input
+                type="checkbox"
+                checked={simOptions.showCurrent}
+                onChange={(e) =>
+                  onSimOptionsChange({
+                    ...simOptions,
+                    showCurrent: e.target.checked,
+                  })
+                }
+              />
+              Current
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+            <label htmlFor="startTime">Start Time (ms):</label>
+            <input
+              id="startTime"
+              type="number"
+              value={startTimeDraft}
+              onChange={(e) => setStartTimeDraft(e.target.value)}
+              style={{
+                width: "80px",
+                padding: "4px 8px",
+                borderRadius: "4px",
+                border: "1px solid #ccc",
+              }}
+            />
+            <label htmlFor="duration">Duration (ms):</label>
+            <input
+              id="duration"
+              type="number"
+              value={durationDraft}
+              onChange={(e) => setDurationDraft(e.target.value)}
+              style={{
+                width: "80px",
+                padding: "4px 8px",
+                borderRadius: "4px",
+                border: "1px solid #ccc",
+              }}
+            />
+            <button
+              onClick={handleRerun}
+              style={{
+                padding: "4px 12px",
+                borderRadius: "4px",
+                border: "1px solid #ccc",
+                backgroundColor: "#f0f0f0",
+                cursor: "pointer",
+              }}
+            >
+              Rerun
+            </button>
+          </div>
         </div>
         <div style={{ marginTop: "24px" }}>
           <h3

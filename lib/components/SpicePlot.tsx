@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import {
   Chart as ChartJS,
   type ChartOptions,
@@ -61,6 +62,15 @@ export const SpicePlot = ({
   isLoading: boolean
   error: string | null
 }) => {
+  const yAxisLabel = useMemo(() => {
+    const hasVoltage = nodes.some((n) => n.toLowerCase().startsWith("v("))
+    const hasCurrent = nodes.some((n) => n.toLowerCase().startsWith("i("))
+    if (hasVoltage && hasCurrent) return "Value"
+    if (hasVoltage) return "Voltage (V)"
+    if (hasCurrent) return "Current (A)"
+    return "Value"
+  }, [nodes])
+
   if (isLoading) {
     return (
       <div
@@ -171,7 +181,7 @@ export const SpicePlot = ({
       y: {
         title: {
           display: true,
-          text: "Voltage",
+          text: yAxisLabel,
           font: {
             family: "sans-serif",
           },

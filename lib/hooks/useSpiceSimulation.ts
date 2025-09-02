@@ -67,14 +67,12 @@ const parseEecEngineOutput = (
   }
   const timeValues = columnData[timeKey]
   const probedVariables = Object.keys(columnData).filter((k) => k !== timeKey)
-  const plotableNodes = probedVariables.map((n) =>
-    n.replace(/v\(([^)]+)\)/i, "$1"),
-  )
+  const plotableNodes = probedVariables
 
   const plotData: PlotPoint[] = timeValues.map((t: number, i: number) => {
     const point: PlotPoint = { name: t.toExponential(2) }
-    probedVariables.forEach((variable, j) => {
-      point[plotableNodes[j]] = columnData[variable][i]
+    probedVariables.forEach((variable) => {
+      point[variable] = columnData[variable][i]
     })
     return point
   })
