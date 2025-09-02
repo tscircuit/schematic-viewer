@@ -26,6 +26,7 @@
     "react-cosmos-plugin-vite": "^6.2.0",
     "react-dom": "^19.1.0",
     "react-reconciler": "^0.31.0",
+    "semver": "^7.7.2",
     "tscircuit": "^0.0.611",
     "tsup": "^8.3.5",
     "vite": "^6.0.3"
