@@ -5,25 +5,27 @@ import {
   removeTraceHighlightingStyles,
 } from "../utils/trace-highlighting-styles";
 
-interface useSubTraceHoverOptions {
+interface useConnectedTracesHoverHighlightingOptions {
   svgDivRef: React.RefObject<HTMLDivElement | null>;
   circuitJson: any[];
+  circuitJsonKey?: string;
   enabled?: boolean;
 }
 
 /**
  * Optimized trace highlighting using CSS classes and circuit-to-svg metadata
  */
-export const useSubTraceHover = ({
+export const useConnectedTracesHoverHighlighting = ({
   svgDivRef,
   circuitJson,
+  circuitJsonKey,
   enabled = true,
-}: useSubTraceHoverOptions) => {
+}: useConnectedTracesHoverHighlightingOptions) => {
   const activeNetRef = useRef<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!enabled || !svgDivRef.current || !circuitJson) {
+    if (!enabled || !svgDivRef.current || !circuitJson || !circuitJsonKey) {
       return;
     }
 
@@ -118,7 +120,7 @@ export const useSubTraceHover = ({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [svgDivRef, circuitJson, enabled]);
+  }, [svgDivRef, circuitJsonKey, enabled]);
 
   return {
     currentHighlightedNet: activeNetRef.current,
