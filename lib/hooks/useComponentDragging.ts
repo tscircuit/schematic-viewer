@@ -32,6 +32,7 @@ export const useComponentDragging = ({
   snapToGrid?: boolean
 }): {
   handleMouseDown: (e: React.MouseEvent) => void
+  handleTouchStart: (e: React.TouchEvent) => void
   isDragging: boolean
   activeEditEvent: EditSchematicComponentLocationEventWithElement | null
 } => {
@@ -74,45 +75,37 @@ export const useComponentDragging = ({
     })
   }, [editEvents])
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      if (!enabled) return
+  const startDrag = useCallback(
+    (clientX: number, clientY: number, target: Element) => {
+      if (!enabled) return false
 
-      const target = e.target as SVGElement
       const componentGroup = target.closest(
         '[data-circuit-json-type="schematic_component"]',
       )
-      if (!componentGroup) return
+      if (!componentGroup) return false
 
       const schematic_component_id = componentGroup.getAttribute(
         "data-schematic-component-id",
       )
-      if (!schematic_component_id) return
+      if (!schematic_component_id) return false
 
       if (cancelDrag) cancelDrag()
 
       const schematic_component = su(circuitJson).schematic_component.get(
         schematic_component_id,
       )
-      if (!schematic_component) return
+      if (!schematic_component) return false
 
-      dragStartPosRef.current = {
-        x: e.clientX,
-        y: e.clientY,
-      }
+      dragStartPosRef.current = { x: clientX, y: clientY }
 
-      // Get the current position of the component
-      // Check if we're already tracking this component
       let current_position: { x: number; y: number }
       const trackedPosition = componentPositionsRef.current.get(
         schematic_component_id,
       )
 
       if (trackedPosition) {
-        // Use the tracked position from previous edits
         current_position = { ...trackedPosition }
       } else {
-        // Calculate position based on component data and edit events
         const editEventOffset = getComponentOffsetDueToEvents({
           editEvents,
           schematic_component_id: schematic_component_id,
@@ -123,7 +116,6 @@ export const useComponentDragging = ({
           y: schematic_component.center.y + editEventOffset.y,
         }
 
-        // Store this initial position
         componentPositionsRef.current.set(schematic_component_id, {
           ...current_position,
         })
@@ -142,17 +134,36 @@ export const useComponentDragging = ({
 
       activeEditEventRef.current = newEditEvent
       setActiveEditEvent(newEditEvent)
+      return true
     },
     [cancelDrag, enabled, circuitJson, editEvents],
   )
 
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      startDrag(e.clientX, e.clientY, e.target as Element)
+    },
+    [startDrag],
+  )
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (e.touches.length !== 1) return
+      const touch = e.touches[0]
+      if (startDrag(touch.clientX, touch.clientY, e.target as Element)) {
+        e.preventDefault()
+      }
+    },
+    [startDrag],
+  )
+
+  const updateDragPosition = useCallback(
+    (clientX: number, clientY: number) => {
       if (!activeEditEventRef.current || !dragStartPosRef.current) return
 
       const screenDelta = {
-        x: e.clientX - dragStartPosRef.current.x,
-        y: e.clientY - dragStartPosRef.current.y,
+        x: clientX - dragStartPosRef.current.x,
+        y: clientY - dragStartPosRef.current.y,
       }
 
       const mmDelta = {
@@ -180,19 +191,33 @@ export const useComponentDragging = ({
     [realToScreenProjection, snapToGrid],
   )
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => updateDragPosition(e.clientX, e.clientY),
+    [updateDragPosition],
+  )
+
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      if (e.touches.length !== 1 || !activeEditEventRef.current) return
+      e.preventDefault()
+      const touch = e.touches[0]
+      updateDragPosition(touch.clientX, touch.clientY)
+    },
+    [updateDragPosition],
+  )
+
+  const endDrag = useCallback(() => {
     if (!activeEditEventRef.current) return
     const finalEvent = {
       ...activeEditEventRef.current,
       in_progress: false,
     }
 
-    // Update our stored position for this component
     componentPositionsRef.current.set(finalEvent.schematic_component_id, {
       ...finalEvent.new_center,
     })
 
-    debug("handleMouseUp calling onEditEvent with new edit event", {
+    debug("endDrag calling onEditEvent with new edit event", {
       newEditEvent: finalEvent,
     })
     if (onEditEvent) onEditEvent(finalEvent)
@@ -201,17 +226,25 @@ export const useComponentDragging = ({
     setActiveEditEvent(null)
   }, [onEditEvent])
 
+  const handleMouseUp = useCallback(() => endDrag(), [endDrag])
+  const handleTouchEnd = useCallback(() => endDrag(), [endDrag])
+
   useEffect(() => {
     window.addEventListener("mousemove", handleMouseMove)
     window.addEventListener("mouseup", handleMouseUp)
+    window.addEventListener("touchmove", handleTouchMove, { passive: false })
+    window.addEventListener("touchend", handleTouchEnd)
     return () => {
       window.removeEventListener("mousemove", handleMouseMove)
       window.removeEventListener("mouseup", handleMouseUp)
+      window.removeEventListener("touchmove", handleTouchMove)
+      window.removeEventListener("touchend", handleTouchEnd)
     }
-  }, [handleMouseMove, handleMouseUp])
+  }, [handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd])
 
   return {
     handleMouseDown,
+    handleTouchStart,
     isDragging: !!activeEditEventRef.current,
     activeEditEvent: activeEditEvent,
   }

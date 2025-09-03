@@ -207,18 +207,21 @@ export const SchematicViewer = ({
     return [...unappliedEditEvents, ...internalEditEvents]
   }, [unappliedEditEvents, internalEditEvents])
 
-  const { handleMouseDown, isDragging, activeEditEvent } = useComponentDragging(
-    {
-      onEditEvent: handleEditEvent,
-      cancelDrag,
-      realToSvgProjection,
-      svgToScreenProjection,
-      circuitJson,
-      editEvents: editEventsWithUnappliedEditEvents,
-      enabled: editModeEnabled && isInteractionEnabled && !showSpiceOverlay,
-      snapToGrid,
-    },
-  )
+  const {
+    handleMouseDown,
+    handleTouchStart: handleComponentTouchStart,
+    isDragging,
+    activeEditEvent,
+  } = useComponentDragging({
+    onEditEvent: handleEditEvent,
+    cancelDrag,
+    realToSvgProjection,
+    svgToScreenProjection,
+    circuitJson,
+    editEvents: editEventsWithUnappliedEditEvents,
+    enabled: editModeEnabled && isInteractionEnabled && !showSpiceOverlay,
+    snapToGrid,
+  })
 
   useChangeSchematicComponentLocationsInSvg({
     svgDivRef,
@@ -255,11 +258,23 @@ export const SchematicViewer = ({
             : "auto",
           transformOrigin: "0 0",
         }}
+        onTouchStart={(e) => {
+          if (editModeEnabled && isInteractionEnabled && !showSpiceOverlay) {
+            handleComponentTouchStart(e)
+          }
+        }}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
         dangerouslySetInnerHTML={{ __html: svgString }}
       />
     ),
-    [svgString, isInteractionEnabled, clickToInteractEnabled],
+    [
+      svgString,
+      isInteractionEnabled,
+      clickToInteractEnabled,
+      editModeEnabled,
+      showSpiceOverlay,
+      handleComponentTouchStart,
+    ],
   )
 
   return (
