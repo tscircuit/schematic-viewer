@@ -5,6 +5,7 @@ import {
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
+import { useSubTraceHover } from "lib/hooks/useSubTraceHover"
 import { enableDebug } from "lib/utils/debug"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -241,6 +242,13 @@ export const SchematicViewer = ({
     circuitJson,
     circuitJsonKey,
     showGroups: showSchematicGroups,
+  })
+
+  // Add trace hover highlighting
+  useSubTraceHover({
+    svgDivRef,
+    circuitJson,
+    enabled: true,
   })
 
   const svgDiv = useMemo(
