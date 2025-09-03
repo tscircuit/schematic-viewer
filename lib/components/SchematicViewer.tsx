@@ -5,7 +5,7 @@ import {
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
-import { useConnectedTracesHoverHighlightingOptions } from "lib/hooks/useConnectedTracesHoverHighlightingOptions"
+import { useConnectedTracesHoverHighlighting } from "lib/hooks/useConnectedTracesHoverHighlighting"
 import { enableDebug } from "lib/utils/debug"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -245,7 +245,7 @@ export const SchematicViewer = ({
   })
 
   // Add trace hover highlighting
-  useConnectedTracesHoverHighlightingOptions({
+  useConnectedTracesHoverHighlighting({
     svgDivRef,
     circuitJson,
     circuitJsonKey,
