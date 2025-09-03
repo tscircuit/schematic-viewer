@@ -20,7 +20,7 @@ export const useSubTraceHover = ({
   enabled = true,
 }: useSubTraceHoverOptions) => {
   const activeNetRef = useRef<string | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!enabled || !svgDivRef.current || !circuitJson) {
