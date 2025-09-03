@@ -4,9 +4,15 @@ export const EditIcon = ({
   onClick,
   active,
 }: { onClick: () => void; active: boolean }) => {
+  const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    onClick()
+  }
+
   return (
     <div
-      onClick={onClick}
+      onClick={handleInteraction}
+      onTouchEnd={handleInteraction}
       style={{
         position: "absolute",
         top: "16px",
