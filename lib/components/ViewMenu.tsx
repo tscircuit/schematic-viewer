@@ -58,6 +58,10 @@ export const ViewMenu = ({
       {/* Backdrop */}
       <div
         onClick={onClose}
+        onTouchEnd={(e) => {
+          e.preventDefault()
+          onClose()
+        }}
         style={{
           position: "absolute",
           inset: 0,
@@ -84,6 +88,12 @@ export const ViewMenu = ({
         {/* Groups Toggle Option */}
         <div
           onClick={() => {
+            if (hasGroups) {
+              onToggleGroups(!showGroups)
+            }
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault()
             if (hasGroups) {
               onToggleGroups(!showGroups)
             }
