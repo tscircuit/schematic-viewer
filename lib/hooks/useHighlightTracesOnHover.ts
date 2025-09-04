@@ -42,7 +42,7 @@ export const useHighlightTracesOnHover = ({
     if (!svg.querySelector("style#net-hover-highlight")) {
       const style = document.createElement("style")
       style.id = "net-hover-highlight"
-      style.textContent = `.net-hover-highlight { stroke: #ffa500; stroke-width: 3; }`
+      style.textContent = `.net-hover-highlight { stroke: #ffa500; stroke-width: 3; fill: #ffa500; }`
       svg.appendChild(style)
     }
 
@@ -58,7 +58,7 @@ export const useHighlightTracesOnHover = ({
       const related = keyToTraceIds.get(key) || []
       for (const id of related) {
         const elements = svg.querySelectorAll(
-          `[data-schematic-trace-id="${id}"] path`,
+          `[data-schematic-trace-id="${id}"] path, [data-schematic-trace-id="${id}"] circle`,
         )
         for (const el of Array.from(elements)) {
           ;(el as Element).classList.add("net-hover-highlight")
@@ -70,9 +70,9 @@ export const useHighlightTracesOnHover = ({
       clearHighlights()
     }
 
-    // Attach listeners to each trace path
-    const pathElements = svg.querySelectorAll(
-      '[data-circuit-json-type="schematic_trace"] path',
+    // Attach listeners to trace paths and junction circles
+    const hoverElements = svg.querySelectorAll(
+      '[data-circuit-json-type="schematic_trace"] path, [data-circuit-json-type="schematic_trace"] circle',
     )
     const listeners: Array<{
       el: Element
@@ -80,17 +80,17 @@ export const useHighlightTracesOnHover = ({
       leave: () => void
     }> = []
 
-    for (const pathEl of Array.from(pathElements)) {
-      const parent = (pathEl as Element).closest(
+    for (const hoverEl of Array.from(hoverElements)) {
+      const parent = (hoverEl as Element).closest(
         "[data-schematic-trace-id]",
       ) as Element | null
       const traceId = parent?.getAttribute("data-schematic-trace-id")
       if (!traceId) continue
       const enter = () => handleEnter(traceId)
       const leave = handleLeave
-      pathEl.addEventListener("mouseenter", enter)
-      pathEl.addEventListener("mouseleave", leave)
-      listeners.push({ el: pathEl, enter, leave })
+      hoverEl.addEventListener("mouseenter", enter)
+      hoverEl.addEventListener("mouseleave", leave)
+      listeners.push({ el: hoverEl, enter, leave })
     }
 
     return () => {
