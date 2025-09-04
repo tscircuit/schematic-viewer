@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import type * as EecircuitEngine from "../types/eecircuit-engine"
 // @ts-ignore
-import { getSpiceSimulationWorkerBlobUrl } from "../workers/spice-simulation.worker.blob.js"
+import { getSpiceSimulationWorkerBlobUrl } from "../../scripts/build-worker-blob-url"
 
 // Types from eecircuit-engine interface
 type RealDataType = {

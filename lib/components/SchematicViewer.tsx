@@ -26,6 +26,7 @@ import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
 import { zIndexMap } from "../utils/z-index-map"
 import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
 import { getSpiceFromCircuitJson } from "../utils/spice-utils"
+import { useHighlightTracesOnHover } from "lib/hooks/useHighlightTracesOnHover"
 
 interface Props {
   circuitJson: CircuitJson
@@ -238,6 +239,11 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
   })
 
+  useHighlightTracesOnHover({
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey,
+  })
   // Add group overlays when enabled
   useSchematicGroupsOverlay({
     svgDivRef,
