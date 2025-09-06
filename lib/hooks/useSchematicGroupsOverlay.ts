@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import { su } from "@tscircuit/soup-util"
 import type { CircuitJson } from "circuit-json"
 
@@ -21,24 +21,56 @@ const GROUP_COLORS = [
   "#C71585", // Medium Violet Red
   "#008B8B", // Dark Cyan
 ]
-
 export const useSchematicGroupsOverlay = (
   options: UseSchematicGroupsOverlayOptions,
 ) => {
   const { svgDivRef, circuitJson, circuitJsonKey, showGroups } = options
+  const redrawTimeoutRef = useRef<number | Timer>(0)
+  const overlayGroupRef = useRef<SVGGElement | null>(null)
+  const groupDataRef = useRef<any[]>([])
+  const isInitializedRef = useRef(false)
 
-  useEffect(() => {
+  const getOrCreateOverlayGroup = useCallback(() => {
+    const svg = svgDivRef.current?.querySelector("svg")
+    if (!svg) return null
+
+    if (!overlayGroupRef.current || !svg.contains(overlayGroupRef.current)) {
+      const existingGroup = svg.querySelector(
+        ".schematic-groups-overlay-container",
+      )
+      if (existingGroup) {
+        existingGroup.remove()
+      }
+
+      overlayGroupRef.current = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "g",
+      )
+      overlayGroupRef.current.setAttribute(
+        "class",
+        "schematic-groups-overlay-container",
+      )
+      overlayGroupRef.current.style.pointerEvents = "none"
+      svg.appendChild(overlayGroupRef.current)
+    }
+
+    return overlayGroupRef.current
+  }, [svgDivRef])
+
+  const updateGroupOverlays = useCallback(() => {
+    if (redrawTimeoutRef.current) {
+      clearTimeout(redrawTimeoutRef.current)
+    }
+
     if (
       !svgDivRef.current ||
       !showGroups ||
       !circuitJson ||
       circuitJson.length === 0
     ) {
-      if (svgDivRef.current) {
-        const existingOverlays = svgDivRef.current.querySelectorAll(
-          ".schematic-group-overlay",
-        )
-        existingOverlays.forEach((overlay) => overlay.remove())
+      const overlayGroup = getOrCreateOverlayGroup()
+      if (overlayGroup) {
+        overlayGroup.style.display = "none"
       }
       return
     }
@@ -48,8 +80,12 @@ export const useSchematicGroupsOverlay = (
       return
     }
 
-    const existingOverlays = svg.querySelectorAll(".schematic-group-overlay")
-    existingOverlays.forEach((overlay) => overlay.remove())
+    const overlayGroup = getOrCreateOverlayGroup()
+    if (!overlayGroup) {
+      return
+    }
+
+    overlayGroup.style.display = "block"
 
     try {
       const sourceGroups =
@@ -154,31 +190,6 @@ export const useSchematicGroupsOverlay = (
           }
         })
       }
-      // else {
-      //   const componentTypeGroups = new Map<string, any[]>()
-
-      //   for (const comp of schematicComponents) {
-      //     const sourceComp = su(circuitJson).source_component.get(comp.source_component_id)
-      //     if (sourceComp) {
-      //       const componentType = sourceComp.ftype || "other"
-      //       if (!componentTypeGroups.has(componentType)) {
-      //         componentTypeGroups.set(componentType, [])
-      //       }
-      //       componentTypeGroups.get(componentType)!.push(comp)
-      //     }
-      //   }
-      //   // groupsToRender = Array.from(componentTypeGroups.entries()).map(
-      //   //   ([type, components], index) => ({
-      //   //     id: `type_${type}`,
-      //   //     name: `${type.charAt(0).toUpperCase() + type.slice(1)}s`,
-      //   //     components,
-      //   //     color: GROUP_COLORS[index % GROUP_COLORS.length],
-      //   //     depthLevel: 0,
-      //   //     hasChildren: false,
-      //   //   }),
-      //   // )
-      // }
-
       const viewBox = svg.viewBox.baseVal
       const svgRect = svg.getBoundingClientRect()
       const scale =
@@ -187,9 +198,12 @@ export const useSchematicGroupsOverlay = (
           svgRect.height / viewBox.height,
         ) || 1
 
+      groupDataRef.current = groupsToRender
       groupsToRender.sort((a, b) => a.depthLevel - b.depthLevel)
 
-      groupsToRender.forEach((group) => {
+      overlayGroup.innerHTML = ""
+
+      groupsToRender.forEach((group, index) => {
         if (group.components.length === 0) return
 
         const groupBounds = calculateGroupBounds(group.components, svg)
@@ -208,11 +222,17 @@ export const useSchematicGroupsOverlay = (
         const dashSize = baseDashSize * dashMultiplier
         const gapSize = dashSize * 0.5
 
+        const groupContainer = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "g",
+        )
+        groupContainer.setAttribute("class", "schematic-group-overlay")
+        groupContainer.setAttribute("data-group-id", group.id)
+
         const groupOverlay = document.createElementNS(
           "http://www.w3.org/2000/svg",
           "rect",
         )
-        groupOverlay.setAttribute("class", "schematic-group-overlay")
         groupOverlay.setAttribute(
           "x",
           (groupBounds.minX - totalPadding).toString(),
@@ -270,7 +290,6 @@ export const useSchematicGroupsOverlay = (
           "http://www.w3.org/2000/svg",
           "rect",
         )
-        labelBg.setAttribute("class", "schematic-group-overlay")
         labelBg.setAttribute("x", labelX.toString())
         labelBg.setAttribute("y", (labelY - labelHeight).toString())
         labelBg.setAttribute("width", labelWidth.toString())
@@ -283,7 +302,6 @@ export const useSchematicGroupsOverlay = (
           "http://www.w3.org/2000/svg",
           "text",
         )
-        groupLabel.setAttribute("class", "schematic-group-overlay")
         groupLabel.setAttribute("x", (labelX + labelPadding).toString())
         groupLabel.setAttribute(
           "y",
@@ -303,16 +321,90 @@ export const useSchematicGroupsOverlay = (
         )
         groupLabel.textContent = labelText
 
-        svg.appendChild(groupOverlay)
-        svg.appendChild(labelBg)
-        svg.appendChild(groupLabel)
+        groupContainer.appendChild(groupOverlay)
+        groupContainer.appendChild(labelBg)
+        groupContainer.appendChild(groupLabel)
+        overlayGroup.appendChild(groupContainer)
       })
     } catch (error) {
       console.error("Error creating group overlays:", error)
     }
-  }, [svgDivRef, circuitJsonKey, showGroups])
-}
+  }, [
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey,
+    showGroups,
+    getOrCreateOverlayGroup,
+  ])
 
+  useEffect(() => {
+    if (showGroups && !isInitializedRef.current) {
+      updateGroupOverlays()
+      isInitializedRef.current = true
+    } else if (!showGroups) {
+      isInitializedRef.current = false
+      const overlayGroup = getOrCreateOverlayGroup()
+      if (overlayGroup) {
+        overlayGroup.style.display = "none"
+      }
+    }
+  }, [showGroups, updateGroupOverlays, getOrCreateOverlayGroup])
+
+  useEffect(() => {
+    if (showGroups) {
+      updateGroupOverlays()
+    }
+  }, [circuitJsonKey, updateGroupOverlays, showGroups])
+
+  useEffect(() => {
+    if (!svgDivRef.current || !showGroups) return
+
+    const observer = new MutationObserver((mutations) => {
+      let svgRecreated = false
+
+      mutations.forEach((mutation) => {
+        if (mutation.type === "childList") {
+          const addedSvg = Array.from(mutation.addedNodes).some(
+            (node) => node instanceof Element && node.tagName === "svg",
+          )
+          const removedOverlayContainer = Array.from(
+            mutation.removedNodes,
+          ).some(
+            (node) =>
+              node instanceof Element &&
+              node.classList?.contains("schematic-groups-overlay-container"),
+          )
+
+          if (addedSvg || removedOverlayContainer) {
+            svgRecreated = true
+          }
+        }
+      })
+
+      if (svgRecreated) {
+        overlayGroupRef.current = null
+        if (redrawTimeoutRef.current) {
+          clearTimeout(redrawTimeoutRef.current)
+        }
+        redrawTimeoutRef.current = setTimeout(() => {
+          updateGroupOverlays()
+        }, 50)
+      }
+    })
+
+    observer.observe(svgDivRef.current, {
+      childList: true,
+      subtree: false,
+    })
+
+    return () => {
+      observer.disconnect()
+      if (redrawTimeoutRef.current) {
+        clearTimeout(redrawTimeoutRef.current)
+      }
+    }
+  }, [svgDivRef, showGroups, updateGroupOverlays])
+}
 function calculateGroupBounds(components: any[], svg: SVGElement) {
   let minX = Infinity,
     minY = Infinity,
