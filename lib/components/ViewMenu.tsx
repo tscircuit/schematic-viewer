@@ -2,6 +2,7 @@ import { useMemo } from "react"
 import { su } from "@tscircuit/soup-util"
 import type { CircuitJson } from "circuit-json"
 import { zIndexMap } from "../utils/z-index-map"
+import packageJson from "../../package.json"
 
 interface ViewMenuProps {
   circuitJson: CircuitJson
@@ -151,6 +152,19 @@ export const ViewMenu = ({
             No groups found in this schematic
           </div>
         )}
+
+        {/* Version Info */}
+        <div
+          style={{
+            padding: "4px 8px",
+            fontSize: "12px",
+            color: "#999",
+            borderTop: "1px solid #eee",
+            textAlign: "center",
+          }}
+        >
+          v{String(packageJson?.version)}
+        </div>
       </div>
     </>
   )
