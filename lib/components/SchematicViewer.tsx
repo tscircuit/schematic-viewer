@@ -26,6 +26,7 @@ import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
 import { zIndexMap } from "../utils/z-index-map"
 import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
 import { getSpiceFromCircuitJson } from "../utils/spice-utils"
+import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 
 interface Props {
   circuitJson: CircuitJson
@@ -39,6 +40,7 @@ interface Props {
   clickToInteractEnabled?: boolean
   colorOverrides?: ColorOverrides
   spiceSimulationEnabled?: boolean
+  disableGroups?: boolean
 }
 
 export const SchematicViewer = ({
@@ -53,6 +55,7 @@ export const SchematicViewer = ({
   clickToInteractEnabled = false,
   colorOverrides,
   spiceSimulationEnabled = false,
+  disableGroups = false,
 }: Props) => {
   if (debug) {
     enableDebug()
@@ -102,7 +105,10 @@ export const SchematicViewer = ({
     !clickToInteractEnabled,
   )
   const [showViewMenu, setShowViewMenu] = useState(false)
-  const [showSchematicGroups, setShowSchematicGroups] = useState(false)
+  const [showSchematicGroups, setShowSchematicGroups] = useState(() => {
+    if (disableGroups) return false
+    return getStoredBoolean("schematic_viewer_show_groups", false)
+  })
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
@@ -243,7 +249,7 @@ export const SchematicViewer = ({
     svgDivRef,
     circuitJson,
     circuitJsonKey,
-    showGroups: showSchematicGroups,
+    showGroups: showSchematicGroups && !disableGroups,
   })
 
   const svgDiv = useMemo(
@@ -382,7 +388,12 @@ export const SchematicViewer = ({
         isVisible={showViewMenu}
         onClose={() => setShowViewMenu(false)}
         showGroups={showSchematicGroups}
-        onToggleGroups={setShowSchematicGroups}
+        onToggleGroups={(value) => {
+          if (!disableGroups) {
+            setShowSchematicGroups(value)
+            setStoredBoolean("schematic_viewer_show_groups", value)
+          }
+        }}
       />
       {spiceSimulationEnabled && (
         <SpiceSimulationIcon onClick={() => setShowSpiceOverlay(true)} />
