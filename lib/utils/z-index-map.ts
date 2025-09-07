@@ -3,7 +3,7 @@ export const zIndexMap = {
   schematicGridIcon: 49,
   spiceSimulationIcon: 50,
   viewMenuIcon: 48,
-  viewMenu: 50,
+  viewMenu: 55,
   viewMenuBackdrop: 54,
   clickToInteractOverlay: 100,
 }
