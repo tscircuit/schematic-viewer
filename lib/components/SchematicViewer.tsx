@@ -252,6 +252,12 @@ export const SchematicViewer = ({
     showGroups: showSchematicGroups && !disableGroups,
   })
 
+  // keep the latest touch handler without re-rendering the svg div
+  const handleComponentTouchStartRef = useRef(handleComponentTouchStart)
+  useEffect(() => {
+    handleComponentTouchStartRef.current = handleComponentTouchStart
+  }, [handleComponentTouchStart])
+
   const svgDiv = useMemo(
     () => (
       <div
@@ -266,7 +272,7 @@ export const SchematicViewer = ({
         }}
         onTouchStart={(e) => {
           if (editModeEnabled && isInteractionEnabled && !showSpiceOverlay) {
-            handleComponentTouchStart(e)
+            handleComponentTouchStartRef.current(e)
           }
         }}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
@@ -279,7 +285,6 @@ export const SchematicViewer = ({
       clickToInteractEnabled,
       editModeEnabled,
       showSpiceOverlay,
-      handleComponentTouchStart,
     ],
   )
 
