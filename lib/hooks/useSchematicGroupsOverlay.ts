@@ -247,8 +247,8 @@ export const useSchematicGroupsOverlay = (
             `${dashSize},${gapSize}`,
           )
           groupOverlay.setAttribute("opacity", "0.8")
-          groupOverlay.setAttribute("rx", "4")
-          groupOverlay.setAttribute("ry", "4")
+          groupOverlay.setAttribute("rx", "0")
+          groupOverlay.setAttribute("ry", "0")
 
           const baseFontSize = Math.max(
             6,
@@ -289,8 +289,8 @@ export const useSchematicGroupsOverlay = (
           labelBg.setAttribute("width", labelWidth.toString())
           labelBg.setAttribute("height", labelHeight.toString())
           labelBg.setAttribute("fill", "transparent")
-          labelBg.setAttribute("rx", "3")
-          labelBg.setAttribute("ry", "3")
+          labelBg.setAttribute("rx", "0")
+          labelBg.setAttribute("ry", "0")
 
           const groupLabel = document.createElementNS(
             "http://www.w3.org/2000/svg",
