@@ -18,6 +18,7 @@ interface SpiceSimulationOverlayProps {
   onSimOptionsChange: (
     options: SpiceSimulationOverlayProps["simOptions"],
   ) => void
+  hasRun: boolean
 }
 
 export const SpiceSimulationOverlay = ({
@@ -29,6 +30,7 @@ export const SpiceSimulationOverlay = ({
   error,
   simOptions,
   onSimOptionsChange,
+  hasRun,
 }: SpiceSimulationOverlayProps) => {
   const [startTimeDraft, setStartTimeDraft] = useState(
     String(simOptions.startTime),
@@ -125,6 +127,7 @@ export const SpiceSimulationOverlay = ({
             nodes={filteredNodes}
             isLoading={isLoading}
             error={error}
+            hasRun={hasRun}
           />
         </div>
         <div
@@ -209,7 +212,7 @@ export const SpiceSimulationOverlay = ({
                 cursor: "pointer",
               }}
             >
-              Rerun
+              {hasRun ? "Rerun" : "Run"}
             </button>
           </div>
         </div>
