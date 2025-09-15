@@ -92,12 +92,18 @@ export const SchematicViewer = ({
     spiceSimOptions.duration,
   ])
 
+  const [hasSpiceSimRun, setHasSpiceSimRun] = useState(false)
+
+  useEffect(() => {
+    setHasSpiceSimRun(false)
+  }, [circuitJsonKey])
+
   const {
     plotData,
     nodes,
     isLoading: isSpiceSimLoading,
     error: spiceSimError,
-  } = useSpiceSimulation(spiceString)
+  } = useSpiceSimulation(hasSpiceSimRun ? spiceString : null)
 
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
   const [snapToGrid, setSnapToGrid] = useState(true)
@@ -412,7 +418,11 @@ export const SchematicViewer = ({
           isLoading={isSpiceSimLoading}
           error={spiceSimError}
           simOptions={spiceSimOptions}
-          onSimOptionsChange={setSpiceSimOptions}
+          onSimOptionsChange={(options) => {
+            setHasSpiceSimRun(true)
+            setSpiceSimOptions(options)
+          }}
+          hasRun={hasSpiceSimRun}
         />
       )}
       {svgDiv}

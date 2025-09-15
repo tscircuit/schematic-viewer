@@ -56,11 +56,13 @@ export const SpicePlot = ({
   nodes,
   isLoading,
   error,
+  hasRun,
 }: {
   plotData: PlotPoint[]
   nodes: string[]
   isLoading: boolean
   error: string | null
+  hasRun: boolean
 }) => {
   const yAxisLabel = useMemo(() => {
     const hasVoltage = nodes.some((n) => n.toLowerCase().startsWith("v("))
@@ -83,6 +85,22 @@ export const SpicePlot = ({
         }}
       >
         Running simulation...
+      </div>
+    )
+  }
+
+  if (!hasRun) {
+    return (
+      <div
+        style={{
+          height: "300px",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        Click "Run" to start the simulation.
       </div>
     )
   }
