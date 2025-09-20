@@ -27,6 +27,7 @@ import { zIndexMap } from "../utils/z-index-map"
 import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
 import { getSpiceFromCircuitJson } from "../utils/spice-utils"
 import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
+import { useSchematicComponentDoubleClick } from "lib/hooks/useSchematicComponentDoubleClick"
 
 interface Props {
   circuitJson: CircuitJson
@@ -269,68 +270,14 @@ export const SchematicViewer = ({
     handleComponentTouchStartRef.current = handleComponentTouchStart
   }, [handleComponentTouchStart])
 
-  useEffect(() => {
-    if (!onClickComponent) return
-
-    const svgContainer = svgDivRef.current
-    if (!svgContainer) return
-
-    const handleDoubleClick = (event: MouseEvent) => {
-      if (
-        (clickToInteractEnabled && !isInteractionEnabled) ||
-        showSpiceOverlay
-      ) {
-        return
-      }
-
-      const target = event.target as Element | null
-      const componentGroup = target?.closest(
-        '[data-circuit-json-type="schematic_component"]',
-      ) as HTMLElement | null
-
-      if (!componentGroup) return
-
-      const schematicComponentId = componentGroup.getAttribute(
-        "data-schematic-component-id",
-      )
-
-      if (!schematicComponentId) return
-
-      onClickComponent({ schematicComponentId, event })
-    }
-
-    svgContainer.addEventListener("dblclick", handleDoubleClick)
-
-    const componentElements = Array.from(
-      svgContainer.querySelectorAll(
-        '[data-circuit-json-type="schematic_component"]',
-      ),
-    ) as HTMLElement[]
-
-    const previousCursorMap = new Map<HTMLElement, string | null>()
-    componentElements.forEach((element) => {
-      previousCursorMap.set(element, element.style.cursor || null)
-      element.style.cursor = "pointer"
-    })
-
-    return () => {
-      svgContainer.removeEventListener("dblclick", handleDoubleClick)
-      componentElements.forEach((element) => {
-        const previousCursor = previousCursorMap.get(element)
-        if (previousCursor) {
-          element.style.cursor = previousCursor
-        } else {
-          element.style.removeProperty("cursor")
-        }
-      })
-    }
-  }, [
+  useSchematicComponentDoubleClick({
+    svgDivRef,
     svgString,
     onClickComponent,
     clickToInteractEnabled,
     isInteractionEnabled,
     showSpiceOverlay,
-  ])
+  })
 
   const svgDiv = useMemo(
     () => (
