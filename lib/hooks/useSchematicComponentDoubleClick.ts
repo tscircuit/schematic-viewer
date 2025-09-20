@@ -15,6 +15,7 @@ interface UseSchematicComponentDoubleClickOptions {
 
 const HOVER_HIGHLIGHT_COLOR = "#1976d2"
 const HOVER_HIGHLIGHT_STROKE_WIDTH = "2.5px"
+const HOVER_HIGHLIGHT_FILL = "rgba(25, 118, 210, 0.08)"
 
 type StylableElement = HTMLElement | SVGElement
 
@@ -23,6 +24,11 @@ const isStylableElement = (element: Element): element is StylableElement =>
 
 const isSvgElement = (element: StylableElement): element is SVGElement =>
   element instanceof SVGElement
+
+const isSvgGraphicsElement = (
+  element: Element,
+): element is SVGGraphicsElement =>
+  "getBBox" in element && typeof element.getBBox === "function"
 
 const HIGHLIGHT_TARGET_SELECTOR =
   "path, rect, circle, ellipse, line, polyline, polygon, use, image"
@@ -115,7 +121,10 @@ export const useSchematicComponentDoubleClick = ({
           stroke: string | null
           strokeWidth: string | null
           outline: string | null
+          fill: string | null
           transition: string | null
+          pointerEvents: string | null
+          removeOnCleanup: boolean
         }>
       }
     >()
@@ -126,45 +135,109 @@ export const useSchematicComponentDoubleClick = ({
     >()
 
     componentElements.forEach((element) => {
-      const highlightTargets = Array.from(
-        element.querySelectorAll(HIGHLIGHT_TARGET_SELECTOR),
-      )
-        .filter((target) => !isComponentOverlayRect(target))
-        .filter(isStylableElement)
+      const highlightTargets: Array<{
+        element: StylableElement
+        removeOnCleanup: boolean
+      }> = []
 
-      if (highlightTargets.length === 0 && isStylableElement(element)) {
-        highlightTargets.push(element)
+      const overlayRects = Array.from(
+        element.querySelectorAll("rect.component-overlay"),
+      ).filter(isStylableElement)
+
+      if (overlayRects.length > 0) {
+        overlayRects.forEach((overlay) => {
+          highlightTargets.push({ element: overlay, removeOnCleanup: false })
+        })
+      } else if (isSvgGraphicsElement(element)) {
+        const ownerSvg = element.ownerSVGElement
+        const bbox = element.getBBox()
+        if (ownerSvg && bbox.width > 0 && bbox.height > 0) {
+          const generatedOverlay = ownerSvg.ownerDocument?.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "rect",
+          )
+
+          if (generatedOverlay) {
+            generatedOverlay.setAttribute("x", bbox.x.toString())
+            generatedOverlay.setAttribute("y", bbox.y.toString())
+            generatedOverlay.setAttribute("width", bbox.width.toString())
+            generatedOverlay.setAttribute("height", bbox.height.toString())
+            generatedOverlay.setAttribute("fill", "transparent")
+            generatedOverlay.setAttribute("stroke", "none")
+            generatedOverlay.style.pointerEvents = "none"
+
+            element.appendChild(generatedOverlay)
+
+            highlightTargets.push({
+              element: generatedOverlay,
+              removeOnCleanup: true,
+            })
+          }
+        }
       }
 
-      const highlightTargetState = highlightTargets.map((target) => {
-        const previousStroke = isSvgElement(target)
-          ? target.style.stroke || null
-          : null
-        const previousStrokeWidth = isSvgElement(target)
-          ? target.style.strokeWidth || null
-          : null
-        const previousOutline = !isSvgElement(target)
-          ? target.style.outline || null
-          : null
-        const previousTransition = target.style.transition || null
-
-        const transitionsToEnsure = isSvgElement(target)
-          ? ["stroke 120ms ease", "stroke-width 120ms ease"]
-          : ["outline 120ms ease"]
-
-        target.style.transition = ensureTransitions(
-          target.style.transition,
-          transitionsToEnsure,
+      if (highlightTargets.length === 0) {
+        const fallbackTargets = Array.from(
+          element.querySelectorAll(HIGHLIGHT_TARGET_SELECTOR),
         )
+          .filter((target) => !isComponentOverlayRect(target))
+          .filter(isStylableElement)
 
-        return {
-          element: target,
-          stroke: previousStroke,
-          strokeWidth: previousStrokeWidth,
-          outline: previousOutline,
-          transition: previousTransition,
+        if (fallbackTargets.length > 0) {
+          fallbackTargets.forEach((target) =>
+            highlightTargets.push({ element: target, removeOnCleanup: false }),
+          )
+        } else if (isStylableElement(element)) {
+          highlightTargets.push({ element, removeOnCleanup: false })
         }
-      })
+      }
+
+      const highlightTargetState = highlightTargets.map(
+        ({ element: target, removeOnCleanup }) => {
+          const previousStroke = isSvgElement(target)
+            ? target.style.stroke || null
+            : null
+          const previousStrokeWidth = isSvgElement(target)
+            ? target.style.strokeWidth || null
+            : null
+          const previousFill = isSvgElement(target)
+            ? target.style.fill || null
+            : null
+          const previousOutline = !isSvgElement(target)
+            ? target.style.outline || null
+            : null
+          const previousTransition = target.style.transition || null
+          const previousPointerEvents = target.style.pointerEvents || null
+
+          const transitionsToEnsure = isSvgElement(target)
+            ? [
+                "stroke 120ms ease",
+                "stroke-width 120ms ease",
+                "fill 120ms ease",
+              ]
+            : ["outline 120ms ease"]
+
+          target.style.transition = ensureTransitions(
+            target.style.transition,
+            transitionsToEnsure,
+          )
+
+          if (removeOnCleanup) {
+            target.style.pointerEvents = "none"
+          }
+
+          return {
+            element: target,
+            stroke: previousStroke,
+            strokeWidth: previousStrokeWidth,
+            outline: previousOutline,
+            fill: previousFill,
+            transition: previousTransition,
+            pointerEvents: previousPointerEvents,
+            removeOnCleanup,
+          }
+        },
+      )
 
       previousElementState.set(element, {
         cursor: element.style.cursor || null,
@@ -180,6 +253,7 @@ export const useSchematicComponentDoubleClick = ({
           if (isSvgElement(target)) {
             target.style.stroke = HOVER_HIGHLIGHT_COLOR
             target.style.strokeWidth = HOVER_HIGHLIGHT_STROKE_WIDTH
+            target.style.fill = HOVER_HIGHLIGHT_FILL
           } else {
             target.style.outline = `${HOVER_HIGHLIGHT_STROKE_WIDTH} solid ${HOVER_HIGHLIGHT_COLOR}`
           }
@@ -190,7 +264,7 @@ export const useSchematicComponentDoubleClick = ({
         const previous = previousElementState.get(element)
         if (!previous) return
         previous.highlightTargets.forEach(
-          ({ element: target, stroke, strokeWidth, outline }) => {
+          ({ element: target, stroke, strokeWidth, outline, fill }) => {
             if (isSvgElement(target)) {
               if (stroke) {
                 target.style.stroke = stroke
@@ -202,6 +276,12 @@ export const useSchematicComponentDoubleClick = ({
                 target.style.strokeWidth = strokeWidth
               } else {
                 target.style.removeProperty("stroke-width")
+              }
+
+              if (fill) {
+                target.style.fill = fill
+              } else {
+                target.style.removeProperty("fill")
               }
             } else if (outline) {
               target.style.outline = outline
@@ -246,7 +326,10 @@ export const useSchematicComponentDoubleClick = ({
               stroke,
               strokeWidth,
               outline,
+              fill,
               transition,
+              pointerEvents,
+              removeOnCleanup,
             }) => {
               if (isSvgElement(target)) {
                 if (stroke) {
@@ -260,10 +343,26 @@ export const useSchematicComponentDoubleClick = ({
                 } else {
                   target.style.removeProperty("stroke-width")
                 }
+
+                if (fill) {
+                  target.style.fill = fill
+                } else {
+                  target.style.removeProperty("fill")
+                }
               } else if (outline) {
                 target.style.outline = outline
               } else {
                 target.style.removeProperty("outline")
+              }
+
+              if (pointerEvents) {
+                target.style.pointerEvents = pointerEvents
+              } else {
+                target.style.removeProperty("pointer-events")
+              }
+
+              if (removeOnCleanup && target.parentNode) {
+                target.parentNode.removeChild(target)
               }
 
               if (transition) {
