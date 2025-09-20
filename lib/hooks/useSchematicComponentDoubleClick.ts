@@ -14,7 +14,6 @@ interface UseSchematicComponentDoubleClickOptions {
 }
 
 const HOVER_HIGHLIGHT_COLOR = "rgba(30, 128, 255, 0.8)"
-const BASE_HIGHLIGHT_COLOR = "rgba(30, 128, 255, 0.55)"
 
 const appendDropShadow = (
   existing: string | null,
@@ -89,7 +88,6 @@ export const useSchematicComponentDoubleClick = ({
         cursor: string | null
         filter: string | null
         transition: string | null
-        baseFilter: string
       }
     >()
 
@@ -103,22 +101,16 @@ export const useSchematicComponentDoubleClick = ({
         cursor: element.style.cursor || null,
         filter: element.style.filter || null,
         transition: element.style.transition || null,
-        baseFilter: appendDropShadow(
-          element.style.filter || null,
-          BASE_HIGHLIGHT_COLOR,
-          4,
-        ),
       })
 
       element.style.cursor = "pointer"
       element.style.transition = mergeTransition(element.style.transition)
-      element.style.filter = previousElementState.get(element)!.baseFilter
 
       const handleMouseEnter = () => {
         const previous = previousElementState.get(element)
         if (!previous) return
         element.style.filter = appendDropShadow(
-          previous.baseFilter,
+          previous.filter,
           HOVER_HIGHLIGHT_COLOR,
           8,
         )
@@ -127,7 +119,11 @@ export const useSchematicComponentDoubleClick = ({
       const handleMouseLeave = () => {
         const previous = previousElementState.get(element)
         if (!previous) return
-        element.style.filter = previous.baseFilter
+        if (previous.filter) {
+          element.style.filter = previous.filter
+        } else {
+          element.style.removeProperty("filter")
+        }
       }
 
       element.addEventListener("mouseenter", handleMouseEnter)
