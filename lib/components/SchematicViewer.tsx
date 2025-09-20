@@ -281,12 +281,14 @@ export const SchematicViewer = ({
         {shouldShowPointerCursor && (
           <style>
             {`
-              [data-circuit-json-type="schematic_component"]:hover {
-                filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.5));
+              [data-circuit-json-type="schematic_component"]:hover g:not([data-text-group]) {
+                filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.9)) drop-shadow(0 0 6px rgba(59, 130, 246, 0.7));
               }
-              [data-circuit-json-type="schematic_component"]:hover * {
-                stroke: #3b82f6 !important;
-                stroke-width: 2 !important;
+              [data-circuit-json-type="schematic_component"]:hover path:not([data-text-path]),
+              [data-circuit-json-type="schematic_component"]:hover rect:not([data-text-rect]),
+              [data-circuit-json-type="schematic_component"]:hover circle:not([data-text-circle]),
+              [data-circuit-json-type="schematic_component"]:hover line:not([data-text-line]) {
+                filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.8)) drop-shadow(0 0 4px rgba(59, 130, 246, 0.9));
               }
             `}
           </style>
