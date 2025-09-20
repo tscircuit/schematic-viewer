@@ -27,12 +27,14 @@ import { zIndexMap } from "../utils/z-index-map"
 import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
 import { getSpiceFromCircuitJson } from "../utils/spice-utils"
 import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
+import { useComponentDoubleClick } from "../hooks/useComponentDoubleClick"
 
 interface Props {
   circuitJson: CircuitJson
   containerStyle?: React.CSSProperties
   editEvents?: ManualEditEvent[]
   onEditEvent?: (event: ManualEditEvent) => void
+  onClickComponent?: (componentId: string, component: any) => void
   defaultEditMode?: boolean
   debugGrid?: boolean
   editingEnabled?: boolean
@@ -48,6 +50,7 @@ export const SchematicViewer = ({
   containerStyle,
   editEvents: unappliedEditEvents = [],
   onEditEvent,
+  onClickComponent,
   defaultEditMode = false,
   debugGrid = false,
   editingEnabled = false,
@@ -235,6 +238,14 @@ export const SchematicViewer = ({
     snapToGrid,
   })
 
+    const { handleClick: handleComponentClick } = useComponentDoubleClick({
+    onClickComponent,
+    circuitJson,
+    enabled: isInteractionEnabled && !!onClickComponent,
+  })
+
+  const shouldShowPointerCursor = onClickComponent && isInteractionEnabled
+
   useChangeSchematicComponentLocationsInSvg({
     svgDivRef,
     editEvents: editEventsWithUnappliedEditEvents,
@@ -275,12 +286,15 @@ export const SchematicViewer = ({
               : "none"
             : "auto",
           transformOrigin: "0 0",
+          cursor: shouldShowPointerCursor ? "pointer" : "inherit",
         }}
+        onClick={handleComponentClick}
         onTouchStart={(e) => {
           if (editModeEnabled && isInteractionEnabled && !showSpiceOverlay) {
             handleComponentTouchStartRef.current(e)
           }
         }}
+        onTouchEnd={handleComponentClick}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
         dangerouslySetInnerHTML={{ __html: svgString }}
       />
@@ -290,6 +304,8 @@ export const SchematicViewer = ({
       isInteractionEnabled,
       clickToInteractEnabled,
       editModeEnabled,
+      handleComponentClick,
+      shouldShowPointerCursor,
       showSpiceOverlay,
     ],
   )
@@ -307,7 +323,9 @@ export const SchematicViewer = ({
             ? "grabbing"
             : clickToInteractEnabled && !isInteractionEnabled
               ? "pointer"
-              : "grab",
+              : shouldShowPointerCursor
+                ? "pointer"
+                : "grab",
         minHeight: "300px",
         ...containerStyle,
       }}
