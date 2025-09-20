@@ -15,6 +15,7 @@ import {
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
+import { useComponentDoubleClick } from "../hooks/useComponentDoubleClick"
 import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
@@ -41,6 +42,10 @@ interface Props {
   colorOverrides?: ColorOverrides
   spiceSimulationEnabled?: boolean
   disableGroups?: boolean
+  onClickComponent?: (args: {
+    schematicComponentId: string
+    event: MouseEvent
+  }) => void
 }
 
 export const SchematicViewer = ({
@@ -56,6 +61,7 @@ export const SchematicViewer = ({
   colorOverrides,
   spiceSimulationEnabled = false,
   disableGroups = false,
+  onClickComponent,
 }: Props) => {
   if (debug) {
     enableDebug()
@@ -256,6 +262,15 @@ export const SchematicViewer = ({
     circuitJson,
     circuitJsonKey,
     showGroups: showSchematicGroups && !disableGroups,
+  })
+
+  useComponentDoubleClick({
+    svgDivRef,
+    svgString,
+    onClickComponent,
+    clickToInteractEnabled,
+    isInteractionEnabled,
+    showSpiceOverlay,
   })
 
   // keep the latest touch handler without re-rendering the svg div
