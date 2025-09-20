@@ -14,8 +14,8 @@ interface UseSchematicComponentDoubleClickOptions {
 }
 
 const HOVER_HIGHLIGHT_COLOR = "#1976d2"
-const HOVER_HIGHLIGHT_STROKE_WIDTH = "2.5px"
-const HOVER_HIGHLIGHT_FILL = "rgba(25, 118, 210, 0.08)"
+const HOVER_HIGHLIGHT_STROKE_WIDTH = "1.5px"
+const HOVER_HIGHLIGHT_PADDING = 4
 
 type StylableElement = HTMLElement | SVGElement
 
@@ -33,11 +33,57 @@ const isSvgGraphicsElement = (
 const HIGHLIGHT_TARGET_SELECTOR =
   "path, rect, circle, ellipse, line, polyline, polygon, use, image"
 
-const isComponentOverlayRect = (
-  element: Element,
-): element is SVGRectElement =>
-  element instanceof SVGRectElement &&
-  element.classList.contains("component-overlay")
+const getOwnerSvg = (element: Element): SVGSVGElement | null => {
+  if (element instanceof SVGGraphicsElement && element.ownerSVGElement) {
+    return element.ownerSVGElement
+  }
+
+  const closestSvg = element.closest("svg")
+  return closestSvg instanceof SVGSVGElement ? closestSvg : null
+}
+
+const getGraphicsElementsWithin = (element: Element) =>
+  Array.from(element.querySelectorAll(HIGHLIGHT_TARGET_SELECTOR)).filter(
+    (child): child is SVGGraphicsElement => isSvgGraphicsElement(child),
+  )
+
+const computeBoundingBox = (element: Element) => {
+  if (isSvgGraphicsElement(element)) {
+    const bbox = element.getBBox()
+    if (bbox.width > 0 && bbox.height > 0) {
+      return bbox
+    }
+  }
+
+  const graphicsElements = getGraphicsElementsWithin(element)
+
+  if (graphicsElements.length === 0) {
+    return null
+  }
+
+  return graphicsElements.reduce<DOMRect | SVGRect | null>(
+    (accumulator, graphic) => {
+      const bbox = graphic.getBBox()
+
+      if (!accumulator) {
+        return bbox
+      }
+
+      const minX = Math.min(accumulator.x, bbox.x)
+      const minY = Math.min(accumulator.y, bbox.y)
+      const maxX = Math.max(accumulator.x + accumulator.width, bbox.x + bbox.width)
+      const maxY = Math.max(accumulator.y + accumulator.height, bbox.y + bbox.height)
+
+      return {
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY,
+      } as DOMRect
+    },
+    null,
+  )
+}
 
 const ensureTransitions = (
   existing: string | null,
@@ -121,7 +167,6 @@ export const useSchematicComponentDoubleClick = ({
           stroke: string | null
           strokeWidth: string | null
           outline: string | null
-          fill: string | null
           transition: string | null
           pointerEvents: string | null
           removeOnCleanup: boolean
@@ -140,48 +185,41 @@ export const useSchematicComponentDoubleClick = ({
         removeOnCleanup: boolean
       }> = []
 
-      const overlayRects = Array.from(
-        element.querySelectorAll("rect.component-overlay"),
-      ).filter(isStylableElement)
+      const ownerSvg = getOwnerSvg(element)
+      const bbox = computeBoundingBox(element)
 
-      if (overlayRects.length > 0) {
-        overlayRects.forEach((overlay) => {
-          highlightTargets.push({ element: overlay, removeOnCleanup: false })
-        })
-      } else if (isSvgGraphicsElement(element)) {
-        const ownerSvg = element.ownerSVGElement
-        const bbox = element.getBBox()
-        if (ownerSvg && bbox.width > 0 && bbox.height > 0) {
-          const generatedOverlay = ownerSvg.ownerDocument?.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect",
-          )
+      if (ownerSvg && bbox && bbox.width > 0 && bbox.height > 0) {
+        const highlightRect = ownerSvg.ownerDocument?.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect",
+        )
 
-          if (generatedOverlay) {
-            generatedOverlay.setAttribute("x", bbox.x.toString())
-            generatedOverlay.setAttribute("y", bbox.y.toString())
-            generatedOverlay.setAttribute("width", bbox.width.toString())
-            generatedOverlay.setAttribute("height", bbox.height.toString())
-            generatedOverlay.setAttribute("fill", "transparent")
-            generatedOverlay.setAttribute("stroke", "none")
-            generatedOverlay.style.pointerEvents = "none"
+        if (highlightRect) {
+          const paddedX = bbox.x - HOVER_HIGHLIGHT_PADDING
+          const paddedY = bbox.y - HOVER_HIGHLIGHT_PADDING
+          const paddedWidth = bbox.width + HOVER_HIGHLIGHT_PADDING * 2
+          const paddedHeight = bbox.height + HOVER_HIGHLIGHT_PADDING * 2
 
-            element.appendChild(generatedOverlay)
+          highlightRect.setAttribute("x", paddedX.toString())
+          highlightRect.setAttribute("y", paddedY.toString())
+          highlightRect.setAttribute("width", paddedWidth.toString())
+          highlightRect.setAttribute("height", paddedHeight.toString())
+          highlightRect.setAttribute("fill", "none")
+          highlightRect.setAttribute("stroke", "none")
+          highlightRect.setAttribute("vector-effect", "non-scaling-stroke")
+          highlightRect.style.pointerEvents = "none"
 
-            highlightTargets.push({
-              element: generatedOverlay,
-              removeOnCleanup: true,
-            })
-          }
+          element.appendChild(highlightRect)
+
+          highlightTargets.push({
+            element: highlightRect,
+            removeOnCleanup: true,
+          })
         }
       }
 
       if (highlightTargets.length === 0) {
-        const fallbackTargets = Array.from(
-          element.querySelectorAll(HIGHLIGHT_TARGET_SELECTOR),
-        )
-          .filter((target) => !isComponentOverlayRect(target))
-          .filter(isStylableElement)
+        const fallbackTargets = getGraphicsElementsWithin(element)
 
         if (fallbackTargets.length > 0) {
           fallbackTargets.forEach((target) =>
@@ -200,9 +238,6 @@ export const useSchematicComponentDoubleClick = ({
           const previousStrokeWidth = isSvgElement(target)
             ? target.style.strokeWidth || null
             : null
-          const previousFill = isSvgElement(target)
-            ? target.style.fill || null
-            : null
           const previousOutline = !isSvgElement(target)
             ? target.style.outline || null
             : null
@@ -210,11 +245,7 @@ export const useSchematicComponentDoubleClick = ({
           const previousPointerEvents = target.style.pointerEvents || null
 
           const transitionsToEnsure = isSvgElement(target)
-            ? [
-                "stroke 120ms ease",
-                "stroke-width 120ms ease",
-                "fill 120ms ease",
-              ]
+            ? ["stroke 120ms ease", "stroke-width 120ms ease"]
             : ["outline 120ms ease"]
 
           target.style.transition = ensureTransitions(
@@ -231,7 +262,6 @@ export const useSchematicComponentDoubleClick = ({
             stroke: previousStroke,
             strokeWidth: previousStrokeWidth,
             outline: previousOutline,
-            fill: previousFill,
             transition: previousTransition,
             pointerEvents: previousPointerEvents,
             removeOnCleanup,
@@ -253,7 +283,6 @@ export const useSchematicComponentDoubleClick = ({
           if (isSvgElement(target)) {
             target.style.stroke = HOVER_HIGHLIGHT_COLOR
             target.style.strokeWidth = HOVER_HIGHLIGHT_STROKE_WIDTH
-            target.style.fill = HOVER_HIGHLIGHT_FILL
           } else {
             target.style.outline = `${HOVER_HIGHLIGHT_STROKE_WIDTH} solid ${HOVER_HIGHLIGHT_COLOR}`
           }
@@ -264,7 +293,7 @@ export const useSchematicComponentDoubleClick = ({
         const previous = previousElementState.get(element)
         if (!previous) return
         previous.highlightTargets.forEach(
-          ({ element: target, stroke, strokeWidth, outline, fill }) => {
+          ({ element: target, stroke, strokeWidth, outline }) => {
             if (isSvgElement(target)) {
               if (stroke) {
                 target.style.stroke = stroke
@@ -276,12 +305,6 @@ export const useSchematicComponentDoubleClick = ({
                 target.style.strokeWidth = strokeWidth
               } else {
                 target.style.removeProperty("stroke-width")
-              }
-
-              if (fill) {
-                target.style.fill = fill
-              } else {
-                target.style.removeProperty("fill")
               }
             } else if (outline) {
               target.style.outline = outline
@@ -326,7 +349,6 @@ export const useSchematicComponentDoubleClick = ({
               stroke,
               strokeWidth,
               outline,
-              fill,
               transition,
               pointerEvents,
               removeOnCleanup,
@@ -342,12 +364,6 @@ export const useSchematicComponentDoubleClick = ({
                   target.style.strokeWidth = strokeWidth
                 } else {
                   target.style.removeProperty("stroke-width")
-                }
-
-                if (fill) {
-                  target.style.fill = fill
-                } else {
-                  target.style.removeProperty("fill")
                 }
               } else if (outline) {
                 target.style.outline = outline
