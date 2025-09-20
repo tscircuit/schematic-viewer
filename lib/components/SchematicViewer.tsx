@@ -277,27 +277,42 @@ export const SchematicViewer = ({
 
   const svgDiv = useMemo(
     () => (
-      <div
-        ref={svgDivRef}
-        style={{
-          pointerEvents: clickToInteractEnabled
-            ? isInteractionEnabled
-              ? "auto"
-              : "none"
-            : "auto",
-          transformOrigin: "0 0",
-          cursor: shouldShowPointerCursor ? "pointer" : "inherit",
-        }}
-        onClick={handleComponentClick}
-        onTouchStart={(e) => {
-          if (editModeEnabled && isInteractionEnabled && !showSpiceOverlay) {
-            handleComponentTouchStartRef.current(e)
-          }
-        }}
-        onTouchEnd={handleComponentClick}
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
-        dangerouslySetInnerHTML={{ __html: svgString }}
-      />
+      <>
+        {shouldShowPointerCursor && (
+          <style>
+            {`
+              [data-circuit-json-type="schematic_component"]:hover {
+                filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.5));
+              }
+              [data-circuit-json-type="schematic_component"]:hover * {
+                stroke: #3b82f6 !important;
+                stroke-width: 2 !important;
+              }
+            `}
+          </style>
+        )}
+        <div
+          ref={svgDivRef}
+          style={{
+            pointerEvents: clickToInteractEnabled
+              ? isInteractionEnabled
+                ? "auto"
+                : "none"
+              : "auto",
+            transformOrigin: "0 0",
+            cursor: shouldShowPointerCursor ? "pointer" : "inherit",
+          }}
+          onClick={handleComponentClick}
+          onTouchStart={(e) => {
+            if (editModeEnabled && isInteractionEnabled && !showSpiceOverlay) {
+              handleComponentTouchStartRef.current(e)
+            }
+          }}
+          onTouchEnd={handleComponentClick}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
+          dangerouslySetInnerHTML={{ __html: svgString }}
+        />
+      </>
     ),
     [
       svgString,
