@@ -27,6 +27,7 @@ import { zIndexMap } from "../utils/z-index-map"
 import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
 import { getSpiceFromCircuitJson } from "../utils/spice-utils"
 import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
+import { useSchematicComponentDoubleClick } from "lib/hooks/useSchematicComponentDoubleClick"
 
 interface Props {
   circuitJson: CircuitJson
@@ -41,6 +42,10 @@ interface Props {
   colorOverrides?: ColorOverrides
   spiceSimulationEnabled?: boolean
   disableGroups?: boolean
+  onClickComponent?: (args: {
+    schematicComponentId: string
+    event: MouseEvent
+  }) => void
 }
 
 export const SchematicViewer = ({
@@ -56,6 +61,7 @@ export const SchematicViewer = ({
   colorOverrides,
   spiceSimulationEnabled = false,
   disableGroups = false,
+  onClickComponent,
 }: Props) => {
   if (debug) {
     enableDebug()
@@ -263,6 +269,15 @@ export const SchematicViewer = ({
   useEffect(() => {
     handleComponentTouchStartRef.current = handleComponentTouchStart
   }, [handleComponentTouchStart])
+
+  useSchematicComponentDoubleClick({
+    svgDivRef,
+    svgString,
+    onClickComponent,
+    clickToInteractEnabled,
+    isInteractionEnabled,
+    showSpiceOverlay,
+  })
 
   const svgDiv = useMemo(
     () => (
