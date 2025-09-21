@@ -47,7 +47,29 @@ const toBoundingBox = (bbox: DOMRect | SVGRect): BoundingBox => ({
   height: bbox.height,
 })
 
+const getComponentOverlayBoundingBox = (
+  element: Element,
+): BoundingBox | null => {
+  const overlay = element.querySelector(
+    ".component-overlay",
+  ) as SVGGraphicsElement | null
+
+  if (overlay && isSvgGraphicsElement(overlay)) {
+    const bbox = overlay.getBBox()
+    if (bbox.width > 0 && bbox.height > 0) {
+      return toBoundingBox(bbox)
+    }
+  }
+
+  return null
+}
+
 const computeBoundingBox = (element: Element): BoundingBox | null => {
+  const overlayBoundingBox = getComponentOverlayBoundingBox(element)
+  if (overlayBoundingBox) {
+    return overlayBoundingBox
+  }
+
   const graphicsElements = getGraphicsElementsWithin(element)
 
   if (graphicsElements.length > 0) {
