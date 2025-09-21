@@ -27,85 +27,81 @@ export const useComponentDoubleClick = ({
     const svgContainer = svgDivRef.current
     if (!svgContainer || !onClickComponent) return
 
+    const svg = svgContainer.querySelector("svg")
+    if (!svg) return
+
+    const shouldEnableInteraction = !((clickToInteractEnabled && !isInteractionEnabled) || showSpiceOverlay)
+
+    const findComponentGroup = (target: Element | null): HTMLElement | null => {
+      return target?.closest('[data-circuit-json-type="schematic_component"]') as HTMLElement | null
+    }
+
     const handleDoubleClick = (event: MouseEvent) => {
-      if (
-        (clickToInteractEnabled && !isInteractionEnabled) ||
-        showSpiceOverlay
-      ) {
-        return
-      }
+      if (!shouldEnableInteraction) return
 
-      const target = event.target as Element | null
-      const componentGroup = target?.closest(
-        '[data-circuit-json-type="schematic_component"]',
-      ) as HTMLElement | null
-
+      const componentGroup = findComponentGroup(event.target as Element)
       if (!componentGroup) return
 
-      const schematicComponentId = componentGroup.getAttribute(
-        "data-schematic-component-id",
-      )
-
+      const schematicComponentId = componentGroup.getAttribute("data-schematic-component-id")
       if (!schematicComponentId) return
 
       onClickComponent({ schematicComponentId, event })
     }
 
-    const handleMouseOver = (event: MouseEvent) => {
-      const target = event.target as Element | null
-      const componentGroup = target?.closest(
-        '[data-circuit-json-type="schematic_component"]',
-      ) as HTMLElement | null
+    const removeExistingHighlight = () => {
+      svg.querySelector(".component-hover-highlight")?.remove()
+    }
 
-      if (componentGroup) {
-        const rect = componentGroup.getBoundingClientRect()
-        const svgRect = svgContainer.getBoundingClientRect()
-        const highlight = document.createElement("div")
-        highlight.style.position = "absolute"
-        highlight.style.left = `${rect.left - svgRect.left}px`
-        highlight.style.top = `${rect.top - svgRect.top}px`
-        highlight.style.width = `${rect.width}px`
-        highlight.style.height = `${rect.height}px`
-        highlight.style.backgroundColor = "rgba(0, 100, 255, 0.2)"
-        highlight.style.border = "1px solid rgba(0, 100, 255, 0.5)"
-        highlight.style.borderRadius = "2px"
-        highlight.style.pointerEvents = "none"
-        highlight.classList.add("component-hover-highlight")
-        svgContainer.appendChild(highlight)
+    const createHighlight = (componentGroup: SVGGraphicsElement) => {
+      const bbox = componentGroup.getBBox()
+      const highlight = document.createElementNS("http://www.w3.org/2000/svg", "rect")
+      
+      highlight.setAttribute("x", bbox.x.toString())
+      highlight.setAttribute("y", bbox.y.toString())
+      highlight.setAttribute("width", bbox.width.toString())
+      highlight.setAttribute("height", bbox.height.toString())
+      highlight.setAttribute("fill", "rgba(0, 100, 255, 0.2)")
+      highlight.setAttribute("stroke", "rgba(0, 100, 255, 0.5)")
+      highlight.setAttribute("stroke-width", "0.05")
+      highlight.setAttribute("rx", "0.1")
+      highlight.setAttribute("ry", "0.1")
+      highlight.style.pointerEvents = "none"
+      highlight.classList.add("component-hover-highlight")
+      svg.appendChild(highlight)
+    }
+
+    const handleMouseEnter = (event: MouseEvent) => {
+      if (!shouldEnableInteraction || svg.querySelector(".component-hover-highlight")) return
+
+      const componentGroup = findComponentGroup(event.target as Element)
+      if (componentGroup && "getBBox" in componentGroup) {
+        createHighlight(componentGroup as unknown as SVGGraphicsElement)
       }
     }
 
-    const handleMouseOut = (event: MouseEvent) => {
-      const highlight = svgContainer.querySelector(".component-hover-highlight")
-      if (highlight) {
-        highlight.remove()
-      }
+    const componentElements = Array.from(
+      svgContainer.querySelectorAll('[data-circuit-json-type="schematic_component"]')
+    ) as HTMLElement[]
+
+    if (shouldEnableInteraction) {
+      componentElements.forEach((element) => {
+        previousCursorMap.current.set(element, element.style.cursor || null)
+        element.style.cursor = "pointer"
+        element.addEventListener("mouseenter", handleMouseEnter)
+        element.addEventListener("mouseleave", removeExistingHighlight)
+      })
     }
 
     svgContainer.addEventListener("dblclick", handleDoubleClick)
-    svgContainer.addEventListener("mouseover", handleMouseOver)
-    svgContainer.addEventListener("mouseout", handleMouseOut)
-
-    const componentElements = Array.from(
-      svgContainer.querySelectorAll(
-        '[data-circuit-json-type="schematic_component"]',
-      ),
-    ) as HTMLElement[]
-
-    componentElements.forEach((element) => {
-      previousCursorMap.current.set(element, element.style.cursor || null)
-      element.style.cursor = "pointer"
-    })
 
     return () => {
       svgContainer.removeEventListener("dblclick", handleDoubleClick)
-      svgContainer.removeEventListener("mouseover", handleMouseOver)
-      svgContainer.removeEventListener("mouseout", handleMouseOut)
-      const highlight = svgContainer.querySelector(".component-hover-highlight")
-      if (highlight) {
-        highlight.remove()
-      }
+      removeExistingHighlight()
+
       componentElements.forEach((element) => {
+        element.removeEventListener("mouseenter", handleMouseEnter)
+        element.removeEventListener("mouseleave", removeExistingHighlight)
+        
         const previousCursor = previousCursorMap.current.get(element)
         if (previousCursor) {
           element.style.cursor = previousCursor
@@ -113,6 +109,8 @@ export const useComponentDoubleClick = ({
           element.style.removeProperty("cursor")
         }
       })
+      
+      previousCursorMap.current.clear()
     }
   }, [
     svgString,
