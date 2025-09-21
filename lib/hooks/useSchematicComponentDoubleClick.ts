@@ -13,16 +13,11 @@ interface UseSchematicComponentDoubleClickOptions {
   showSpiceOverlay: boolean
 }
 
-const HOVER_HIGHLIGHT_COLOR = "#1976d2"
-const HOVER_HIGHLIGHT_STROKE_WIDTH = "1.5px"
+const HOVER_HIGHLIGHT_COLOR = "#0d47a1"
+const HOVER_HIGHLIGHT_STROKE_WIDTH = 1.5
 const HOVER_HIGHLIGHT_PADDING = 4
 
-type StylableElement = HTMLElement | SVGElement
-
-const isStylableElement = (element: Element): element is StylableElement =>
-  element instanceof HTMLElement || element instanceof SVGElement
-
-const isSvgElement = (element: StylableElement): element is SVGElement =>
+const isSvgElement = (element: Element): element is SVGElement =>
   element instanceof SVGElement
 
 const isSvgGraphicsElement = (
@@ -32,15 +27,6 @@ const isSvgGraphicsElement = (
 
 const HIGHLIGHT_TARGET_SELECTOR =
   "path, rect, circle, ellipse, line, polyline, polygon, use, image"
-
-const getOwnerSvg = (element: Element): SVGSVGElement | null => {
-  if (element instanceof SVGGraphicsElement && element.ownerSVGElement) {
-    return element.ownerSVGElement
-  }
-
-  const closestSvg = element.closest("svg")
-  return closestSvg instanceof SVGSVGElement ? closestSvg : null
-}
 
 const getGraphicsElementsWithin = (element: Element) =>
   Array.from(element.querySelectorAll(HIGHLIGHT_TARGET_SELECTOR)).filter(
@@ -101,35 +87,10 @@ export const useSchematicComponentDoubleClick = ({
 }: UseSchematicComponentDoubleClickOptions) => {
   useEffect(() => {
     const svgContainer = svgDivRef.current
-    if (!svgContainer) return
+    if (!svgContainer || !onClickComponent) return
 
-    if (!onClickComponent) return
-
-    const handleDoubleClick = (event: MouseEvent) => {
-      if (
-        (clickToInteractEnabled && !isInteractionEnabled) ||
-        showSpiceOverlay
-      ) {
-        return
-      }
-
-      const target = event.target as Element | null
-      const componentGroup = target?.closest(
-        '[data-circuit-json-type="schematic_component"]',
-      ) as HTMLElement | null
-
-      if (!componentGroup) return
-
-      const schematicComponentId = componentGroup.getAttribute(
-        "data-schematic-component-id",
-      )
-
-      if (!schematicComponentId) return
-
-      onClickComponent({ schematicComponentId, event })
-    }
-
-    svgContainer.addEventListener("dblclick", handleDoubleClick)
+    const ownerSvg = svgContainer.querySelector("svg")
+    if (!ownerSvg) return
 
     const componentElements = Array.from(
       svgContainer.querySelectorAll(
@@ -139,226 +100,151 @@ export const useSchematicComponentDoubleClick = ({
 
     const previousElementState = new Map<
       HTMLElement,
-      {
-        cursor: string | null
-        pointerEventsAttr: string | null
-        highlightTargets: Array<{
-          element: StylableElement
-          stroke: string | null
-          strokeWidth: string | null
-          outline: string | null
-          pointerEvents: string | null
-          removeOnCleanup: boolean
-        }>
-      }
+      { cursor: string | null; pointerEventsAttr: string | null }
     >()
 
-    const hoverListeners = new Map<
-      HTMLElement,
-      { enter: (event: Event) => void; leave: (event: Event) => void }
-    >()
+    const highlightRect = ownerSvg.ownerDocument?.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "rect",
+    )
+
+    if (!highlightRect) return
+
+    highlightRect.setAttribute("fill", "none")
+    highlightRect.setAttribute("vector-effect", "non-scaling-stroke")
+    highlightRect.setAttribute("stroke-linejoin", "miter")
+    highlightRect.style.pointerEvents = "none"
+    highlightRect.style.visibility = "hidden"
+
+    ownerSvg.appendChild(highlightRect)
+
+    const interactiveElements = new Set(componentElements)
 
     componentElements.forEach((element) => {
-      const highlightTargets: Array<{
-        element: StylableElement
-        removeOnCleanup: boolean
-      }> = []
-
-      const ownerSvg = getOwnerSvg(element)
-      const bbox = computeBoundingBox(element)
-
-      if (ownerSvg && bbox && bbox.width > 0 && bbox.height > 0) {
-        const highlightRect = ownerSvg.ownerDocument?.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "rect",
-        )
-
-        if (highlightRect) {
-          const paddedX = bbox.x - HOVER_HIGHLIGHT_PADDING
-          const paddedY = bbox.y - HOVER_HIGHLIGHT_PADDING
-          const paddedWidth = bbox.width + HOVER_HIGHLIGHT_PADDING * 2
-          const paddedHeight = bbox.height + HOVER_HIGHLIGHT_PADDING * 2
-
-          highlightRect.setAttribute("x", paddedX.toString())
-          highlightRect.setAttribute("y", paddedY.toString())
-          highlightRect.setAttribute("width", paddedWidth.toString())
-          highlightRect.setAttribute("height", paddedHeight.toString())
-          highlightRect.setAttribute("fill", "none")
-          highlightRect.setAttribute("stroke", "none")
-          highlightRect.setAttribute("vector-effect", "non-scaling-stroke")
-          highlightRect.style.pointerEvents = "none"
-
-          element.appendChild(highlightRect)
-
-          highlightTargets.push({
-            element: highlightRect,
-            removeOnCleanup: true,
-          })
-        }
-      }
-
-      if (highlightTargets.length === 0) {
-        const fallbackTargets = getGraphicsElementsWithin(element)
-
-        if (fallbackTargets.length > 0) {
-          fallbackTargets.forEach((target) =>
-            highlightTargets.push({ element: target, removeOnCleanup: false }),
-          )
-        } else if (isStylableElement(element)) {
-          highlightTargets.push({ element, removeOnCleanup: false })
-        }
-      }
-
-      const highlightTargetState = highlightTargets.map(
-        ({ element: target, removeOnCleanup }) => {
-          const previousStroke = isSvgElement(target)
-            ? target.style.stroke || null
-            : null
-          const previousStrokeWidth = isSvgElement(target)
-            ? target.style.strokeWidth || null
-            : null
-          const previousOutline = !isSvgElement(target)
-            ? target.style.outline || null
-            : null
-          const previousPointerEvents = target.style.pointerEvents || null
-
-          if (removeOnCleanup) {
-            target.style.pointerEvents = "none"
-          }
-
-          return {
-            element: target,
-            stroke: previousStroke,
-            strokeWidth: previousStrokeWidth,
-            outline: previousOutline,
-            pointerEvents: previousPointerEvents,
-            removeOnCleanup,
-          }
-        },
-      )
-
       previousElementState.set(element, {
         cursor: element.style.cursor || null,
         pointerEventsAttr: element.getAttribute("pointer-events"),
-        highlightTargets: highlightTargetState,
       })
 
       element.style.cursor = "pointer"
-      if (element instanceof SVGGraphicsElement) {
+      if (isSvgElement(element)) {
         element.setAttribute("pointer-events", "bounding-box")
       }
-
-      const handleMouseEnter = () => {
-        const previous = previousElementState.get(element)
-        if (!previous) return
-        previous.highlightTargets.forEach(({ element: target }) => {
-          if (isSvgElement(target)) {
-            target.style.stroke = HOVER_HIGHLIGHT_COLOR
-            target.style.strokeWidth = HOVER_HIGHLIGHT_STROKE_WIDTH
-          } else {
-            target.style.outline = `${HOVER_HIGHLIGHT_STROKE_WIDTH} solid ${HOVER_HIGHLIGHT_COLOR}`
-          }
-        })
-      }
-
-      const handleMouseLeave = () => {
-        const previous = previousElementState.get(element)
-        if (!previous) return
-        previous.highlightTargets.forEach(
-          ({ element: target, stroke, strokeWidth, outline }) => {
-            if (isSvgElement(target)) {
-              if (stroke) {
-                target.style.stroke = stroke
-              } else {
-                target.style.removeProperty("stroke")
-              }
-
-              if (strokeWidth) {
-                target.style.strokeWidth = strokeWidth
-              } else {
-                target.style.removeProperty("stroke-width")
-              }
-            } else if (outline) {
-              target.style.outline = outline
-            } else {
-              target.style.removeProperty("outline")
-            }
-          },
-        )
-      }
-
-      element.addEventListener("mouseenter", handleMouseEnter)
-      element.addEventListener("mouseleave", handleMouseLeave)
-
-      hoverListeners.set(element, {
-        enter: handleMouseEnter,
-        leave: handleMouseLeave,
-      })
     })
 
+    const isInteractionBlocked = () =>
+      (clickToInteractEnabled && !isInteractionEnabled) || showSpiceOverlay
+
+    const hideHighlight = () => {
+      highlightRect.style.visibility = "hidden"
+    }
+
+    const showHighlightFor = (component: HTMLElement) => {
+      const bbox = computeBoundingBox(component)
+      if (!bbox) {
+        hideHighlight()
+        return
+      }
+
+      const paddedX = bbox.x - HOVER_HIGHLIGHT_PADDING
+      const paddedY = bbox.y - HOVER_HIGHLIGHT_PADDING
+      const paddedWidth = bbox.width + HOVER_HIGHLIGHT_PADDING * 2
+      const paddedHeight = bbox.height + HOVER_HIGHLIGHT_PADDING * 2
+
+      highlightRect.setAttribute("x", paddedX.toString())
+      highlightRect.setAttribute("y", paddedY.toString())
+      highlightRect.setAttribute("width", paddedWidth.toString())
+      highlightRect.setAttribute("height", paddedHeight.toString())
+      highlightRect.setAttribute("stroke", HOVER_HIGHLIGHT_COLOR)
+      highlightRect.setAttribute(
+        "stroke-width",
+        `${HOVER_HIGHLIGHT_STROKE_WIDTH}`,
+      )
+      highlightRect.style.visibility = "visible"
+    }
+
+    let hoveredComponent: HTMLElement | null = null
+
+    const findComponent = (element: EventTarget | null) => {
+      if (!(element instanceof Element)) return null
+      const component = element.closest(
+        '[data-circuit-json-type="schematic_component"]',
+      )
+      return component instanceof HTMLElement && interactiveElements.has(component)
+        ? component
+        : null
+    }
+
+    const handleMouseOver = (event: MouseEvent) => {
+      if (isInteractionBlocked()) {
+        hideHighlight()
+        return
+      }
+
+      const component = findComponent(event.target)
+      if (!component || component === hoveredComponent) return
+
+      hoveredComponent = component
+      showHighlightFor(component)
+    }
+
+    const handleMouseOut = (event: MouseEvent) => {
+      const component = findComponent(event.target)
+      if (!component) return
+
+      const relatedComponent = findComponent(event.relatedTarget)
+      if (component === relatedComponent) return
+
+      if (hoveredComponent === component) {
+        hoveredComponent = null
+        hideHighlight()
+      }
+    }
+
+    const handleDoubleClick = (event: MouseEvent) => {
+      if (isInteractionBlocked()) {
+        return
+      }
+
+      const component = findComponent(event.target)
+      if (!component) return
+
+      const schematicComponentId = component.getAttribute(
+        "data-schematic-component-id",
+      )
+
+      if (!schematicComponentId) return
+
+      onClickComponent({ schematicComponentId, event })
+    }
+
+    svgContainer.addEventListener("mouseover", handleMouseOver)
+    svgContainer.addEventListener("mouseout", handleMouseOut)
+    svgContainer.addEventListener("dblclick", handleDoubleClick)
+
     return () => {
+      svgContainer.removeEventListener("mouseover", handleMouseOver)
+      svgContainer.removeEventListener("mouseout", handleMouseOut)
       svgContainer.removeEventListener("dblclick", handleDoubleClick)
+
+      if (highlightRect.parentNode) {
+        highlightRect.parentNode.removeChild(highlightRect)
+      }
 
       componentElements.forEach((element) => {
         const previous = previousElementState.get(element)
-        const listeners = hoverListeners.get(element)
+        if (!previous) return
 
-        if (listeners) {
-          element.removeEventListener("mouseenter", listeners.enter)
-          element.removeEventListener("mouseleave", listeners.leave)
+        if (previous.pointerEventsAttr) {
+          element.setAttribute("pointer-events", previous.pointerEventsAttr)
+        } else {
+          element.removeAttribute("pointer-events")
         }
 
-        if (previous) {
-          if (previous.pointerEventsAttr) {
-            element.setAttribute("pointer-events", previous.pointerEventsAttr)
-          } else {
-            element.removeAttribute("pointer-events")
-          }
-
-          if (previous.cursor) {
-            element.style.cursor = previous.cursor
-          } else {
-            element.style.removeProperty("cursor")
-          }
-
-          previous.highlightTargets.forEach(
-            ({
-              element: target,
-              stroke,
-              strokeWidth,
-              outline,
-              pointerEvents,
-              removeOnCleanup,
-            }) => {
-              if (isSvgElement(target)) {
-                if (stroke) {
-                  target.style.stroke = stroke
-                } else {
-                  target.style.removeProperty("stroke")
-                }
-
-                if (strokeWidth) {
-                  target.style.strokeWidth = strokeWidth
-                } else {
-                  target.style.removeProperty("stroke-width")
-                }
-              } else if (outline) {
-                target.style.outline = outline
-              } else {
-                target.style.removeProperty("outline")
-              }
-
-              if (pointerEvents) {
-                target.style.pointerEvents = pointerEvents
-              } else {
-                target.style.removeProperty("pointer-events")
-              }
-
-              if (removeOnCleanup && target.parentNode) {
-                target.parentNode.removeChild(target)
-              }
-            },
-          )
+        if (previous.cursor) {
+          element.style.cursor = previous.cursor
+        } else {
+          element.style.removeProperty("cursor")
         }
       })
     }
