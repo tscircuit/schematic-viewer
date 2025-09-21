@@ -33,16 +33,30 @@ const getGraphicsElementsWithin = (element: Element) =>
     (child): child is SVGGraphicsElement => isSvgGraphicsElement(child),
   )
 
-const computeBoundingBox = (element: Element) => {
+type BoundingBox = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+const toBoundingBox = (bbox: DOMRect | SVGRect): BoundingBox => ({
+  x: bbox.x,
+  y: bbox.y,
+  width: bbox.width,
+  height: bbox.height,
+})
+
+const computeBoundingBox = (element: Element): BoundingBox | null => {
   const graphicsElements = getGraphicsElementsWithin(element)
 
   if (graphicsElements.length > 0) {
-    return graphicsElements.reduce<DOMRect | SVGRect | null>(
+    return graphicsElements.reduce<BoundingBox | null>(
       (accumulator, graphic) => {
         const bbox = graphic.getBBox()
 
         if (!accumulator) {
-          return bbox
+          return toBoundingBox(bbox)
         }
 
         const minX = Math.min(accumulator.x, bbox.x)
@@ -61,7 +75,7 @@ const computeBoundingBox = (element: Element) => {
           y: minY,
           width: maxX - minX,
           height: maxY - minY,
-        } as DOMRect
+        }
       },
       null,
     )
@@ -70,7 +84,7 @@ const computeBoundingBox = (element: Element) => {
   if (isSvgGraphicsElement(element)) {
     const bbox = element.getBBox()
     if (bbox.width > 0 && bbox.height > 0) {
-      return bbox
+      return toBoundingBox(bbox)
     }
   }
 
@@ -119,6 +133,7 @@ export const useSchematicComponentDoubleClick = ({
     ownerSvg.appendChild(highlightRect)
 
     const interactiveElements = new Set(componentElements)
+    const componentBounds = new Map<HTMLElement, BoundingBox>()
 
     componentElements.forEach((element) => {
       previousElementState.set(element, {
@@ -130,6 +145,11 @@ export const useSchematicComponentDoubleClick = ({
       if (isSvgElement(element)) {
         element.setAttribute("pointer-events", "bounding-box")
       }
+
+      const bbox = computeBoundingBox(element)
+      if (bbox) {
+        componentBounds.set(element, bbox)
+      }
     })
 
     const isInteractionBlocked = () =>
@@ -140,7 +160,7 @@ export const useSchematicComponentDoubleClick = ({
     }
 
     const showHighlightFor = (component: HTMLElement) => {
-      const bbox = computeBoundingBox(component)
+      const bbox = componentBounds.get(component) ?? computeBoundingBox(component)
       if (!bbox) {
         hideHighlight()
         return
@@ -163,8 +183,6 @@ export const useSchematicComponentDoubleClick = ({
       highlightRect.style.visibility = "visible"
     }
 
-    let hoveredComponent: HTMLElement | null = null
-
     const findComponent = (element: EventTarget | null) => {
       if (!(element instanceof Element)) return null
       const component = element.closest(
@@ -175,30 +193,31 @@ export const useSchematicComponentDoubleClick = ({
         : null
     }
 
-    const handleMouseOver = (event: MouseEvent) => {
+    const handlePointerMove = (event: PointerEvent) => {
       if (isInteractionBlocked()) {
         hideHighlight()
         return
       }
 
-      const component = findComponent(event.target)
-      if (!component || component === hoveredComponent) return
+      const component =
+        findComponent(event.target) ??
+        findComponent(
+          svgContainer.ownerDocument?.elementFromPoint(
+            event.clientX,
+            event.clientY,
+          ) ?? null,
+        )
 
-      hoveredComponent = component
+      if (!component) {
+        hideHighlight()
+        return
+      }
+
       showHighlightFor(component)
     }
 
-    const handleMouseOut = (event: MouseEvent) => {
-      const component = findComponent(event.target)
-      if (!component) return
-
-      const relatedComponent = findComponent(event.relatedTarget)
-      if (component === relatedComponent) return
-
-      if (hoveredComponent === component) {
-        hoveredComponent = null
-        hideHighlight()
-      }
+    const handlePointerLeave = () => {
+      hideHighlight()
     }
 
     const handleDoubleClick = (event: MouseEvent) => {
@@ -218,13 +237,13 @@ export const useSchematicComponentDoubleClick = ({
       onClickComponent({ schematicComponentId, event })
     }
 
-    svgContainer.addEventListener("mouseover", handleMouseOver)
-    svgContainer.addEventListener("mouseout", handleMouseOut)
+    svgContainer.addEventListener("pointermove", handlePointerMove)
+    svgContainer.addEventListener("pointerleave", handlePointerLeave)
     svgContainer.addEventListener("dblclick", handleDoubleClick)
 
     return () => {
-      svgContainer.removeEventListener("mouseover", handleMouseOver)
-      svgContainer.removeEventListener("mouseout", handleMouseOut)
+      svgContainer.removeEventListener("pointermove", handlePointerMove)
+      svgContainer.removeEventListener("pointerleave", handlePointerLeave)
       svgContainer.removeEventListener("dblclick", handleDoubleClick)
 
       if (highlightRect.parentNode) {
