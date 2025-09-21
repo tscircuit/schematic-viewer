@@ -29,9 +29,27 @@ export default function Example14DoubleClickEdit() {
       <ControlledSchematicViewer
         circuitJson={renderToCircuitJson(
           <board width="12mm" height="12mm">
-            <resistor name="R1" resistance={220} schX={-2} schY={0} />
-            <capacitor name="C1" capacitance="10uF" schX={2} schY={0} />
-            <trace from=".R1 .pin2" to=".C1 .pin1" />
+            <resistor name="R1" resistance={220} schX={-4} schY={1} />
+            <capacitor name="C1" capacitance="10uF" schX={4} schY={-1} />
+            <chip
+              name="U1"
+              footprint="soic8"
+              pinLabels={{
+                pin1: "OUT",
+                pin2: "GND",
+                pin3: "IN-",
+                pin4: "IN+",
+                pin5: "VREF",
+                pin6: "NC",
+                pin7: "NC",
+                pin8: "VCC",
+              }}
+              schX={0}
+              schY={0}
+            />
+            <trace from=".R1 .pin2" to=".U1 .pin4" />
+            <trace from=".C1 .pin1" to=".U1 .pin3" />
+            <trace from=".R1 .pin1" to=".C1 .pin2" />
           </board>,
         )}
         containerStyle={{ height: "100%" }}
