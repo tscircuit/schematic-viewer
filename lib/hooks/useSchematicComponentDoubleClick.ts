@@ -175,7 +175,7 @@ export const useSchematicComponentDoubleClick = ({
 }: UseSchematicComponentDoubleClickOptions) => {
   useEffect(() => {
     const svgContainer = svgDivRef.current
-    if (!svgContainer || !onClickComponent) return
+    if (!svgContainer) return
 
     const ownerSvg = svgContainer.querySelector("svg")
     if (!ownerSvg) return
@@ -209,13 +209,17 @@ export const useSchematicComponentDoubleClick = ({
     const interactiveElements = new Set(componentElements)
     const componentBounds = new Map<HTMLElement, BoundingBox>()
 
+    const hasDoubleClickHandler = Boolean(onClickComponent)
+
     componentElements.forEach((element) => {
       previousElementState.set(element, {
         cursor: element.style.cursor || null,
         pointerEventsAttr: element.getAttribute("pointer-events"),
       })
 
-      element.style.cursor = "pointer"
+      if (hasDoubleClickHandler) {
+        element.style.cursor = "pointer"
+      }
       if (isSvgElement(element)) {
         element.setAttribute("pointer-events", "bounding-box")
       }
@@ -296,7 +300,7 @@ export const useSchematicComponentDoubleClick = ({
     }
 
     const handleDoubleClick = (event: MouseEvent) => {
-      if (isInteractionBlocked()) {
+      if (!onClickComponent || isInteractionBlocked()) {
         return
       }
 
@@ -314,7 +318,9 @@ export const useSchematicComponentDoubleClick = ({
 
     svgContainer.addEventListener("pointermove", handlePointerMove)
     svgContainer.addEventListener("pointerleave", handlePointerLeave)
-    svgContainer.addEventListener("dblclick", handleDoubleClick)
+    if (hasDoubleClickHandler) {
+      svgContainer.addEventListener("dblclick", handleDoubleClick)
+    }
 
     return () => {
       svgContainer.removeEventListener("pointermove", handlePointerMove)
@@ -351,3 +357,4 @@ export const useSchematicComponentDoubleClick = ({
     svgDivRef,
   ])
 }
+
