@@ -22,6 +22,7 @@ export const useComponentDoubleClick = ({
   showSpiceOverlay,
 }: UseComponentDoubleClickProps) => {
   const previousCursorMap = useRef(new Map<HTMLElement, string | null>())
+  const currentHighlight = useRef<SVGElement | null>(null)
 
   useEffect(() => {
     const svgContainer = svgDivRef.current
@@ -48,8 +49,11 @@ export const useComponentDoubleClick = ({
       onClickComponent({ schematicComponentId, event })
     }
 
-    const removeExistingHighlight = () => {
-      svg.querySelector(".component-hover-highlight")?.remove()
+    const removeHighlight = () => {
+      if (currentHighlight.current) {
+        currentHighlight.current.remove()
+        currentHighlight.current = null
+      }
     }
 
     const createHighlight = (componentGroup: SVGGraphicsElement) => {
@@ -66,12 +70,13 @@ export const useComponentDoubleClick = ({
       highlight.setAttribute("rx", "0.1")
       highlight.setAttribute("ry", "0.1")
       highlight.style.pointerEvents = "none"
-      highlight.classList.add("component-hover-highlight")
+      
       svg.appendChild(highlight)
+      currentHighlight.current = highlight
     }
 
     const handleMouseEnter = (event: MouseEvent) => {
-      if (!shouldEnableInteraction || svg.querySelector(".component-hover-highlight")) return
+      if (!shouldEnableInteraction || currentHighlight.current) return
 
       const componentGroup = findComponentGroup(event.target as Element)
       if (componentGroup && "getBBox" in componentGroup) {
@@ -88,7 +93,7 @@ export const useComponentDoubleClick = ({
         previousCursorMap.current.set(element, element.style.cursor || null)
         element.style.cursor = "pointer"
         element.addEventListener("mouseenter", handleMouseEnter)
-        element.addEventListener("mouseleave", removeExistingHighlight)
+        element.addEventListener("mouseleave", removeHighlight)
       })
     }
 
@@ -96,11 +101,11 @@ export const useComponentDoubleClick = ({
 
     return () => {
       svgContainer.removeEventListener("dblclick", handleDoubleClick)
-      removeExistingHighlight()
+      removeHighlight()
 
       componentElements.forEach((element) => {
         element.removeEventListener("mouseenter", handleMouseEnter)
-        element.removeEventListener("mouseleave", removeExistingHighlight)
+        element.removeEventListener("mouseleave", removeHighlight)
         
         const previousCursor = previousCursorMap.current.get(element)
         if (previousCursor) {
