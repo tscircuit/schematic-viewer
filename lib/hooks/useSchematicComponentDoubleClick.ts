@@ -47,7 +47,50 @@ const toBoundingBox = (bbox: DOMRect | SVGRect): BoundingBox => ({
   height: bbox.height,
 })
 
+const transformBoundingBox = (
+  ownerSvg: SVGSVGElement,
+  element: SVGGraphicsElement,
+  bbox: DOMRect | SVGRect,
+): BoundingBox => {
+  const ctm = element.getCTM()
+
+  if (!ctm) {
+    return toBoundingBox(bbox)
+  }
+
+  const corners = [
+    { x: bbox.x, y: bbox.y },
+    { x: bbox.x + bbox.width, y: bbox.y },
+    { x: bbox.x, y: bbox.y + bbox.height },
+    { x: bbox.x + bbox.width, y: bbox.y + bbox.height },
+  ]
+
+  const transformed = corners.map(({ x, y }) => {
+    const point = ownerSvg.createSVGPoint()
+    point.x = x
+    point.y = y
+    const matrixPoint = point.matrixTransform(ctm)
+    return { x: matrixPoint.x, y: matrixPoint.y }
+  })
+
+  const xs = transformed.map(({ x }) => x)
+  const ys = transformed.map(({ y }) => y)
+
+  const minX = Math.min(...xs)
+  const minY = Math.min(...ys)
+  const maxX = Math.max(...xs)
+  const maxY = Math.max(...ys)
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+  }
+}
+
 const getComponentOverlayBoundingBox = (
+  ownerSvg: SVGSVGElement,
   element: Element,
 ): BoundingBox | null => {
   const overlay = element.querySelector(
@@ -57,15 +100,18 @@ const getComponentOverlayBoundingBox = (
   if (overlay && isSvgGraphicsElement(overlay)) {
     const bbox = overlay.getBBox()
     if (bbox.width > 0 && bbox.height > 0) {
-      return toBoundingBox(bbox)
+      return transformBoundingBox(ownerSvg, overlay, bbox)
     }
   }
 
   return null
 }
 
-const computeBoundingBox = (element: Element): BoundingBox | null => {
-  const overlayBoundingBox = getComponentOverlayBoundingBox(element)
+const computeBoundingBox = (
+  ownerSvg: SVGSVGElement,
+  element: Element,
+): BoundingBox | null => {
+  const overlayBoundingBox = getComponentOverlayBoundingBox(ownerSvg, element)
   if (overlayBoundingBox) {
     return overlayBoundingBox
   }
@@ -78,18 +124,24 @@ const computeBoundingBox = (element: Element): BoundingBox | null => {
         const bbox = graphic.getBBox()
 
         if (!accumulator) {
-          return toBoundingBox(bbox)
+          return transformBoundingBox(ownerSvg, graphic, bbox)
         }
 
-        const minX = Math.min(accumulator.x, bbox.x)
-        const minY = Math.min(accumulator.y, bbox.y)
+        const transformedBoundingBox = transformBoundingBox(
+          ownerSvg,
+          graphic,
+          bbox,
+        )
+
+        const minX = Math.min(accumulator.x, transformedBoundingBox.x)
+        const minY = Math.min(accumulator.y, transformedBoundingBox.y)
         const maxX = Math.max(
           accumulator.x + accumulator.width,
-          bbox.x + bbox.width,
+          transformedBoundingBox.x + transformedBoundingBox.width,
         )
         const maxY = Math.max(
           accumulator.y + accumulator.height,
-          bbox.y + bbox.height,
+          transformedBoundingBox.y + transformedBoundingBox.height,
         )
 
         return {
@@ -106,7 +158,7 @@ const computeBoundingBox = (element: Element): BoundingBox | null => {
   if (isSvgGraphicsElement(element)) {
     const bbox = element.getBBox()
     if (bbox.width > 0 && bbox.height > 0) {
-      return toBoundingBox(bbox)
+      return transformBoundingBox(ownerSvg, element, bbox)
     }
   }
 
@@ -168,7 +220,7 @@ export const useSchematicComponentDoubleClick = ({
         element.setAttribute("pointer-events", "bounding-box")
       }
 
-      const bbox = computeBoundingBox(element)
+      const bbox = computeBoundingBox(ownerSvg, element)
       if (bbox) {
         componentBounds.set(element, bbox)
       }
@@ -182,7 +234,8 @@ export const useSchematicComponentDoubleClick = ({
     }
 
     const showHighlightFor = (component: HTMLElement) => {
-      const bbox = componentBounds.get(component) ?? computeBoundingBox(component)
+      const bbox =
+        componentBounds.get(component) ?? computeBoundingBox(ownerSvg, component)
       if (!bbox) {
         hideHighlight()
         return
