@@ -22,7 +22,7 @@ export const useComponentDoubleClick = ({
   showSpiceOverlay,
 }: UseComponentDoubleClickProps) => {
   const previousCursorMap = useRef(new Map<HTMLElement, string | null>())
-  const currentHighlight = useRef<SVGElement | null>(null)
+  const highlightRef = useRef<SVGRectElement | null>(null)
 
   useEffect(() => {
     const svgContainer = svgDivRef.current
@@ -33,8 +33,10 @@ export const useComponentDoubleClick = ({
 
     const shouldEnableInteraction = !((clickToInteractEnabled && !isInteractionEnabled) || showSpiceOverlay)
 
+  const componentSelector = '[data-circuit-json-type="schematic_component"]'
+    
     const findComponentGroup = (target: Element | null): HTMLElement | null => {
-      return target?.closest('[data-circuit-json-type="schematic_component"]') as HTMLElement | null
+      return target?.closest(componentSelector) as HTMLElement | null
     }
 
     const handleDoubleClick = (event: MouseEvent) => {
@@ -49,51 +51,54 @@ export const useComponentDoubleClick = ({
       onClickComponent({ schematicComponentId, event })
     }
 
-    const removeHighlight = () => {
-      if (currentHighlight.current) {
-        currentHighlight.current.remove()
-        currentHighlight.current = null
-      }
-    }
-
-    const createHighlight = (componentGroup: SVGGraphicsElement) => {
-      const bbox = componentGroup.getBBox()
-      const highlight = document.createElementNS("http://www.w3.org/2000/svg", "rect")
-      
-      highlight.setAttribute("x", bbox.x.toString())
-      highlight.setAttribute("y", bbox.y.toString())
-      highlight.setAttribute("width", bbox.width.toString())
-      highlight.setAttribute("height", bbox.height.toString())
-      highlight.setAttribute("fill", "rgba(0, 100, 255, 0.2)")
-      highlight.setAttribute("stroke", "rgba(0, 100, 255, 0.5)")
-      highlight.setAttribute("stroke-width", "0.05")
-      highlight.setAttribute("rx", "0.1")
-      highlight.setAttribute("ry", "0.1")
-      highlight.style.pointerEvents = "none"
-      
-      svg.appendChild(highlight)
-      currentHighlight.current = highlight
+    // Ensure a single persistent highlight rect exists
+    if (!highlightRef.current) {
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect")
+      rect.setAttribute("fill", "rgba(0, 100, 255, 0.2)")
+      rect.setAttribute("stroke", "rgba(0, 100, 255, 0.5)")
+      rect.setAttribute("stroke-width", "0.05")
+      rect.setAttribute("rx", "0.1")
+      rect.setAttribute("ry", "0.1")
+      rect.style.pointerEvents = "none"
+      rect.style.display = "none"
+      svg.appendChild(rect)
+      highlightRef.current = rect
     }
 
     const handleMouseEnter = (event: MouseEvent) => {
-      if (!shouldEnableInteraction || currentHighlight.current) return
+      if (!shouldEnableInteraction) return
 
-      const componentGroup = findComponentGroup(event.target as Element)
-      if (componentGroup && "getBBox" in componentGroup) {
-        createHighlight(componentGroup as unknown as SVGGraphicsElement)
-      }
+      const target = event.currentTarget as Element
+      const rect = highlightRef.current
+      if (!rect || !("getBBox" in target)) return
+
+      const bbox = (target as unknown as SVGGraphicsElement).getBBox()
+      rect.setAttribute("x", bbox.x.toString())
+      rect.setAttribute("y", bbox.y.toString())
+      rect.setAttribute("width", bbox.width.toString())
+      rect.setAttribute("height", bbox.height.toString())
+      rect.style.display = ""
+    }
+
+    const handleMouseLeave = (event: MouseEvent) => {
+      const rect = highlightRef.current
+      if (!rect) return
+
+      const related = event.relatedTarget as Element | null
+      if (related?.closest(componentSelector)) return
+      rect.style.display = "none"
     }
 
     const componentElements = Array.from(
-      svgContainer.querySelectorAll('[data-circuit-json-type="schematic_component"]')
+      svgContainer.querySelectorAll(componentSelector)
     ) as HTMLElement[]
 
     if (shouldEnableInteraction) {
       componentElements.forEach((element) => {
         previousCursorMap.current.set(element, element.style.cursor || null)
         element.style.cursor = "pointer"
-        element.addEventListener("mouseenter", handleMouseEnter)
-        element.addEventListener("mouseleave", removeHighlight)
+        element.addEventListener("mouseenter", handleMouseEnter, { passive: true })
+        element.addEventListener("mouseleave", handleMouseLeave, { passive: true })
       })
     }
 
@@ -101,11 +106,15 @@ export const useComponentDoubleClick = ({
 
     return () => {
       svgContainer.removeEventListener("dblclick", handleDoubleClick)
-      removeHighlight()
+      // remove persistent rect
+      if (highlightRef.current) {
+        highlightRef.current.remove()
+        highlightRef.current = null
+      }
 
       componentElements.forEach((element) => {
         element.removeEventListener("mouseenter", handleMouseEnter)
-        element.removeEventListener("mouseleave", removeHighlight)
+        element.removeEventListener("mouseleave", handleMouseLeave)
         
         const previousCursor = previousCursorMap.current.get(element)
         if (previousCursor) {
