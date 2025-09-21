@@ -48,6 +48,39 @@ const getGraphicsElementsWithin = (element: Element) =>
   )
 
 const computeBoundingBox = (element: Element) => {
+  const graphicsElements = getGraphicsElementsWithin(element)
+
+  if (graphicsElements.length > 0) {
+    return graphicsElements.reduce<DOMRect | SVGRect | null>(
+      (accumulator, graphic) => {
+        const bbox = graphic.getBBox()
+
+        if (!accumulator) {
+          return bbox
+        }
+
+        const minX = Math.min(accumulator.x, bbox.x)
+        const minY = Math.min(accumulator.y, bbox.y)
+        const maxX = Math.max(
+          accumulator.x + accumulator.width,
+          bbox.x + bbox.width,
+        )
+        const maxY = Math.max(
+          accumulator.y + accumulator.height,
+          bbox.y + bbox.height,
+        )
+
+        return {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY,
+        } as DOMRect
+      },
+      null,
+    )
+  }
+
   if (isSvgGraphicsElement(element)) {
     const bbox = element.getBBox()
     if (bbox.width > 0 && bbox.height > 0) {
@@ -55,61 +88,7 @@ const computeBoundingBox = (element: Element) => {
     }
   }
 
-  const graphicsElements = getGraphicsElementsWithin(element)
-
-  if (graphicsElements.length === 0) {
-    return null
-  }
-
-  return graphicsElements.reduce<DOMRect | SVGRect | null>(
-    (accumulator, graphic) => {
-      const bbox = graphic.getBBox()
-
-      if (!accumulator) {
-        return bbox
-      }
-
-      const minX = Math.min(accumulator.x, bbox.x)
-      const minY = Math.min(accumulator.y, bbox.y)
-      const maxX = Math.max(accumulator.x + accumulator.width, bbox.x + bbox.width)
-      const maxY = Math.max(accumulator.y + accumulator.height, bbox.y + bbox.height)
-
-      return {
-        x: minX,
-        y: minY,
-        width: maxX - minX,
-        height: maxY - minY,
-      } as DOMRect
-    },
-    null,
-  )
-}
-
-const ensureTransitions = (
-  existing: string | null,
-  transitionsToAdd: string[],
-) => {
-  if (!existing || existing.trim().length === 0) {
-    return transitionsToAdd.join(", ")
-  }
-
-  const parsed = existing
-    .split(",")
-    .map((part) => part.trim())
-    .filter(Boolean)
-
-  transitionsToAdd.forEach((transition) => {
-    const property = transition.split(/\s+/)[0]
-    const alreadyPresent = parsed.some((existingTransition) =>
-      existingTransition.startsWith(property),
-    )
-
-    if (!alreadyPresent) {
-      parsed.push(transition)
-    }
-  })
-
-  return parsed.join(", ")
+  return null
 }
 
 export const useSchematicComponentDoubleClick = ({
@@ -162,12 +141,12 @@ export const useSchematicComponentDoubleClick = ({
       HTMLElement,
       {
         cursor: string | null
+        pointerEventsAttr: string | null
         highlightTargets: Array<{
           element: StylableElement
           stroke: string | null
           strokeWidth: string | null
           outline: string | null
-          transition: string | null
           pointerEvents: string | null
           removeOnCleanup: boolean
         }>
@@ -241,17 +220,7 @@ export const useSchematicComponentDoubleClick = ({
           const previousOutline = !isSvgElement(target)
             ? target.style.outline || null
             : null
-          const previousTransition = target.style.transition || null
           const previousPointerEvents = target.style.pointerEvents || null
-
-          const transitionsToEnsure = isSvgElement(target)
-            ? ["stroke 120ms ease", "stroke-width 120ms ease"]
-            : ["outline 120ms ease"]
-
-          target.style.transition = ensureTransitions(
-            target.style.transition,
-            transitionsToEnsure,
-          )
 
           if (removeOnCleanup) {
             target.style.pointerEvents = "none"
@@ -262,7 +231,6 @@ export const useSchematicComponentDoubleClick = ({
             stroke: previousStroke,
             strokeWidth: previousStrokeWidth,
             outline: previousOutline,
-            transition: previousTransition,
             pointerEvents: previousPointerEvents,
             removeOnCleanup,
           }
@@ -271,10 +239,14 @@ export const useSchematicComponentDoubleClick = ({
 
       previousElementState.set(element, {
         cursor: element.style.cursor || null,
+        pointerEventsAttr: element.getAttribute("pointer-events"),
         highlightTargets: highlightTargetState,
       })
 
       element.style.cursor = "pointer"
+      if (element instanceof SVGGraphicsElement) {
+        element.setAttribute("pointer-events", "bounding-box")
+      }
 
       const handleMouseEnter = () => {
         const previous = previousElementState.get(element)
@@ -337,6 +309,12 @@ export const useSchematicComponentDoubleClick = ({
         }
 
         if (previous) {
+          if (previous.pointerEventsAttr) {
+            element.setAttribute("pointer-events", previous.pointerEventsAttr)
+          } else {
+            element.removeAttribute("pointer-events")
+          }
+
           if (previous.cursor) {
             element.style.cursor = previous.cursor
           } else {
@@ -349,7 +327,6 @@ export const useSchematicComponentDoubleClick = ({
               stroke,
               strokeWidth,
               outline,
-              transition,
               pointerEvents,
               removeOnCleanup,
             }) => {
@@ -379,12 +356,6 @@ export const useSchematicComponentDoubleClick = ({
 
               if (removeOnCleanup && target.parentNode) {
                 target.parentNode.removeChild(target)
-              }
-
-              if (transition) {
-                target.style.transition = transition
-              } else {
-                target.style.removeProperty("transition")
               }
             },
           )
