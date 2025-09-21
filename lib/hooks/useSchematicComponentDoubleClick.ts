@@ -1,3 +1,4 @@
+
 import { useEffect } from "react"
 import type { RefObject } from "react"
 
@@ -33,6 +34,9 @@ const isSvgGraphicsElement = (
 const HIGHLIGHT_TARGET_SELECTOR =
   "path, rect, circle, ellipse, line, polyline, polygon, use, image"
 
+const BOUNDING_BOX_TARGET_SELECTOR =
+  `${HIGHLIGHT_TARGET_SELECTOR}, text, foreignObject`
+
 const getOwnerSvg = (element: Element): SVGSVGElement | null => {
   if (element instanceof SVGGraphicsElement && element.ownerSVGElement) {
     return element.ownerSVGElement
@@ -47,8 +51,13 @@ const getGraphicsElementsWithin = (element: Element) =>
     (child): child is SVGGraphicsElement => isSvgGraphicsElement(child),
   )
 
+const getBoundingBoxElementsWithin = (element: Element) =>
+  Array.from(element.querySelectorAll(BOUNDING_BOX_TARGET_SELECTOR)).filter(
+    (child): child is SVGGraphicsElement => isSvgGraphicsElement(child),
+  )
+
 const computeBoundingBox = (element: Element) => {
-  const graphicsElements = getGraphicsElementsWithin(element)
+  const graphicsElements = getBoundingBoxElementsWithin(element)
 
   if (graphicsElements.length > 0) {
     return graphicsElements.reduce<DOMRect | SVGRect | null>(
