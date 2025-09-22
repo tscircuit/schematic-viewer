@@ -266,7 +266,6 @@ export const SchematicViewer = ({
     svgDivRef,
     onClickComponent,
     enabled: !!onClickComponent,
-    svgContent: svgString,
   })
 
   // keep the latest touch handler without re-rendering the svg div
