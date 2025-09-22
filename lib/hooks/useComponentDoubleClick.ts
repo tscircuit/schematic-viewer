@@ -4,7 +4,7 @@ interface UseComponentDoubleClickOptions {
   svgDivRef: React.RefObject<HTMLDivElement | null>
   onClickComponent?: (componentId: string) => void
   enabled: boolean
-  svgContent?: string // Add this to track when SVG changes
+  svgContent?: string 
 }
 
 export const useComponentDoubleClick = ({
@@ -15,43 +15,21 @@ export const useComponentDoubleClick = ({
 }: UseComponentDoubleClickOptions) => {
   const handleDoubleClick = useCallback(
     (event: Event) => {
-      console.log("Double-click event detected", event)
-      
-      if (!enabled || !onClickComponent) {
-        console.log("Double-click handling disabled or no callback provided")
-        return
-      }
+      if (!enabled || !onClickComponent) return
 
       const target = event.target as Element
-      if (!target) {
-        console.log("No target found")
-        return
-      }
-
-      console.log("Target element:", target)
+      if (!target) return
 
       // Find the schematic component group
       const componentGroup = target.closest(
         '[data-circuit-json-type="schematic_component"]',
       )
-      
-      console.log("Component group found:", componentGroup)
-      
-      if (!componentGroup) {
-        console.log("No component group found")
-        return
-      }
+      if (!componentGroup) return
 
       const componentId = componentGroup.getAttribute(
         "data-schematic-component-id",
       )
-      
-      console.log("Component ID:", componentId)
-      
-      if (!componentId) {
-        console.log("No component ID found")
-        return
-      }
+      if (!componentId) return
 
       // Show alert for now as placeholder for editing dialog
       alert(`Double-clicked component: ${componentId}`)
@@ -69,17 +47,12 @@ export const useComponentDoubleClick = ({
     // Add a small delay to ensure SVG is rendered
     const timeoutId = setTimeout(() => {
       const svg = svgDivRef.current?.querySelector("svg")
-      if (!svg) {
-        console.log("SVG not found in DOM")
-        return
-      }
-
-      console.log("Setting up component interaction styles and event listeners")
+      if (!svg) return
 
       // Create a style element for component hover and cursor styles
       const styleId = "schematic-component-interaction-styles"
       let styleElement = document.getElementById(styleId) as HTMLStyleElement
-      
+
       if (!styleElement) {
         styleElement = document.createElement("style")
         styleElement.id = styleId
@@ -97,11 +70,7 @@ export const useComponentDoubleClick = ({
           filter: brightness(1.1) !important;
         }
       `
-
-      // Check if there are any components
-      const components = svg.querySelectorAll('[data-circuit-json-type="schematic_component"]')
-      console.log(`Found ${components.length} components`)
-    }, 100) // Give more time for DOM to be ready
+    }, 100) // Give time for DOM to be ready
 
     const svgDiv = svgDivRef.current
     svgDiv.addEventListener("dblclick", handleDoubleClick)
@@ -116,7 +85,9 @@ export const useComponentDoubleClick = ({
   useEffect(() => {
     return () => {
       if (!enabled || !onClickComponent) {
-        const styleElement = document.getElementById("schematic-component-interaction-styles")
+        const styleElement = document.getElementById(
+          "schematic-component-interaction-styles",
+        )
         if (styleElement) {
           styleElement.remove()
         }
