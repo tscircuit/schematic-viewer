@@ -26,12 +26,12 @@ export const ControlledSchematicViewer = ({
       circuitJson={circuitJson}
       editEvents={editEvents}
       onEditEvent={(event) => setEditEvents([...editEvents, event])}
-      onClickComponent={onClickComponent}
       containerStyle={containerStyle}
       debugGrid={debugGrid}
       editingEnabled={editingEnabled}
       debug={debug}
       clickToInteractEnabled={clickToInteractEnabled}
+      onClickComponent={onClickComponent}
     />
   )
 }

@@ -262,22 +262,11 @@ export const SchematicViewer = ({
   })
 
   // Add double-click handling for components
-  const { addComponentCursor } = useComponentDoubleClick({
+  useComponentDoubleClick({
     svgDivRef,
     onClickComponent,
     enabled: !!onClickComponent,
   })
-
-  // Apply cursor styles after SVG is rendered
-  useEffect(() => {
-    if (onClickComponent) {
-      // Small delay to ensure SVG is rendered
-      const timeoutId = setTimeout(() => {
-        addComponentCursor()
-      }, 10)
-      return () => clearTimeout(timeoutId)
-    }
-  }, [svgString, addComponentCursor, onClickComponent])
 
   // keep the latest touch handler without re-rendering the svg div
   const handleComponentTouchStartRef = useRef(handleComponentTouchStart)
