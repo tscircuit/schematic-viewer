@@ -9,6 +9,7 @@ export const ControlledSchematicViewer = ({
   editingEnabled = false,
   debug = false,
   clickToInteractEnabled = false,
+  onSchematicComponentClicked,
 }: {
   circuitJson: any[]
   containerStyle?: React.CSSProperties
@@ -16,6 +17,10 @@ export const ControlledSchematicViewer = ({
   editingEnabled?: boolean
   debug?: boolean
   clickToInteractEnabled?: boolean
+  onSchematicComponentClicked?: (options: {
+    schematicComponentId: string
+    event: MouseEvent
+  }) => void
 }) => {
   const [editEvents, setEditEvents] = useState<ManualEditEvent[]>([])
 
@@ -29,6 +34,7 @@ export const ControlledSchematicViewer = ({
       editingEnabled={editingEnabled}
       debug={debug}
       clickToInteractEnabled={clickToInteractEnabled}
+      onSchematicComponentClicked={onSchematicComponentClicked}
     />
   )
 }
