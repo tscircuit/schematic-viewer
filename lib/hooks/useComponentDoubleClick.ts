@@ -49,8 +49,12 @@ export const useComponentDoubleClick = ({
       const svg = svgDivRef.current?.querySelector("svg")
       if (!svg) return
 
-      // Create a style element for component hover and cursor styles
-      const styleId = "schematic-component-interaction-styles"
+      // Generate a unique ID for this SVG instance
+      const svgId = `svg-${Math.random().toString(36).substr(2, 9)}`
+      svg.setAttribute("data-svg-id", svgId)
+
+      // Create a style element scoped to this specific SVG
+      const styleId = `schematic-component-styles-${svgId}`
       let styleElement = document.getElementById(styleId) as HTMLStyleElement
 
       if (!styleElement) {
@@ -59,17 +63,20 @@ export const useComponentDoubleClick = ({
         document.head.appendChild(styleElement)
       }
 
-      // Add CSS rules for component interaction
+      // Add CSS rules scoped to this specific SVG instance
       styleElement.textContent = `
-        [data-circuit-json-type="schematic_component"] {
+        [data-svg-id="${svgId}"] [data-circuit-json-type="schematic_component"] {
           cursor: pointer !important;
           transition: opacity 0.15s ease;
         }
-        [data-circuit-json-type="schematic_component"]:hover {
+        [data-svg-id="${svgId}"] [data-circuit-json-type="schematic_component"]:hover {
           opacity: 0.8 !important;
           filter: brightness(1.1) !important;
         }
       `
+
+      // Store the style element ID for cleanup
+      svg.setAttribute("data-style-id", styleId)
     }, 100) // Give time for DOM to be ready
 
     const svgDiv = svgDivRef.current
@@ -78,20 +85,18 @@ export const useComponentDoubleClick = ({
     return () => {
       clearTimeout(timeoutId)
       svgDiv.removeEventListener("dblclick", handleDoubleClick)
-    }
-  }, [svgDivRef, handleDoubleClick, enabled, onClickComponent, svgContent])
-
-  // Cleanup styles when component unmounts or is disabled
-  useEffect(() => {
-    return () => {
-      if (!enabled || !onClickComponent) {
-        const styleElement = document.getElementById(
-          "schematic-component-interaction-styles",
-        )
-        if (styleElement) {
-          styleElement.remove()
+      
+      // Clean up the scoped styles
+      const svg = svgDiv.querySelector("svg")
+      if (svg) {
+        const styleId = svg.getAttribute("data-style-id")
+        if (styleId) {
+          const styleElement = document.getElementById(styleId)
+          if (styleElement) {
+            styleElement.remove()
+          }
         }
       }
     }
-  }, [enabled, onClickComponent])
+  }, [svgDivRef, handleDoubleClick, enabled, onClickComponent, svgContent])
 }
