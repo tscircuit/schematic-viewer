@@ -5,6 +5,7 @@ import {
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
+import { useComponentDoubleClick } from "lib/hooks/useComponentDoubleClick"
 import { enableDebug } from "lib/utils/debug"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -33,6 +34,7 @@ interface Props {
   containerStyle?: React.CSSProperties
   editEvents?: ManualEditEvent[]
   onEditEvent?: (event: ManualEditEvent) => void
+  onClickComponent?: (componentId: string) => void
   defaultEditMode?: boolean
   debugGrid?: boolean
   editingEnabled?: boolean
@@ -48,6 +50,7 @@ export const SchematicViewer = ({
   containerStyle,
   editEvents: unappliedEditEvents = [],
   onEditEvent,
+  onClickComponent,
   defaultEditMode = false,
   debugGrid = false,
   editingEnabled = false,
@@ -257,6 +260,24 @@ export const SchematicViewer = ({
     circuitJsonKey,
     showGroups: showSchematicGroups && !disableGroups,
   })
+
+  // Add double-click handling for components
+  const { addComponentCursor } = useComponentDoubleClick({
+    svgDivRef,
+    onClickComponent,
+    enabled: !!onClickComponent,
+  })
+
+  // Apply cursor styles after SVG is rendered
+  useEffect(() => {
+    if (onClickComponent) {
+      // Small delay to ensure SVG is rendered
+      const timeoutId = setTimeout(() => {
+        addComponentCursor()
+      }, 10)
+      return () => clearTimeout(timeoutId)
+    }
+  }, [svgString, addComponentCursor, onClickComponent])
 
   // keep the latest touch handler without re-rendering the svg div
   const handleComponentTouchStartRef = useRef(handleComponentTouchStart)
