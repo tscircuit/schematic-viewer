@@ -171,7 +171,7 @@ export const SchematicComponentMouseTarget = ({
         top: rect.top,
         width: rect.width,
         height: rect.height,
-        borderRadius: "6px",
+        border: "1.5px solid rgba(51, 153, 255, 0.9)",
         pointerEvents: "none",
         zIndex: zIndexMap.schematicComponentHoverOutline,
       }}
