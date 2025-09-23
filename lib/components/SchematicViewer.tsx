@@ -2,6 +2,7 @@ import {
   convertCircuitJsonToSchematicSvg,
   type ColorOverrides,
 } from "circuit-to-svg"
+import { su } from "@tscircuit/soup-util"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
@@ -15,7 +16,6 @@ import {
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
-import { useComponentDoubleClick } from "../hooks/useComponentDoubleClick"
 import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
@@ -28,6 +28,8 @@ import { zIndexMap } from "../utils/z-index-map"
 import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
 import { getSpiceFromCircuitJson } from "../utils/spice-utils"
 import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
+import { MouseTracker } from "./MouseTracker"
+import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 
 interface Props {
   circuitJson: CircuitJson
@@ -42,7 +44,11 @@ interface Props {
   colorOverrides?: ColorOverrides
   spiceSimulationEnabled?: boolean
   disableGroups?: boolean
-  onClickComponent?: (args: {
+  onSchematicComponentClicked?: (options: {
+    schematicComponentId: string
+    event: MouseEvent
+  }) => void
+  onSchematicComponentDoubleClicked?: (options: {
     schematicComponentId: string
     event: MouseEvent
   }) => void
@@ -61,7 +67,8 @@ export const SchematicViewer = ({
   colorOverrides,
   spiceSimulationEnabled = false,
   disableGroups = false,
-  onClickComponent,
+  onSchematicComponentClicked,
+  onSchematicComponentDoubleClicked,
 }: Props) => {
   if (debug) {
     enableDebug()
@@ -123,6 +130,19 @@ export const SchematicViewer = ({
   })
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+
+  const schematicComponentIds = useMemo(() => {
+    try {
+      return (
+        su(circuitJson)
+          .schematic_component?.list()
+          ?.map((component) => component.schematic_component_id as string) ?? []
+      )
+    } catch (err) {
+      console.error("Failed to derive schematic component ids", err)
+      return []
+    }
+  }, [circuitJsonKey, circuitJson])
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
@@ -264,15 +284,6 @@ export const SchematicViewer = ({
     showGroups: showSchematicGroups && !disableGroups,
   })
 
-  useComponentDoubleClick({
-    svgDivRef,
-    svgString,
-    onClickComponent,
-    clickToInteractEnabled,
-    isInteractionEnabled,
-    showSpiceOverlay,
-  })
-
   // keep the latest touch handler without re-rendering the svg div
   const handleComponentTouchStartRef = useRef(handleComponentTouchStart)
   useEffect(() => {
@@ -310,137 +321,162 @@ export const SchematicViewer = ({
   )
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        position: "relative",
-        backgroundColor: containerBackgroundColor,
-        overflow: "hidden",
-        cursor: showSpiceOverlay
-          ? "auto"
-          : isDragging
-            ? "grabbing"
-            : clickToInteractEnabled && !isInteractionEnabled
-              ? "pointer"
-              : "grab",
-        minHeight: "300px",
-        ...containerStyle,
-      }}
-      onWheelCapture={(e) => {
-        if (showSpiceOverlay) {
-          e.stopPropagation()
-        }
-      }}
-      onMouseDown={(e) => {
-        if (clickToInteractEnabled && !isInteractionEnabled) {
-          e.preventDefault()
-          e.stopPropagation()
-          return
-        }
-        handleMouseDown(e)
-      }}
-      onMouseDownCapture={(e) => {
-        if (clickToInteractEnabled && !isInteractionEnabled) {
-          e.preventDefault()
-          e.stopPropagation()
-          return
-        }
-      }}
-      onTouchStart={(e) => {
-        if (showSpiceOverlay) return
-        handleTouchStart(e)
-      }}
-      onTouchEnd={(e) => {
-        if (showSpiceOverlay) return
-        handleTouchEnd(e)
-      }}
-    >
-      {!isInteractionEnabled && clickToInteractEnabled && (
-        <div
-          onClick={(e) => {
-            e.preventDefault()
+    <MouseTracker>
+      <div
+        ref={containerRef}
+        style={{
+          position: "relative",
+          backgroundColor: containerBackgroundColor,
+          overflow: "hidden",
+          cursor: showSpiceOverlay
+            ? "auto"
+            : isDragging
+              ? "grabbing"
+              : clickToInteractEnabled && !isInteractionEnabled
+                ? "pointer"
+                : "grab",
+          minHeight: "300px",
+          ...containerStyle,
+        }}
+        onWheelCapture={(e) => {
+          if (showSpiceOverlay) {
             e.stopPropagation()
-            setIsInteractionEnabled(true)
-          }}
-          style={{
-            position: "absolute",
-            inset: 0,
-            cursor: "pointer",
-            zIndex: zIndexMap.clickToInteractOverlay,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            pointerEvents: "all",
-            touchAction: "pan-x pan-y pinch-zoom",
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "rgba(0, 0, 0, 0.8)",
-              color: "white",
-              padding: "12px 24px",
-              borderRadius: "8px",
-              fontSize: "16px",
-              fontFamily: "sans-serif",
-              pointerEvents: "none",
-            }}
-          >
-            {typeof window !== "undefined" &&
-            ("ontouchstart" in window || navigator.maxTouchPoints > 0)
-              ? "Touch to Interact"
-              : "Click to Interact"}
-          </div>
-        </div>
-      )}
-      <ViewMenuIcon
-        active={showViewMenu}
-        onClick={() => setShowViewMenu(!showViewMenu)}
-      />
-      {editingEnabled && (
-        <EditIcon
-          active={editModeEnabled}
-          onClick={() => setEditModeEnabled(!editModeEnabled)}
-        />
-      )}
-      {editingEnabled && editModeEnabled && (
-        <GridIcon
-          active={snapToGrid}
-          onClick={() => setSnapToGrid(!snapToGrid)}
-        />
-      )}
-      <ViewMenu
-        circuitJson={circuitJson}
-        circuitJsonKey={circuitJsonKey}
-        isVisible={showViewMenu}
-        onClose={() => setShowViewMenu(false)}
-        showGroups={showSchematicGroups}
-        onToggleGroups={(value) => {
-          if (!disableGroups) {
-            setShowSchematicGroups(value)
-            setStoredBoolean("schematic_viewer_show_groups", value)
           }
         }}
-      />
-      {spiceSimulationEnabled && (
-        <SpiceSimulationIcon onClick={() => setShowSpiceOverlay(true)} />
-      )}
-      {showSpiceOverlay && (
-        <SpiceSimulationOverlay
-          spiceString={spiceString}
-          onClose={() => setShowSpiceOverlay(false)}
-          plotData={plotData}
-          nodes={nodes}
-          isLoading={isSpiceSimLoading}
-          error={spiceSimError}
-          simOptions={spiceSimOptions}
-          onSimOptionsChange={(options) => {
-            setHasSpiceSimRun(true)
-            setSpiceSimOptions(options)
-          }}
-          hasRun={hasSpiceSimRun}
+        onMouseDown={(e) => {
+          if (clickToInteractEnabled && !isInteractionEnabled) {
+            e.preventDefault()
+            e.stopPropagation()
+            return
+          }
+          handleMouseDown(e)
+        }}
+        onMouseDownCapture={(e) => {
+          if (clickToInteractEnabled && !isInteractionEnabled) {
+            e.preventDefault()
+            e.stopPropagation()
+            return
+          }
+        }}
+        onTouchStart={(e) => {
+          if (showSpiceOverlay) return
+          handleTouchStart(e)
+        }}
+        onTouchEnd={(e) => {
+          if (showSpiceOverlay) return
+          handleTouchEnd(e)
+        }}
+      >
+        {!isInteractionEnabled && clickToInteractEnabled && (
+          <div
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsInteractionEnabled(true)
+            }}
+            style={{
+              position: "absolute",
+              inset: 0,
+              cursor: "pointer",
+              zIndex: zIndexMap.clickToInteractOverlay,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pointerEvents: "all",
+              touchAction: "pan-x pan-y pinch-zoom",
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: "rgba(0, 0, 0, 0.8)",
+                color: "white",
+                padding: "12px 24px",
+                borderRadius: "8px",
+                fontSize: "16px",
+                fontFamily: "sans-serif",
+                pointerEvents: "none",
+              }}
+            >
+              {typeof window !== "undefined" &&
+              ("ontouchstart" in window || navigator.maxTouchPoints > 0)
+                ? "Touch to Interact"
+                : "Click to Interact"}
+            </div>
+          </div>
+        )}
+        <ViewMenuIcon
+          active={showViewMenu}
+          onClick={() => setShowViewMenu(!showViewMenu)}
         />
-      )}
-      {svgDiv}
-    </div>
+        {editingEnabled && (
+          <EditIcon
+            active={editModeEnabled}
+            onClick={() => setEditModeEnabled(!editModeEnabled)}
+          />
+        )}
+        {editingEnabled && editModeEnabled && (
+          <GridIcon
+            active={snapToGrid}
+            onClick={() => setSnapToGrid(!snapToGrid)}
+          />
+        )}
+        <ViewMenu
+          circuitJson={circuitJson}
+          circuitJsonKey={circuitJsonKey}
+          isVisible={showViewMenu}
+          onClose={() => setShowViewMenu(false)}
+          showGroups={showSchematicGroups}
+          onToggleGroups={(value) => {
+            if (!disableGroups) {
+              setShowSchematicGroups(value)
+              setStoredBoolean("schematic_viewer_show_groups", value)
+            }
+          }}
+        />
+        {spiceSimulationEnabled && (
+          <SpiceSimulationIcon onClick={() => setShowSpiceOverlay(true)} />
+        )}
+        {showSpiceOverlay && (
+          <SpiceSimulationOverlay
+            spiceString={spiceString}
+            onClose={() => setShowSpiceOverlay(false)}
+            plotData={plotData}
+            nodes={nodes}
+            isLoading={isSpiceSimLoading}
+            error={spiceSimError}
+            simOptions={spiceSimOptions}
+            onSimOptionsChange={(options) => {
+              setHasSpiceSimRun(true)
+              setSpiceSimOptions(options)
+            }}
+            hasRun={hasSpiceSimRun}
+          />
+        )}
+        {(onSchematicComponentClicked || onSchematicComponentDoubleClicked) &&
+          schematicComponentIds.map((componentId) => (
+            <SchematicComponentMouseTarget
+              key={componentId}
+              componentId={componentId}
+              svgDivRef={svgDivRef}
+              containerRef={containerRef}
+              showOutline={true}
+              circuitJsonKey={circuitJsonKey}
+              onComponentClick={onSchematicComponentClicked ? (id, event) => {
+                onSchematicComponentClicked?.({
+                  schematicComponentId: id,
+                  event,
+                })
+              } : undefined}
+              onComponentDoubleClick={onSchematicComponentDoubleClicked ? (id, event) => {
+                onSchematicComponentDoubleClicked?.({
+                  schematicComponentId: id,
+                  event,
+                })
+              } : undefined}
+            />
+          ))}
+        {svgDiv}
+      </div>
+    </MouseTracker>
   )
 }

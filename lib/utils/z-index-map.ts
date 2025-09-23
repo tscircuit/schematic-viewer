@@ -6,4 +6,5 @@ export const zIndexMap = {
   viewMenu: 55,
   viewMenuBackdrop: 54,
   clickToInteractOverlay: 100,
+  schematicComponentHoverOutline: 47,
 }

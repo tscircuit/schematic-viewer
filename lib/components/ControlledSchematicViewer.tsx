@@ -9,7 +9,8 @@ export const ControlledSchematicViewer = ({
   editingEnabled = false,
   debug = false,
   clickToInteractEnabled = false,
-  onClickComponent,
+  onSchematicComponentClicked,
+  onSchematicComponentDoubleClicked,
 }: {
   circuitJson: any[]
   containerStyle?: React.CSSProperties
@@ -17,7 +18,11 @@ export const ControlledSchematicViewer = ({
   editingEnabled?: boolean
   debug?: boolean
   clickToInteractEnabled?: boolean
-  onClickComponent?: (args: {
+  onSchematicComponentClicked?: (options: {
+    schematicComponentId: string
+    event: MouseEvent
+  }) => void
+  onSchematicComponentDoubleClicked?: (options: {
     schematicComponentId: string
     event: MouseEvent
   }) => void
@@ -34,7 +39,8 @@ export const ControlledSchematicViewer = ({
       editingEnabled={editingEnabled}
       debug={debug}
       clickToInteractEnabled={clickToInteractEnabled}
-      onClickComponent={onClickComponent}
+      onSchematicComponentClicked={onSchematicComponentClicked}
+      onSchematicComponentDoubleClicked={onSchematicComponentDoubleClicked}
     />
   )
 }
