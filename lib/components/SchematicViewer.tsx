@@ -297,6 +297,11 @@ export const SchematicViewer = ({
             : "auto",
           transformOrigin: "0 0",
         }}
+        className={
+          onSchematicComponentClicked
+            ? "schematic-component-clickable"
+            : undefined
+        }
         onTouchStart={(e) => {
           if (editModeEnabled && isInteractionEnabled && !showSpiceOverlay) {
             handleComponentTouchStartRef.current(e)
@@ -317,6 +322,11 @@ export const SchematicViewer = ({
 
   return (
     <MouseTracker>
+      {onSchematicComponentClicked && (
+        <style>
+          {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
+        </style>
+      )}
       <div
         ref={containerRef}
         style={{
