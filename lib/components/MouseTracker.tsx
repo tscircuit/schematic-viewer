@@ -18,6 +18,7 @@ export interface BoundingBoxBounds {
 interface BoundingBoxRegistration {
   bounds: BoundingBoxBounds | null
   onClick?: ((event: MouseEvent) => void) | undefined
+  onDoubleClick?: ((event: MouseEvent) => void) | undefined
 }
 
 export interface MouseTrackerContextValue {
@@ -113,7 +114,8 @@ export const MouseTracker = ({ children }: { children: ReactNode }) => {
       if (
         existing &&
         boundsAreEqual(existing.bounds, registration.bounds) &&
-        existing.onClick === registration.onClick
+        existing.onClick === registration.onClick &&
+        existing.onDoubleClick === registration.onDoubleClick
       ) {
         return
       }
@@ -177,6 +179,22 @@ export const MouseTracker = ({ children }: { children: ReactNode }) => {
       }
     }
 
+    const handleDoubleClick = (event: MouseEvent) => {
+      const { clientX, clientY } = event
+      for (const registration of storeRef.current.boundingBoxes.values()) {
+        const bounds = registration.bounds
+        if (!bounds) continue
+        if (
+          clientX >= bounds.minX &&
+          clientX <= bounds.maxX &&
+          clientY >= bounds.minY &&
+          clientY <= bounds.maxY
+        ) {
+          registration.onDoubleClick?.(event)
+        }
+      }
+    }
+
     window.addEventListener("pointermove", handlePointerPosition, {
       passive: true,
     })
@@ -190,6 +208,7 @@ export const MouseTracker = ({ children }: { children: ReactNode }) => {
     window.addEventListener("pointercancel", handlePointerLeave)
     window.addEventListener("blur", handlePointerLeave)
     window.addEventListener("click", handleClick, { passive: true })
+    window.addEventListener("dblclick", handleDoubleClick, { passive: true })
 
     return () => {
       window.removeEventListener("pointermove", handlePointerPosition)
@@ -199,6 +218,7 @@ export const MouseTracker = ({ children }: { children: ReactNode }) => {
       window.removeEventListener("pointercancel", handlePointerLeave)
       window.removeEventListener("blur", handlePointerLeave)
       window.removeEventListener("click", handleClick)
+      window.removeEventListener("dblclick", handleDoubleClick)
     }
   }, [updateHovering])
 

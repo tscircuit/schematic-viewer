@@ -35,6 +35,7 @@ interface Props {
   svgDivRef: React.RefObject<HTMLDivElement | null>
   containerRef: React.RefObject<HTMLDivElement | null>
   onComponentClick?: (componentId: string, event: MouseEvent) => void
+  onComponentDoubleClick?: (componentId: string, event: MouseEvent) => void
   showOutline: boolean
   circuitJsonKey: string
 }
@@ -44,6 +45,7 @@ export const SchematicComponentMouseTarget = ({
   svgDivRef,
   containerRef,
   onComponentClick,
+  onComponentDoubleClick,
   showOutline,
   circuitJsonKey,
 }: Props) => {
@@ -150,11 +152,21 @@ export const SchematicComponentMouseTarget = ({
     [componentId, onComponentClick],
   )
 
+  const handleDoubleClick = useCallback(
+    (event: MouseEvent) => {
+      if (onComponentDoubleClick) {
+        onComponentDoubleClick(componentId, event)
+      }
+    },
+    [componentId, onComponentDoubleClick],
+  )
+
   const bounds = measurement?.bounds ?? null
 
   const { hovering } = useMouseEventsOverBoundingBox({
     bounds,
     onClick: onComponentClick ? handleClick : undefined,
+    onDoubleClick: onComponentDoubleClick ? handleDoubleClick : undefined,
   })
 
   if (!measurement || !hovering || !showOutline) {

@@ -48,6 +48,10 @@ interface Props {
     schematicComponentId: string
     event: MouseEvent
   }) => void
+  onSchematicComponentDoubleClicked?: (options: {
+    schematicComponentId: string
+    event: MouseEvent
+  }) => void
 }
 
 export const SchematicViewer = ({
@@ -64,6 +68,7 @@ export const SchematicViewer = ({
   spiceSimulationEnabled = false,
   disableGroups = false,
   onSchematicComponentClicked,
+  onSchematicComponentDoubleClicked,
 }: Props) => {
   if (debug) {
     enableDebug()
@@ -447,7 +452,7 @@ export const SchematicViewer = ({
             hasRun={hasSpiceSimRun}
           />
         )}
-        {onSchematicComponentClicked &&
+        {(onSchematicComponentClicked || onSchematicComponentDoubleClicked) &&
           schematicComponentIds.map((componentId) => (
             <SchematicComponentMouseTarget
               key={componentId}
@@ -456,12 +461,18 @@ export const SchematicViewer = ({
               containerRef={containerRef}
               showOutline={true}
               circuitJsonKey={circuitJsonKey}
-              onComponentClick={(id, event) => {
+              onComponentClick={onSchematicComponentClicked ? (id, event) => {
                 onSchematicComponentClicked?.({
                   schematicComponentId: id,
                   event,
                 })
-              }}
+              } : undefined}
+              onComponentDoubleClick={onSchematicComponentDoubleClicked ? (id, event) => {
+                onSchematicComponentDoubleClicked?.({
+                  schematicComponentId: id,
+                  event,
+                })
+              } : undefined}
             />
           ))}
         {svgDiv}

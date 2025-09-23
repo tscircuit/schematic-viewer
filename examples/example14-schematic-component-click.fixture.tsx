@@ -15,6 +15,9 @@ export default function Example() {
   const [clickedComponentId, setClickedComponentId] = useState<string | null>(
     null,
   )
+  const [doubleClickedComponentId, setDoubleClickedComponentId] = useState<string | null>(
+    null,
+  )
 
   return (
     <div
@@ -32,12 +35,23 @@ export default function Example() {
           ? `Last clicked component: ${clickedComponentId}`
           : "Click a component to highlight it"}
       </div>
+      <div style={{ fontFamily: "sans-serif" }}>
+        {doubleClickedComponentId
+          ? `Last double-clicked component: ${doubleClickedComponentId}`
+          : "Double-click a component to edit it"}
+      </div>
       <div style={{ flex: 1, minHeight: 320 }}>
         <ControlledSchematicViewer
           circuitJson={circuitJson}
           containerStyle={{ height: "100%" }}
           onSchematicComponentClicked={({ schematicComponentId }) => {
             setClickedComponentId(schematicComponentId)
+          }}
+          onSchematicComponentDoubleClicked={({ schematicComponentId }) => {
+            setDoubleClickedComponentId(schematicComponentId)
+            if (typeof window !== "undefined") {
+              window.alert(`Double-clicked ${schematicComponentId}! Opening edit dialog...`)
+            }
           }}
         />
       </div>

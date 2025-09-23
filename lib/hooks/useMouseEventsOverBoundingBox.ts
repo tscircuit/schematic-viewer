@@ -14,6 +14,7 @@ import {
 interface UseMouseEventsOverBoundingBoxOptions {
   bounds: BoundingBoxBounds | null
   onClick?: (event: MouseEvent) => void
+  onDoubleClick?: (event: MouseEvent) => void
 }
 
 export const useMouseEventsOverBoundingBox = (
@@ -38,30 +39,41 @@ export const useMouseEventsOverBoundingBox = (
     [],
   )
 
+  const handleDoubleClick = useMemo(
+    () => (event: MouseEvent) => {
+      latestOptionsRef.current.onDoubleClick?.(event)
+    },
+    [],
+  )
+
   useEffect(() => {
     context.registerBoundingBox(id, {
       bounds: latestOptionsRef.current.bounds,
       onClick: latestOptionsRef.current.onClick ? handleClick : undefined,
+      onDoubleClick: latestOptionsRef.current.onDoubleClick ? handleDoubleClick : undefined,
     })
     return () => {
       context.unregisterBoundingBox(id)
     }
-  }, [context, handleClick, id])
+  }, [context, handleClick, handleDoubleClick, id])
 
   useEffect(() => {
     context.updateBoundingBox(id, {
       bounds: latestOptionsRef.current.bounds,
       onClick: latestOptionsRef.current.onClick ? handleClick : undefined,
+      onDoubleClick: latestOptionsRef.current.onDoubleClick ? handleDoubleClick : undefined,
     })
   }, [
     context,
     handleClick,
+    handleDoubleClick,
     id,
     options.bounds?.minX,
     options.bounds?.maxX,
     options.bounds?.minY,
     options.bounds?.maxY,
     options.onClick,
+    options.onDoubleClick,
   ])
 
   const hovering = useSyncExternalStore(
