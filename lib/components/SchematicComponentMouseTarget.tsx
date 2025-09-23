@@ -35,6 +35,7 @@ interface Props {
   svgDivRef: React.RefObject<HTMLDivElement | null>
   containerRef: React.RefObject<HTMLDivElement | null>
   onComponentClick?: (componentId: string, event: MouseEvent) => void
+  onHoverChange?: (componentId: string, isHovering: boolean) => void
   showOutline: boolean
   circuitJsonKey: string
 }
@@ -44,6 +45,7 @@ export const SchematicComponentMouseTarget = ({
   svgDivRef,
   containerRef,
   onComponentClick,
+  onHoverChange,
   showOutline,
   circuitJsonKey,
 }: Props) => {
@@ -157,6 +159,13 @@ export const SchematicComponentMouseTarget = ({
     onClick: onComponentClick ? handleClick : undefined,
   })
 
+  // Notify parent of hover state changes
+  useEffect(() => {
+    if (onHoverChange) {
+      onHoverChange(componentId, hovering)
+    }
+  }, [hovering, componentId, onHoverChange])
+
   if (!measurement || !hovering || !showOutline) {
     return null
   }
@@ -172,10 +181,8 @@ export const SchematicComponentMouseTarget = ({
         width: rect.width,
         height: rect.height,
         border: "1.5px solid rgba(51, 153, 255, 0.9)",
-        borderRadius: "6px",
         pointerEvents: "none",
         zIndex: zIndexMap.schematicComponentHoverOutline,
-        boxShadow: "0 0 6px rgba(51, 153, 255, 0.35)",
       }}
     />
   )
