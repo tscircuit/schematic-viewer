@@ -7,7 +7,7 @@ import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSc
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { enableDebug } from "lib/utils/debug"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   fromString,
   identity,
@@ -123,6 +123,21 @@ export const SchematicViewer = ({
     if (disableGroups) return false
     return getStoredBoolean("schematic_viewer_show_groups", false)
   })
+  const [isHoveringClickableComponent, setIsHoveringClickableComponent] =
+    useState(false)
+  const hoveringComponentsRef = useRef<Set<string>>(new Set())
+
+  const handleComponentHoverChange = useCallback(
+    (componentId: string, isHovering: boolean) => {
+      if (isHovering) {
+        hoveringComponentsRef.current.add(componentId)
+      } else {
+        hoveringComponentsRef.current.delete(componentId)
+      }
+      setIsHoveringClickableComponent(hoveringComponentsRef.current.size > 0)
+    },
+    [],
+  )
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
@@ -297,6 +312,11 @@ export const SchematicViewer = ({
             : "auto",
           transformOrigin: "0 0",
         }}
+        className={
+          onSchematicComponentClicked
+            ? "schematic-component-clickable"
+            : undefined
+        }
         onTouchStart={(e) => {
           if (editModeEnabled && isInteractionEnabled && !showSpiceOverlay) {
             handleComponentTouchStartRef.current(e)
@@ -317,6 +337,11 @@ export const SchematicViewer = ({
 
   return (
     <MouseTracker>
+      {onSchematicComponentClicked && (
+        <style>
+          {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
+        </style>
+      )}
       <div
         ref={containerRef}
         style={{
@@ -329,7 +354,9 @@ export const SchematicViewer = ({
               ? "grabbing"
               : clickToInteractEnabled && !isInteractionEnabled
                 ? "pointer"
-                : "grab",
+                : isHoveringClickableComponent && onSchematicComponentClicked
+                  ? "pointer"
+                  : "grab",
           minHeight: "300px",
           ...containerStyle,
         }}
@@ -456,6 +483,7 @@ export const SchematicViewer = ({
               containerRef={containerRef}
               showOutline={true}
               circuitJsonKey={circuitJsonKey}
+              onHoverChange={handleComponentHoverChange}
               onComponentClick={(id, event) => {
                 onSchematicComponentClicked?.({
                   schematicComponentId: id,
