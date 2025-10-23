@@ -18,21 +18,13 @@ export const useTraceHover = ({
     const svg = svgDivRef.current
     if (!svg) return
 
-    // Function to get all traces in the same net
-    const getConnectedTraces = (schematicTraceId: string) => {
-      const schematicTrace = su(circuitJson).schematic_trace.get(schematicTraceId)
-      if (!schematicTrace) return new Set<string>()
-
-      const sourceTrace = su(circuitJson).source_trace.get(schematicTrace.source_trace_id)
-      if (!sourceTrace) return new Set<string>()
-
-      // Find all schematic traces with the same source_trace_id (same net)
-      const connectedTraces = su(circuitJson)
-        .schematic_trace.list()
-        .filter(st => st.source_trace_id === sourceTrace.source_trace_id)
-        .map(st => st.schematic_trace_id)
-
-      return new Set(connectedTraces)
+    // Function to get all traces in the circuit
+    const getAllTraces = () => {
+      return new Set(
+        su(circuitJson)
+          .schematic_trace.list()
+          .map(st => st.schematic_trace_id)
+      )
     }
 
     // Function to store original styles
@@ -79,16 +71,16 @@ export const useTraceHover = ({
 
     // Function to add event listeners
     const addEventListeners = () => {
-      const traceElements = svg.querySelectorAll('[data-circuit-json-type="schematic_trace"] path')
+      const traceElements = svg.querySelectorAll('[data-circuit-json-type="schematic_trace"]')
       traceElements.forEach((element: Element) => {
-        const traceId = element.closest('[data-schematic-trace-id]')?.getAttribute('data-schematic-trace-id')
+        const traceId = element.getAttribute('data-schematic-trace-id')
         if (!traceId) return
 
         const handleMouseEnter = () => {
-          const connectedTraces = getConnectedTraces(traceId)
-          storeOriginalStyles(connectedTraces)
-          hoveredNetRef.current = connectedTraces
-          applyHoverStyles(connectedTraces, true)
+          const allTraces = getAllTraces()
+          storeOriginalStyles(allTraces)
+          hoveredNetRef.current = allTraces
+          applyHoverStyles(allTraces, true)
         }
 
         const handleMouseLeave = () => {
