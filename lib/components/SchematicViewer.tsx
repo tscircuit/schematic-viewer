@@ -30,6 +30,7 @@ import { getSpiceFromCircuitJson } from "../utils/spice-utils"
 import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
+import { useTraceHover } from "../hooks/useTraceHover"
 
 interface Props {
   circuitJson: CircuitJson
@@ -292,6 +293,13 @@ export const SchematicViewer = ({
     circuitJson,
     circuitJsonKey,
     showGroups: showSchematicGroups && !disableGroups,
+  })
+
+  // Add trace hover effects
+  useTraceHover({
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey,
   })
 
   // keep the latest touch handler without re-rendering the svg div
