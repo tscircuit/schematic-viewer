@@ -350,6 +350,9 @@ export const SchematicViewer = ({
           {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
         </style>
       )}
+      <style>
+        {`[data-schematic-component-id] { pointer-events: none !important; }`}
+      </style>
       <div
         ref={containerRef}
         style={{
