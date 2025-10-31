@@ -34,6 +34,8 @@ export interface MouseTrackerContextValue {
 export const MouseTrackerContext =
   createContext<MouseTrackerContextValue | null>(null)
 
+const DRAG_THRESHOLD_PX = 5
+
 const boundsAreEqual = (
   a: BoundingBoxBounds | null | undefined,
   b: BoundingBoxBounds | null | undefined,
@@ -60,6 +62,7 @@ export const MouseTracker = ({ children }: { children: ReactNode }) => {
     boundingBoxes: new Map<string, BoundingBoxRegistration>(),
     hoveringIds: new Set<string>(),
     subscribers: new Set<() => void>(),
+    mouseDownPosition: null as { x: number; y: number } | null,
   })
 
   const notifySubscribers = useCallback(() => {
@@ -158,11 +161,36 @@ export const MouseTracker = ({ children }: { children: ReactNode }) => {
     const handlePointerLeave = () => {
       if (storeRef.current.pointer === null) return
       storeRef.current.pointer = null
+      storeRef.current.mouseDownPosition = null
       updateHovering()
+    }
+
+    const handleMouseDown = (event: MouseEvent) => {
+      storeRef.current.mouseDownPosition = {
+        x: event.clientX,
+        y: event.clientY,
+      }
     }
 
     const handleClick = (event: MouseEvent) => {
       const { clientX, clientY } = event
+      const mouseDownPos = storeRef.current.mouseDownPosition
+
+      // Check if this was a drag (movement > threshold)
+      if (mouseDownPos) {
+        const distance = Math.sqrt(
+          Math.pow(clientX - mouseDownPos.x, 2) +
+            Math.pow(clientY - mouseDownPos.y, 2),
+        )
+        if (distance > DRAG_THRESHOLD_PX) {
+          // This was a drag, not a click - don't trigger onClick
+          storeRef.current.mouseDownPosition = null
+          return
+        }
+      }
+
+      storeRef.current.mouseDownPosition = null
+
       for (const registration of storeRef.current.boundingBoxes.values()) {
         const bounds = registration.bounds
         if (!bounds) continue
@@ -189,6 +217,7 @@ export const MouseTracker = ({ children }: { children: ReactNode }) => {
     window.addEventListener("pointerleave", handlePointerLeave)
     window.addEventListener("pointercancel", handlePointerLeave)
     window.addEventListener("blur", handlePointerLeave)
+    window.addEventListener("mousedown", handleMouseDown, { passive: true })
     window.addEventListener("click", handleClick, { passive: true })
 
     return () => {
@@ -198,6 +227,7 @@ export const MouseTracker = ({ children }: { children: ReactNode }) => {
       window.removeEventListener("pointerleave", handlePointerLeave)
       window.removeEventListener("pointercancel", handlePointerLeave)
       window.removeEventListener("blur", handlePointerLeave)
+      window.removeEventListener("mousedown", handleMouseDown)
       window.removeEventListener("click", handleClick)
     }
   }, [updateHovering])
