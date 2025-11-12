@@ -13,6 +13,7 @@ export const ViewMenuIcon = ({
     <div
       onClick={handleInteraction}
       onTouchEnd={handleInteraction}
+      title={active ? "Hide view menu" : "Show view menu"}
       style={{
         position: "absolute",
         top: "16px",
