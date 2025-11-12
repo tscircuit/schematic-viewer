@@ -13,6 +13,7 @@ export const GridIcon = ({
     <div
       onClick={handleInteraction}
       onTouchEnd={handleInteraction}
+      title={active ? "Hide grid" : "Show grid"}
       style={{
         position: "absolute",
         top: "56px",

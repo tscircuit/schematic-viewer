@@ -9,6 +9,7 @@ export const SpiceSimulationIcon = ({
   return (
     <div
       onClick={onClick}
+      title="Run SPICE simulation"
       style={{
         position: "absolute",
         top: "16px",

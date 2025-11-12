@@ -13,6 +13,7 @@ export const EditIcon = ({
     <div
       onClick={handleInteraction}
       onTouchEnd={handleInteraction}
+      title={active ? "Disable edit mode" : "Enable edit mode"}
       style={{
         position: "absolute",
         top: "16px",
