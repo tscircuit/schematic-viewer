@@ -148,9 +148,7 @@ export const SchematicViewer = ({
       return (
         su(circuitJson)
           .schematic_component?.list()
-          ?.map(
-            (component) => component.schematic_component_id as string,
-          ) ?? []
+          ?.map((component) => component.schematic_component_id as string) ?? []
       )
     } catch (err) {
       console.error("Failed to derive schematic component ids", err)
@@ -185,7 +183,6 @@ export const SchematicViewer = ({
 
     return map
   }, [circuitJsonKey, circuitJson])
-
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
@@ -250,39 +247,39 @@ export const SchematicViewer = ({
       grid: !debugGrid
         ? undefined
         : {
-          cellSize: 1,
-          labelCells: true,
-        },
+            cellSize: 1,
+            labelCells: true,
+          },
       colorOverrides,
     })
   }, [circuitJsonKey, containerWidth, containerHeight])
 
   const svgWithNetIds = useMemo(() => {
-    if (!svgString || typeof window === "undefined") return svgString;
+    if (!svgString || typeof window === "undefined") return svgString
 
     try {
-      const doc = new DOMParser().parseFromString(svgString, "image/svg+xml");
+      const doc = new DOMParser().parseFromString(svgString, "image/svg+xml")
 
       // Select all traces
-      const traces = doc.querySelectorAll<SVGElement>("path.trace");
+      const traces = doc.querySelectorAll<SVGElement>("path.trace")
 
       // Assign each trace a net ID (fallback: use trace id itself)
       traces.forEach((el, index) => {
         const rawId =
           el.getAttribute("data-schematic-trace-id") ||
-          el.getAttribute("data-schematic-object-id");
+          el.getAttribute("data-schematic-object-id")
 
-        const netId = traceIdToNetId.get(rawId || "") || rawId || `trace-${index}`;
-        el.setAttribute("data-net-id", netId);
-      });
+        const netId =
+          traceIdToNetId.get(rawId || "") || rawId || `trace-${index}`
+        el.setAttribute("data-net-id", netId)
+      })
 
-      return new XMLSerializer().serializeToString(doc.documentElement);
+      return new XMLSerializer().serializeToString(doc.documentElement)
     } catch (err) {
-      console.error("Failed to add net ids", err);
-      return svgString;
+      console.error("Failed to add net ids", err)
+      return svgString
     }
-  }, [svgString, traceIdToNetId]);
-
+  }, [svgString, traceIdToNetId])
 
   const containerBackgroundColor = useMemo(() => {
     const match = svgString.match(
@@ -362,53 +359,52 @@ export const SchematicViewer = ({
   }, [handleComponentTouchStart])
 
   useEffect(() => {
-    const svgDiv = svgDivRef.current;
-    if (!svgDiv) return;
+    const svgDiv = svgDivRef.current
+    if (!svgDiv) return
 
     const elements = Array.from(
-      svgDiv.querySelectorAll<SVGElement>("[data-net-id]")
-    );
+      svgDiv.querySelectorAll<SVGElement>("[data-net-id]"),
+    )
 
     function enter(this: SVGElement) {
-      const id = this.getAttribute("data-net-id");
-      if (id) setHoveredNetId(id);
+      const id = this.getAttribute("data-net-id")
+      if (id) setHoveredNetId(id)
     }
 
     function leave(this: SVGElement) {
-      const id = this.getAttribute("data-net-id");
-      if (id) setHoveredNetId(prev => (prev === id ? null : prev));
+      const id = this.getAttribute("data-net-id")
+      if (id) setHoveredNetId((prev) => (prev === id ? null : prev))
     }
 
-    elements.forEach(el => {
-      el.addEventListener("mouseenter", enter);
-      el.addEventListener("mouseleave", leave);
-    });
+    elements.forEach((el) => {
+      el.addEventListener("mouseenter", enter)
+      el.addEventListener("mouseleave", leave)
+    })
 
     return () => {
-      elements.forEach(el => {
-        el.removeEventListener("mouseenter", enter);
-        el.removeEventListener("mouseleave", leave);
-      });
-    };
-  }, [svgWithNetIds]);
+      elements.forEach((el) => {
+        el.removeEventListener("mouseenter", enter)
+        el.removeEventListener("mouseleave", leave)
+      })
+    }
+  }, [svgWithNetIds])
 
   useEffect(() => {
-    const svgDiv = svgDivRef.current;
-    if (!svgDiv) return;
+    const svgDiv = svgDivRef.current
+    if (!svgDiv) return
 
     // Remove old highlights
     svgDiv
       .querySelectorAll("[data-net-id].trace-hover")
-      .forEach(el => el.classList.remove("trace-hover"));
+      .forEach((el) => el.classList.remove("trace-hover"))
 
-    if (!hoveredNetId) return;
+    if (!hoveredNetId) return
 
     // Highlight all traces sharing this net-id
     svgDiv
       .querySelectorAll(`[data-net-id="${hoveredNetId}"]`)
-      .forEach(el => el.classList.add("trace-hover"));
-  }, [hoveredNetId]);
-
+      .forEach((el) => el.classList.add("trace-hover"))
+  }, [hoveredNetId])
 
   const svgDiv = useMemo(
     () => (
@@ -460,7 +456,6 @@ export const SchematicViewer = ({
   }
 `}
       </style>
-
 
       <div
         ref={containerRef}
@@ -540,7 +535,7 @@ export const SchematicViewer = ({
               }}
             >
               {typeof window !== "undefined" &&
-                ("ontouchstart" in window || navigator.maxTouchPoints > 0)
+              ("ontouchstart" in window || navigator.maxTouchPoints > 0)
                 ? "Touch to Interact"
                 : "Click to Interact"}
             </div>
