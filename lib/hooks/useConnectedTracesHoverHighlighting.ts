@@ -21,16 +21,16 @@ export const useConnectedTracesHoverHighlighting = ({
 
   useEffect(() => {
     if (!enabled) return
-    
+
     const svgElement = svgDivRef.current
     if (!svgElement) return
 
     const handleTraceMouseEnter = (event: Event) => {
       const target = event.target as Element
-      const traceGroup = target.closest('[data-schematic-trace-id]')
+      const traceGroup = target.closest("[data-schematic-trace-id]")
       if (!traceGroup) return
 
-      const traceId = traceGroup.getAttribute('data-schematic-trace-id')
+      const traceId = traceGroup.getAttribute("data-schematic-trace-id")
       if (!traceId) return
 
       // Clear any pending unhighlight timeout
@@ -40,7 +40,7 @@ export const useConnectedTracesHoverHighlighting = ({
       }
 
       const connectedTraces = findConnectedTraceIds(circuitJson, traceId)
-      
+
       // Clear previous highlights
       highlightedTracesRef.current.forEach((highlightedTraceId) => {
         const traceElement = svgElement.querySelector(
@@ -83,13 +83,13 @@ export const useConnectedTracesHoverHighlighting = ({
 
     const addEventListeners = () => {
       const traceElements = svgElement.querySelectorAll(
-        '[data-schematic-trace-id]',
+        "[data-schematic-trace-id]",
       )
-      
+
       // Inject CSS styles if not already present
-      if (!svgElement.querySelector('style#trace-highlighting-styles')) {
-        const style = document.createElement('style')
-        style.id = 'trace-highlighting-styles'
+      if (!svgElement.querySelector("style#trace-highlighting-styles")) {
+        const style = document.createElement("style")
+        style.id = "trace-highlighting-styles"
         style.textContent = `
           .trace-highlighted {
             stroke-width: 3 !important;
@@ -113,21 +113,21 @@ export const useConnectedTracesHoverHighlighting = ({
         `
         svgElement.appendChild(style)
       }
-      
+
       traceElements.forEach((traceElement) => {
-        traceElement.addEventListener('mouseenter', handleTraceMouseEnter)
-        traceElement.addEventListener('mouseleave', handleTraceMouseLeave)
+        traceElement.addEventListener("mouseenter", handleTraceMouseEnter)
+        traceElement.addEventListener("mouseleave", handleTraceMouseLeave)
       })
     }
 
     const removeEventListeners = () => {
       const traceElements = svgElement.querySelectorAll(
-        '[data-schematic-trace-id]',
+        "[data-schematic-trace-id]",
       )
-      
+
       traceElements.forEach((traceElement) => {
-        traceElement.removeEventListener('mouseenter', handleTraceMouseEnter)
-        traceElement.removeEventListener('mouseleave', handleTraceMouseLeave)
+        traceElement.removeEventListener("mouseenter", handleTraceMouseEnter)
+        traceElement.removeEventListener("mouseleave", handleTraceMouseLeave)
       })
     }
 
@@ -146,11 +146,11 @@ export const useConnectedTracesHoverHighlighting = ({
     return () => {
       observer.disconnect()
       removeEventListeners()
-      
+
       if (highlightTimeoutRef.current) {
         clearTimeout(highlightTimeoutRef.current)
       }
-      
+
       // Clear any remaining highlights
       highlightedTracesRef.current.forEach((highlightedTraceId) => {
         const traceElement = svgElement?.querySelector(
