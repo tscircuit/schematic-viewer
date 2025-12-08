@@ -1,7 +1,11 @@
-import { SpicePlot } from "./SpicePlot"
 import type { PlotPoint } from "../hooks/useSpiceSimulation"
-import { useEffect, useState } from "react"
+import { lazy, Suspense, useEffect, useState } from "react"
 import { zIndexMap } from "../utils/z-index-map"
+
+const SpicePlot = lazy(async () => {
+  const mod = await import("./SpicePlot")
+  return { default: mod.SpicePlot }
+})
 
 interface SpiceSimulationOverlayProps {
   spiceString: string | null
@@ -124,13 +128,30 @@ export const SpiceSimulationOverlay = ({
           </button>
         </div>
         <div>
-          <SpicePlot
-            plotData={plotData}
-            nodes={filteredNodes}
-            isLoading={isLoading}
-            error={error}
-            hasRun={hasRun}
-          />
+          <Suspense
+            fallback={
+              <div
+                style={{
+                  height: "320px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#666",
+                  fontSize: "14px",
+                }}
+              >
+                Loading plot…
+              </div>
+            }
+          >
+            <SpicePlot
+              plotData={plotData}
+              nodes={filteredNodes}
+              isLoading={isLoading}
+              error={error}
+              hasRun={hasRun}
+            />
+          </Suspense>
         </div>
         <div
           style={{
