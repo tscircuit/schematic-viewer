@@ -61,6 +61,7 @@ export const ViewMenu = ({
         onClick={onClose}
         onTouchEnd={(e) => {
           e.preventDefault()
+          e.stopPropagation()
           onClose()
         }}
         style={{
@@ -68,6 +69,7 @@ export const ViewMenu = ({
           inset: 0,
           backgroundColor: "transparent",
           zIndex: zIndexMap.viewMenuBackdrop,
+          touchAction: "manipulation",
         }}
       />
 
@@ -95,6 +97,7 @@ export const ViewMenu = ({
           }}
           onTouchEnd={(e) => {
             e.preventDefault()
+            e.stopPropagation()
             if (hasGroups) {
               onToggleGroups(!showGroups)
             }
@@ -109,6 +112,7 @@ export const ViewMenu = ({
             display: "flex",
             alignItems: "center",
             gap: "8px",
+            touchAction: "manipulation",
           }}
           onMouseEnter={(e) => {
             if (hasGroups) {

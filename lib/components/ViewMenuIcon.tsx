@@ -6,6 +6,7 @@ export const ViewMenuIcon = ({
 }: { onClick: () => void; active: boolean }) => {
   const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     onClick()
   }
 
@@ -28,6 +29,7 @@ export const ViewMenuIcon = ({
         alignItems: "center",
         gap: "4px",
         zIndex: zIndexMap.viewMenuIcon,
+        touchAction: "manipulation",
       }}
     >
       <svg

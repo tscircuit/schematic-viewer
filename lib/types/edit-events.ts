@@ -1,5 +1,4 @@
 import type {
-  BaseManualEditEvent,
   EditSchematicComponentLocationEvent,
   ManualEditEvent,
 } from "@tscircuit/props"
@@ -9,8 +8,4 @@ export type EditSchematicComponentLocationEventWithElement =
     _element: SVGElement
   }
 
-export type {
-  BaseManualEditEvent,
-  EditSchematicComponentLocationEvent,
-  ManualEditEvent,
-}
+export type { EditSchematicComponentLocationEvent, ManualEditEvent }
