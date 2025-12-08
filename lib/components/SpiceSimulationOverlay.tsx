@@ -1,6 +1,7 @@
 import { SpicePlot } from "./SpicePlot"
 import type { PlotPoint } from "../hooks/useSpiceSimulation"
 import { useEffect, useState } from "react"
+import { zIndexMap } from "../utils/z-index-map"
 
 interface SpiceSimulationOverlayProps {
   spiceString: string | null
@@ -72,8 +73,9 @@ export const SpiceSimulationOverlay = ({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        zIndex: 1002,
+        zIndex: zIndexMap.spiceSimulationOverlay,
         fontFamily: "sans-serif",
+        touchAction: "none",
       }}
     >
       <div
