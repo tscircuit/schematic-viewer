@@ -101,6 +101,7 @@ export const SchematicViewer = ({
   ])
 
   const [hasSpiceSimRun, setHasSpiceSimRun] = useState(false)
+  const [spiceRetryCounter, setSpiceRetryCounter] = useState(0)
 
   useEffect(() => {
     setHasSpiceSimRun(false)
@@ -111,7 +112,7 @@ export const SchematicViewer = ({
     nodes,
     isLoading: isSpiceSimLoading,
     error: spiceSimError,
-  } = useSpiceSimulation(hasSpiceSimRun ? spiceString : null)
+  } = useSpiceSimulation(hasSpiceSimRun ? spiceString : null, spiceRetryCounter)
 
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
   const [snapToGrid, setSnapToGrid] = useState(true)
@@ -339,7 +340,9 @@ export const SchematicViewer = ({
     <MouseTracker>
       {onSchematicComponentClicked && (
         <style>
-          {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
+          {
+            ".schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }"
+          }
         </style>
       )}
       <div
@@ -472,6 +475,10 @@ export const SchematicViewer = ({
               setSpiceSimOptions(options)
             }}
             hasRun={hasSpiceSimRun}
+            onRetry={() => {
+              setHasSpiceSimRun(true)
+              setSpiceRetryCounter((prev) => prev + 1)
+            }}
           />
         )}
         {onSchematicComponentClicked &&

@@ -12,6 +12,8 @@ import {
 } from "chart.js"
 import { Line } from "react-chartjs-2"
 import type { PlotPoint } from "../hooks/useSpiceSimulation"
+import { SpiceErrorDisplay } from "./SpiceErrorDisplay"
+import { LoadingState } from "./LoadingState"
 
 ChartJS.register(
   CategoryScale,
@@ -57,12 +59,14 @@ export const SpicePlot = ({
   isLoading,
   error,
   hasRun,
+  onRetry,
 }: {
   plotData: PlotPoint[]
   nodes: string[]
   isLoading: boolean
   error: string | null
   hasRun: boolean
+  onRetry?: () => void
 }) => {
   const yAxisLabel = useMemo(() => {
     const hasVoltage = nodes.some((n) => n.toLowerCase().startsWith("v("))
@@ -74,19 +78,7 @@ export const SpicePlot = ({
   }, [nodes])
 
   if (isLoading) {
-    return (
-      <div
-        style={{
-          height: "300px",
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        Running simulation...
-      </div>
-    )
+    return <LoadingState />
   }
 
   if (!hasRun) {
@@ -107,18 +99,15 @@ export const SpicePlot = ({
 
   if (error) {
     return (
-      <div
-        style={{
-          height: "300px",
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "red",
+      <SpiceErrorDisplay
+        error={error}
+        onRetry={onRetry}
+        onCopyDetails={() => {
+          // Optional: show toast notification when copied
+          console.log("Error details copied to clipboard")
         }}
-      >
-        Error: {error}
-      </div>
+        showTechnicalDetails={true}
+      />
     )
   }
 

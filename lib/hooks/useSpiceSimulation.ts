@@ -87,7 +87,10 @@ type WorkerMessage =
     }
   | { type: "error"; error: string }
 
-export const useSpiceSimulation = (spiceString: string | null) => {
+export const useSpiceSimulation = (
+  spiceString: string | null,
+  forceRetry: number = 0,
+) => {
   const [plotData, setPlotData] = useState<PlotPoint[]>([])
   const [nodes, setNodes] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -143,7 +146,7 @@ export const useSpiceSimulation = (spiceString: string | null) => {
     return () => {
       worker.terminate()
     }
-  }, [spiceString])
+  }, [spiceString, forceRetry])
 
   return { plotData, nodes, isLoading, error }
 }

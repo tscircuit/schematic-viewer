@@ -19,6 +19,7 @@ interface SpiceSimulationOverlayProps {
     options: SpiceSimulationOverlayProps["simOptions"],
   ) => void
   hasRun: boolean
+  onRetry?: () => void
 }
 
 export const SpiceSimulationOverlay = ({
@@ -31,6 +32,7 @@ export const SpiceSimulationOverlay = ({
   simOptions,
   onSimOptionsChange,
   hasRun,
+  onRetry,
 }: SpiceSimulationOverlayProps) => {
   const [startTimeDraft, setStartTimeDraft] = useState(
     String(simOptions.startTime),
@@ -107,6 +109,7 @@ export const SpiceSimulationOverlay = ({
             SPICE Simulation
           </h2>
           <button
+            type="button"
             onClick={onClose}
             style={{
               background: "none",
@@ -128,6 +131,7 @@ export const SpiceSimulationOverlay = ({
             isLoading={isLoading}
             error={error}
             hasRun={hasRun}
+            onRetry={onRetry || handleRerun}
           />
         </div>
         <div
@@ -203,6 +207,7 @@ export const SpiceSimulationOverlay = ({
               }}
             />
             <button
+              type="button"
               onClick={handleRerun}
               style={{
                 padding: "4px 12px",
