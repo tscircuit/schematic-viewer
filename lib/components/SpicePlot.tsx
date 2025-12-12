@@ -60,6 +60,7 @@ export const SpicePlot = ({
   error,
   hasRun,
   onRetry,
+  spiceGenerationError,
 }: {
   plotData: PlotPoint[]
   nodes: string[]
@@ -67,6 +68,7 @@ export const SpicePlot = ({
   error: string | null
   hasRun: boolean
   onRetry?: () => void
+  spiceGenerationError?: string | null
 }) => {
   const yAxisLabel = useMemo(() => {
     const hasVoltage = nodes.some((n) => n.toLowerCase().startsWith("v("))
@@ -79,6 +81,19 @@ export const SpicePlot = ({
 
   if (isLoading) {
     return <LoadingState />
+  }
+
+  if (spiceGenerationError) {
+    return (
+      <SpiceErrorDisplay
+        error={spiceGenerationError}
+        onRetry={onRetry}
+        onCopyDetails={() => {
+          console.log("Error details copied to clipboard")
+        }}
+        showTechnicalDetails={true}
+      />
+    )
   }
 
   if (!hasRun) {

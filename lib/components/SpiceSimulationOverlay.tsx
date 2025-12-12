@@ -9,6 +9,7 @@ interface SpiceSimulationOverlayProps {
   nodes: string[]
   isLoading: boolean
   error: string | null
+  spiceGenerationError?: string | null
   simOptions: {
     showVoltage: boolean
     showCurrent: boolean
@@ -29,6 +30,7 @@ export const SpiceSimulationOverlay = ({
   nodes,
   isLoading,
   error,
+  spiceGenerationError,
   simOptions,
   onSimOptionsChange,
   hasRun,
@@ -130,6 +132,7 @@ export const SpiceSimulationOverlay = ({
             nodes={filteredNodes}
             isLoading={isLoading}
             error={error}
+            spiceGenerationError={spiceGenerationError}
             hasRun={hasRun}
             onRetry={onRetry || handleRerun}
           />

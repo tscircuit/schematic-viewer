@@ -118,8 +118,20 @@ export const useSpiceSimulation = (
     }
 
     const worker = new Worker(workerUrl, { type: "module" })
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    let hasCompleted = false
+
+    const handleCompletion = () => {
+      hasCompleted = true
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
 
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+      if (hasCompleted) return
+      handleCompletion()
+
       if (event.data.type === "result") {
         try {
           const { plotData: parsedData, nodes: parsedNodes } =
@@ -137,13 +149,30 @@ export const useSpiceSimulation = (
     }
 
     worker.onerror = (err) => {
+      if (hasCompleted) return
+      handleCompletion()
       setError(err.message)
       setIsLoading(false)
     }
 
+    // Add 10 second timeout
+    timeoutId = setTimeout(() => {
+      if (!hasCompleted) {
+        hasCompleted = true
+        worker.terminate()
+        setError(
+          "Simulation timed out. The circuit may be too complex or have convergence issues. Try simplifying the circuit or adjusting simulation parameters.",
+        )
+        setIsLoading(false)
+      }
+    }, 10000)
+
     worker.postMessage({ spiceString })
 
     return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
       worker.terminate()
     }
   }, [spiceString, forceRetry])
