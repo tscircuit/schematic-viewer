@@ -71,14 +71,6 @@ export const SpiceErrorDisplay: React.FC<SpiceErrorDisplayProps> = ({
             marginBottom: "16px",
           }}
         >
-          <span
-            style={{
-              fontSize: "24px",
-              lineHeight: 1,
-            }}
-          >
-            {getErrorIcon(errorDetails.type)}
-          </span>
           <div>
             <h3
               style={{
