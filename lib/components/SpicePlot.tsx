@@ -172,7 +172,7 @@ export const SpicePlot = ({
           title: (tooltipItems) => {
             if (tooltipItems.length > 0) {
               const item = tooltipItems[0]
-              return formatTimeWithUnits(item.parsed.x)
+              return formatTimeWithUnits(item.parsed.x as number)
             }
             return ""
           },
