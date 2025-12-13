@@ -57,7 +57,7 @@ export const useChangeSchematicTracesForMovedComponents = ({
           const src_traces = su(circuitJson)
             .source_trace.list()
             .filter((st) =>
-              st.connected_source_port_ids?.some((spi) =>
+              st.connected_source_port_ids?.some((spi: string) =>
                 src_port_ids.has(spi),
               ),
             )
