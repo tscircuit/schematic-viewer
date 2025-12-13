@@ -66,7 +66,7 @@ export const useChangeSchematicTracesForMovedComponents = ({
           )
           const schematic_traces = su(circuitJson)
             .schematic_trace.list()
-            .filter((st) => src_trace_ids.has(st.source_trace_id))
+            .filter((st) => src_trace_ids.has(st.source_trace_id!))
 
           // Make the connected traces dashed
           schematic_traces.forEach((trace) => {

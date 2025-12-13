@@ -36,7 +36,7 @@ export const ViewMenu = ({
         const componentTypes = new Set()
         for (const comp of schematicComponents) {
           const sourceComp = su(circuitJson).source_component.get(
-            comp.source_component_id,
+            comp.source_component_id!,
           )
           if (sourceComp?.ftype) {
             componentTypes.add(sourceComp.ftype)
