@@ -9,6 +9,7 @@ interface SpiceSimulationOverlayProps {
   nodes: string[]
   isLoading: boolean
   error: string | null
+  spiceGenerationError?: string | null
   simOptions: {
     showVoltage: boolean
     showCurrent: boolean
@@ -19,6 +20,7 @@ interface SpiceSimulationOverlayProps {
     options: SpiceSimulationOverlayProps["simOptions"],
   ) => void
   hasRun: boolean
+  onRetry?: () => void
 }
 
 export const SpiceSimulationOverlay = ({
@@ -28,9 +30,11 @@ export const SpiceSimulationOverlay = ({
   nodes,
   isLoading,
   error,
+  spiceGenerationError,
   simOptions,
   onSimOptionsChange,
   hasRun,
+  onRetry,
 }: SpiceSimulationOverlayProps) => {
   const [startTimeDraft, setStartTimeDraft] = useState(
     String(simOptions.startTime),
@@ -107,6 +111,7 @@ export const SpiceSimulationOverlay = ({
             SPICE Simulation
           </h2>
           <button
+            type="button"
             onClick={onClose}
             style={{
               background: "none",
@@ -127,7 +132,9 @@ export const SpiceSimulationOverlay = ({
             nodes={filteredNodes}
             isLoading={isLoading}
             error={error}
+            spiceGenerationError={spiceGenerationError}
             hasRun={hasRun}
+            onRetry={onRetry || handleRerun}
           />
         </div>
         <div
@@ -203,6 +210,7 @@ export const SpiceSimulationOverlay = ({
               }}
             />
             <button
+              type="button"
               onClick={handleRerun}
               style={{
                 padding: "4px 12px",

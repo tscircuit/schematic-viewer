@@ -85,13 +85,25 @@ export const SchematicViewer = ({
     [circuitJson],
   )
 
-  const spiceString = useMemo(() => {
-    if (!spiceSimulationEnabled) return null
+  const [spiceString, setSpiceString] = useState<string | null>(null)
+  const [spiceGenerationError, setSpiceGenerationError] = useState<
+    string | null
+  >(null)
+
+  useMemo(() => {
+    if (!spiceSimulationEnabled) {
+      setSpiceString(null)
+      setSpiceGenerationError(null)
+      return
+    }
     try {
-      return getSpiceFromCircuitJson(circuitJson, spiceSimOptions)
-    } catch (e) {
+      const generated = getSpiceFromCircuitJson(circuitJson, spiceSimOptions)
+      setSpiceString(generated)
+      setSpiceGenerationError(null)
+    } catch (e: any) {
       console.error("Failed to generate SPICE string", e)
-      return null
+      setSpiceString(null)
+      setSpiceGenerationError(e?.message || "Failed to generate SPICE netlist")
     }
   }, [
     circuitJsonKey,
@@ -101,6 +113,7 @@ export const SchematicViewer = ({
   ])
 
   const [hasSpiceSimRun, setHasSpiceSimRun] = useState(false)
+  const [spiceRetryCounter, setSpiceRetryCounter] = useState(0)
 
   useEffect(() => {
     setHasSpiceSimRun(false)
@@ -111,7 +124,7 @@ export const SchematicViewer = ({
     nodes,
     isLoading: isSpiceSimLoading,
     error: spiceSimError,
-  } = useSpiceSimulation(hasSpiceSimRun ? spiceString : null)
+  } = useSpiceSimulation(hasSpiceSimRun ? spiceString : null, spiceRetryCounter)
 
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
   const [snapToGrid, setSnapToGrid] = useState(true)
@@ -339,7 +352,9 @@ export const SchematicViewer = ({
     <MouseTracker>
       {onSchematicComponentClicked && (
         <style>
-          {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
+          {
+            ".schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }"
+          }
         </style>
       )}
       <div
@@ -466,12 +481,17 @@ export const SchematicViewer = ({
             nodes={nodes}
             isLoading={isSpiceSimLoading}
             error={spiceSimError}
+            spiceGenerationError={spiceGenerationError}
             simOptions={spiceSimOptions}
             onSimOptionsChange={(options) => {
               setHasSpiceSimRun(true)
               setSpiceSimOptions(options)
             }}
             hasRun={hasSpiceSimRun}
+            onRetry={() => {
+              setHasSpiceSimRun(true)
+              setSpiceRetryCounter((prev) => prev + 1)
+            }}
           />
         )}
         {onSchematicComponentClicked &&

@@ -1,3 +1,5 @@
 export { SchematicViewer } from "./components/SchematicViewer"
 export { MouseTracker } from "./components/MouseTracker"
 export { useMouseEventsOverBoundingBox } from "./hooks/useMouseEventsOverBoundingBox"
+export { SpiceErrorDisplay } from "./components/SpiceErrorDisplay"
+export { LoadingState } from "./components/LoadingState"
