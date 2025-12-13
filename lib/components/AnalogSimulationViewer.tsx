@@ -1,6 +1,5 @@
 import {
-  convertCircuitJsonToSimulationGraphSvg,
-  convertCircuitJsonToSchematicSvg,
+  convertCircuitJsonToSchematicSimulationSvg,
   type ColorOverrides,
 } from "circuit-to-svg"
 import { useEffect, useState, useMemo, useRef } from "react"
@@ -64,39 +63,26 @@ export const AnalogSimulationViewer = ({
 
   // Generate SVG from CircuitJSON
   const simulationSvg = useMemo(() => {
-    if (!circuitJson || !effectiveWidth || !effectiveHeight) return ""
+    if (
+      !circuitJson ||
+      !effectiveWidth ||
+      !effectiveHeight ||
+      !simulationExperimentId
+    )
+      return ""
 
     try {
-      // Try to generate simulation SVG if we have simulation data
-      if (simulationExperimentId) {
-        return convertCircuitJsonToSimulationGraphSvg({
-          circuitJson,
-          simulation_experiment_id: simulationExperimentId,
-          simulation_transient_voltage_graph_ids: simulationGraphIds,
-          width: effectiveWidth,
-          height: effectiveHeight,
-        })
-      } else {
-        // Fallback to schematic SVG if no simulation data
-        return convertCircuitJsonToSchematicSvg(circuitJson, {
-          width: effectiveWidth,
-          height: effectiveHeight,
-          colorOverrides,
-        })
-      }
-    } catch (err) {
-      console.error("Failed to generate SVG:", err)
-      // Fallback to schematic SVG if simulation SVG fails
-      try {
-        return convertCircuitJsonToSchematicSvg(circuitJson, {
-          width: effectiveWidth,
-          height: effectiveHeight,
-          colorOverrides,
-        })
-      } catch (fallbackErr) {
-        console.error("Failed to generate fallback schematic SVG:", fallbackErr)
-        return ""
-      }
+      return convertCircuitJsonToSchematicSimulationSvg({
+        circuitJson,
+        simulation_experiment_id: simulationExperimentId,
+        simulation_transient_voltage_graph_ids: simulationGraphIds,
+        width: effectiveWidth,
+        height: effectiveHeight,
+        schematicOptions: { colorOverrides },
+      })
+    } catch (fallbackErr) {
+      console.error("Failed to generate fallback schematic SVG:", fallbackErr)
+      return ""
     }
   }, [
     circuitJson,
