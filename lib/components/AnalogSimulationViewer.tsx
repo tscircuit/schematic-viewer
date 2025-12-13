@@ -212,8 +212,7 @@ export const AnalogSimulationViewer = ({
         position: "relative",
         backgroundColor: containerBackgroundColor,
         overflow: "hidden",
-        width: effectiveWidth,
-        height: effectiveHeight,
+        minHeight: "300px",
         ...containerStyle,
       }}
       className={className}
@@ -228,8 +227,6 @@ export const AnalogSimulationViewer = ({
             height: "100%",
             display: "block",
             objectFit: "contain",
-            maxWidth: effectiveWidth,
-            maxHeight: effectiveHeight,
           }}
         />
       ) : (
