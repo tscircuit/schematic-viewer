@@ -39,18 +39,10 @@ export const AnalogSimulationViewer = ({
 
   // Set CircuitJSON from props
   useEffect(() => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      setCircuitJson(inputCircuitJson)
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to process CircuitJSON",
-      )
-      setCircuitJson(null)
-    } finally {
-      setIsLoading(false)
-    }
+    setIsLoading(true)
+    setError(null)
+    setCircuitJson(inputCircuitJson)
+    setIsLoading(false)
   }, [inputCircuitJson])
 
   // Find simulation experiment ID from circuit JSON
