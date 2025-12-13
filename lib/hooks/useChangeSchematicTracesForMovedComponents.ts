@@ -57,7 +57,7 @@ export const useChangeSchematicTracesForMovedComponents = ({
           const src_traces = su(circuitJson)
             .source_trace.list()
             .filter((st) =>
-              st.connected_source_port_ids?.some((spi) =>
+              st.connected_source_port_ids?.some((spi: string) =>
                 src_port_ids.has(spi),
               ),
             )
@@ -66,7 +66,7 @@ export const useChangeSchematicTracesForMovedComponents = ({
           )
           const schematic_traces = su(circuitJson)
             .schematic_trace.list()
-            .filter((st) => src_trace_ids.has(st.source_trace_id))
+            .filter((st) => src_trace_ids.has(st.source_trace_id!))
 
           // Make the connected traces dashed
           schematic_traces.forEach((trace) => {

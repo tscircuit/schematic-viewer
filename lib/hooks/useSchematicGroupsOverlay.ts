@@ -122,7 +122,7 @@ export const useSchematicGroupsOverlay = (
 
           for (const comp of schematicComponents) {
             const sourceComp = su(circuitJson).source_component.get(
-              comp.source_component_id,
+              comp.source_component_id!,
             )
             if (sourceComp?.source_group_id) {
               if (!groupMap.has(sourceComp.source_group_id)) {
