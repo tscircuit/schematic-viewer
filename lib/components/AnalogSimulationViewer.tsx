@@ -31,7 +31,7 @@ export const AnalogSimulationViewer = ({
   const containerRef = useRef<HTMLDivElement>(null)
 
   const { containerWidth, containerHeight } = useResizeHandling(
-    containerRef as any,
+    containerRef as React.RefObject<HTMLElement>,
   )
 
   const effectiveWidth = width || containerWidth || 1000
@@ -86,7 +86,7 @@ export const AnalogSimulationViewer = ({
         })
       } else {
         // Fallback to schematic SVG if no simulation data
-        return convertCircuitJsonToSchematicSvg(circuitJson as any, {
+        return convertCircuitJsonToSchematicSvg(circuitJson, {
           width: effectiveWidth,
           height: effectiveHeight,
           colorOverrides,
@@ -132,7 +132,6 @@ export const AnalogSimulationViewer = ({
     } catch (error) {
       console.error("Failed to create SVG object URL:", error)
       setSvgObjectUrl(null)
-      return
     }
   }, [simulationSvg])
 
