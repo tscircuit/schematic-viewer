@@ -8,7 +8,7 @@ import { useResizeHandling } from "../hooks/use-resize-handling"
 import type { CircuitJson } from "circuit-json"
 
 interface Props {
-  circuitJson: CircuitJson | any[]
+  circuitJson: CircuitJson
   containerStyle?: React.CSSProperties
   colorOverrides?: ColorOverrides
   width?: number
@@ -24,11 +24,10 @@ export const AnalogSimulationViewer = ({
   height,
   className,
 }: Props) => {
-  const [circuitJson, setCircuitJson] = useState<CircuitJson | any[] | null>(
-    null,
-  )
+  const [circuitJson, setCircuitJson] = useState<CircuitJson | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [svgObjectUrl, setSvgObjectUrl] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const { containerWidth, containerHeight } = useResizeHandling(
@@ -58,17 +57,17 @@ export const AnalogSimulationViewer = ({
   const simulationExperimentId = useMemo(() => {
     if (!circuitJson) return null
     const simulationElement = circuitJson.find(
-      (el: any) => el.type === "simulation_experiment",
+      (el) => el.type === "simulation_experiment",
     )
-    return (simulationElement as any)?.simulation_experiment_id || null
+    return simulationElement?.simulation_experiment_id || null
   }, [circuitJson])
 
   // Find simulation graph IDs from circuit JSON
   const simulationGraphIds = useMemo(() => {
     if (!circuitJson) return []
     return circuitJson
-      .filter((el: any) => el.type === "simulation_transient_voltage_graph")
-      .map((el: any) => el.simulation_transient_voltage_graph_id)
+      .filter((el) => el.type === "simulation_transient_voltage_graph")
+      .map((el) => el.simulation_transient_voltage_graph_id)
   }, [circuitJson])
 
   // Generate SVG from CircuitJSON
@@ -79,7 +78,7 @@ export const AnalogSimulationViewer = ({
       // Try to generate simulation SVG if we have simulation data
       if (simulationExperimentId) {
         return convertCircuitJsonToSimulationGraphSvg({
-          circuitJson: circuitJson as any,
+          circuitJson,
           simulation_experiment_id: simulationExperimentId,
           simulation_transient_voltage_graph_ids: simulationGraphIds,
           width: effectiveWidth,
@@ -97,7 +96,7 @@ export const AnalogSimulationViewer = ({
       console.error("Failed to generate SVG:", err)
       // Fallback to schematic SVG if simulation SVG fails
       try {
-        return convertCircuitJsonToSchematicSvg(circuitJson as any, {
+        return convertCircuitJsonToSchematicSvg(circuitJson, {
           width: effectiveWidth,
           height: effectiveHeight,
           colorOverrides,
@@ -116,27 +115,26 @@ export const AnalogSimulationViewer = ({
     simulationGraphIds,
   ])
 
-  // Create a safe object URL for the SVG
-  const svgObjectUrl = useMemo(() => {
-    if (!simulationSvg) return null
+  // Create/revoke object URL whenever the SVG changes
+  useEffect(() => {
+    if (!simulationSvg) {
+      setSvgObjectUrl(null)
+      return
+    }
 
     try {
       const blob = new Blob([simulationSvg], { type: "image/svg+xml" })
-      return URL.createObjectURL(blob)
+      const url = URL.createObjectURL(blob)
+      setSvgObjectUrl(url)
+      return () => {
+        URL.revokeObjectURL(url)
+      }
     } catch (error) {
       console.error("Failed to create SVG object URL:", error)
-      return null
+      setSvgObjectUrl(null)
+      return
     }
   }, [simulationSvg])
-
-  // Clean up object URL when component unmounts or SVG changes
-  useEffect(() => {
-    return () => {
-      if (svgObjectUrl) {
-        URL.revokeObjectURL(svgObjectUrl)
-      }
-    }
-  }, [svgObjectUrl])
 
   const containerBackgroundColor = useMemo(() => {
     if (!simulationSvg) return "transparent"
