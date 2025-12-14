@@ -40,8 +40,8 @@ export const AnalogSimulationViewer = ({
 
   const {
     ref: transformRef,
-    cancelDrag,
-    transform: svgToScreenProjection,
+    cancelDrag: _cancelDrag,
+    transform: _svgToScreenProjection,
   } = useMouseMatrixTransform({
     onSetTransform(transform) {
       if (imgRef.current) {
@@ -138,23 +138,23 @@ export const AnalogSimulationViewer = ({
     return match?.[1] ?? "transparent"
   }, [simulationSvg])
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (_e: React.MouseEvent) => {
     setIsDragging(true)
   }
 
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = (_e: React.TouchEvent) => {
     setIsDragging(true)
-  }
-
-  const handleTouchEnd = () => {
-    setIsDragging(false)
   }
 
   useEffect(() => {
+    const handleMouseUp = () => {
+      setIsDragging(false)
+    }
+
+    const handleTouchEnd = () => {
+      setIsDragging(false)
+    }
+
     window.addEventListener("mouseup", handleMouseUp)
     window.addEventListener("touchend", handleTouchEnd)
 
