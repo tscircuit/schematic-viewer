@@ -133,13 +133,7 @@ export default () => {
 
   return (
     simulatedCircuitJson && (
-      <AnalogSimulationViewer
-        circuitJson={simulatedCircuitJson}
-        containerStyle={{
-          border: "1px solid #ccc",
-          borderRadius: "8px",
-        }}
-      />
+      <AnalogSimulationViewer circuitJson={simulatedCircuitJson} />
     )
   )
 }

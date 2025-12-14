@@ -4,6 +4,8 @@ import {
 } from "circuit-to-svg"
 import { useEffect, useState, useMemo, useRef } from "react"
 import { useResizeHandling } from "../hooks/use-resize-handling"
+import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
+import { toString as transformToString } from "transformation-matrix"
 import type { CircuitJson } from "circuit-json"
 
 interface Props {
@@ -28,10 +30,25 @@ export const AnalogSimulationViewer = ({
   const [error, setError] = useState<string | null>(null)
   const [svgObjectUrl, setSvgObjectUrl] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const imgRef = useRef<HTMLImageElement>(null)
 
   const { containerWidth, containerHeight } = useResizeHandling(
     containerRef as React.RefObject<HTMLElement>,
   )
+
+  const [isDragging, setIsDragging] = useState(false)
+
+  const {
+    ref: transformRef,
+    cancelDrag,
+    transform: svgToScreenProjection,
+  } = useMouseMatrixTransform({
+    onSetTransform(transform) {
+      if (imgRef.current) {
+        imgRef.current.style.transform = transformToString(transform)
+      }
+    },
+  })
 
   const effectiveWidth = width || containerWidth || 1000
   const effectiveHeight = height || containerHeight || 600
@@ -121,6 +138,32 @@ export const AnalogSimulationViewer = ({
     return match?.[1] ?? "transparent"
   }, [simulationSvg])
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true)
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true)
+  }
+
+  const handleTouchEnd = () => {
+    setIsDragging(false)
+  }
+
+  useEffect(() => {
+    window.addEventListener("mouseup", handleMouseUp)
+    window.addEventListener("touchend", handleTouchEnd)
+
+    return () => {
+      window.removeEventListener("mouseup", handleMouseUp)
+      window.removeEventListener("touchend", handleTouchEnd)
+    }
+  }, [])
+
   if (isLoading) {
     return (
       <div
@@ -154,8 +197,6 @@ export const AnalogSimulationViewer = ({
           fontFamily: "sans-serif",
           fontSize: "16px",
           color: "#dc2626",
-          border: "1px solid #fecaca",
-          borderRadius: "4px",
           ...containerStyle,
         }}
         className={className}
@@ -193,18 +234,25 @@ export const AnalogSimulationViewer = ({
 
   return (
     <div
-      ref={containerRef}
+      ref={(node) => {
+        containerRef.current = node
+        transformRef.current = node
+      }}
       style={{
         position: "relative",
         backgroundColor: containerBackgroundColor,
         overflow: "hidden",
         minHeight: "300px",
+        cursor: isDragging ? "grabbing" : "grab",
         ...containerStyle,
       }}
       className={className}
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
     >
       {svgObjectUrl ? (
         <img
+          ref={imgRef}
           src={svgObjectUrl}
           alt="Circuit Simulation"
           style={{
