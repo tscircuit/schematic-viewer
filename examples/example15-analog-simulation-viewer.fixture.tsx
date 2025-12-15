@@ -136,8 +136,8 @@ export default () => {
       <AnalogSimulationViewer
         circuitJson={simulatedCircuitJson}
         containerStyle={{
-          border: "1px solid #ccc",
-          borderRadius: "8px",
+          width: "100vw",
+          height: "100vh",
         }}
       />
     )
