@@ -216,18 +216,35 @@ export const AnalogSimulationViewer = ({
       <div
         style={{
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#fef2f2",
+          backgroundColor: "#f8fafc",
           minHeight: "300px",
           fontFamily: "sans-serif",
-          fontSize: "16px",
-          color: "#dc2626",
+          gap: "12px",
           ...containerStyle,
         }}
         className={className}
       >
-        Failed to generate simulation SVG
+        <div style={{ fontSize: "16px", color: "#475569", fontWeight: 500 }}>
+          No Simulation Found
+        </div>
+        <div style={{ fontSize: "14px", color: "#64748b" }}>
+          Use{" "}
+          <code
+            style={{
+              backgroundColor: "#e2e8f0",
+              padding: "2px 6px",
+              borderRadius: "4px",
+              fontFamily: "monospace",
+              fontSize: "13px",
+            }}
+          >
+            {"<analogsimulation />"}
+          </code>{" "}
+          to create simulations
+        </div>
       </div>
     )
   }
