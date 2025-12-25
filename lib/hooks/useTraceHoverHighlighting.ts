@@ -25,7 +25,7 @@ export const useTraceHoverHighlighting = ({
 
       for (const traceId of schematicTraceIds) {
         const traceElements = svg.querySelectorAll(
-          `[data-schematic-trace-id="${traceId}"] path`
+          `[data-schematic-trace-id="${traceId}"] path`,
         )
         for (const el of Array.from(traceElements)) {
           if (el.getAttribute("class")?.includes("invisible")) continue
@@ -43,14 +43,15 @@ export const useTraceHoverHighlighting = ({
         }
       }
     },
-    [svgDivRef]
+    [svgDivRef],
   )
 
   const getRelatedTraceIds = useCallback(
     (schematicTraceId: string): string[] => {
       try {
         // Find the schematic trace
-        const schematicTrace = su(circuitJson).schematic_trace.get(schematicTraceId)
+        const schematicTrace =
+          su(circuitJson).schematic_trace.get(schematicTraceId)
         if (!schematicTrace) return [schematicTraceId]
 
         const sourceTraceId = schematicTrace.source_trace_id
@@ -67,7 +68,9 @@ export const useTraceHoverHighlighting = ({
         }
 
         // Get net IDs this trace is connected to
-        const connectedNetIds = new Set(sourceTrace.connected_source_net_ids || [])
+        const connectedNetIds = new Set(
+          sourceTrace.connected_source_net_ids || [],
+        )
 
         if (connectedNetIds.size === 0) {
           // No nets, just use source_trace_id grouping
@@ -92,14 +95,18 @@ export const useTraceHoverHighlighting = ({
         // Find all schematic traces for these source traces
         const relatedSchematicTraces = su(circuitJson)
           .schematic_trace.list()
-          .filter((st) => st.source_trace_id && relatedSourceTraceIds.has(st.source_trace_id))
+          .filter(
+            (st) =>
+              st.source_trace_id &&
+              relatedSourceTraceIds.has(st.source_trace_id),
+          )
 
         return relatedSchematicTraces.map((t) => t.schematic_trace_id)
       } catch {
         return [schematicTraceId]
       }
     },
-    [circuitJson]
+    [circuitJson],
   )
 
   useEffect(() => {
@@ -119,7 +126,9 @@ export const useTraceHoverHighlighting = ({
       const traceGroup = target.closest("[data-schematic-trace-id]")
       if (!traceGroup) return
 
-      const schematicTraceId = traceGroup.getAttribute("data-schematic-trace-id")
+      const schematicTraceId = traceGroup.getAttribute(
+        "data-schematic-trace-id",
+      )
       if (!schematicTraceId) return
 
       // If already hovering this trace, do nothing
@@ -142,7 +151,9 @@ export const useTraceHoverHighlighting = ({
       const traceGroup = target.closest("[data-schematic-trace-id]")
       if (!traceGroup) return
 
-      const schematicTraceId = traceGroup.getAttribute("data-schematic-trace-id")
+      const schematicTraceId = traceGroup.getAttribute(
+        "data-schematic-trace-id",
+      )
       if (!schematicTraceId) return
 
       // Add small delay to prevent flickering when moving between connected traces
@@ -157,7 +168,7 @@ export const useTraceHoverHighlighting = ({
 
     const attachListeners = () => {
       const tracePaths = svg.querySelectorAll(
-        '[data-circuit-json-type="schematic_trace"] path'
+        '[data-circuit-json-type="schematic_trace"] path',
       )
       for (const path of Array.from(tracePaths)) {
         path.addEventListener("mouseenter", handleMouseEnter)
@@ -167,7 +178,7 @@ export const useTraceHoverHighlighting = ({
 
     const detachListeners = () => {
       const tracePaths = svg.querySelectorAll(
-        '[data-circuit-json-type="schematic_trace"] path'
+        '[data-circuit-json-type="schematic_trace"] path',
       )
       for (const path of Array.from(tracePaths)) {
         path.removeEventListener("mouseenter", handleMouseEnter)
