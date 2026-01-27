@@ -115,6 +115,7 @@ export const SchematicViewer = ({
 
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
   const [snapToGrid, setSnapToGrid] = useState(true)
+  const [showGrid, setShowGrid] = useState(debugGrid)
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
     !clickToInteractEnabled,
   )
@@ -213,7 +214,7 @@ export const SchematicViewer = ({
     return convertCircuitJsonToSchematicSvg(circuitJson as any, {
       width: containerWidth,
       height: containerHeight || 720,
-      grid: !debugGrid
+      grid: !showGrid
         ? undefined
         : {
             cellSize: 1,
@@ -221,7 +222,7 @@ export const SchematicViewer = ({
           },
       colorOverrides,
     })
-  }, [circuitJsonKey, containerWidth, containerHeight])
+  }, [circuitJsonKey, containerWidth, containerHeight, showGrid])
 
   const containerBackgroundColor = useMemo(() => {
     const match = svgString.match(
@@ -454,6 +455,8 @@ export const SchematicViewer = ({
               setStoredBoolean("schematic_viewer_show_groups", value)
             }
           }}
+          showGrid={showGrid}
+          onToggleGrid={setShowGrid}
         />
         {spiceSimulationEnabled && (
           <SpiceSimulationIcon onClick={() => setShowSpiceOverlay(true)} />
