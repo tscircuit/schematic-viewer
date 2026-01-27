@@ -11,6 +11,8 @@ interface ViewMenuProps {
   onClose: () => void
   showGroups: boolean
   onToggleGroups: (show: boolean) => void
+  showGrid: boolean
+  onToggleGrid: (show: boolean) => void
 }
 
 export const ViewMenu = ({
@@ -20,6 +22,8 @@ export const ViewMenu = ({
   onClose,
   showGroups,
   onToggleGroups,
+  showGrid,
+  onToggleGrid,
 }: ViewMenuProps) => {
   const hasGroups = useMemo(() => {
     if (!circuitJson || circuitJson.length === 0) return false
@@ -152,6 +156,49 @@ export const ViewMenu = ({
             No groups found in this schematic
           </div>
         )}
+
+        {/* Grid Toggle Option */}
+        <div
+          onClick={() => onToggleGrid(!showGrid)}
+          onTouchEnd={(e) => {
+            e.preventDefault()
+            onToggleGrid(!showGrid)
+          }}
+          style={{
+            padding: "8px 12px",
+            cursor: "pointer",
+            fontSize: "13px",
+            color: "#000000",
+            fontFamily: "sans-serif",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#f0f0f0"
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent"
+          }}
+        >
+          <div
+            style={{
+              width: "16px",
+              height: "16px",
+              border: "2px solid #000",
+              borderRadius: "2px",
+              backgroundColor: "transparent",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "10px",
+              fontWeight: "bold",
+            }}
+          >
+            {showGrid && "✓"}
+          </div>
+          Show Grid
+        </div>
 
         {/* Version Info */}
         <div
