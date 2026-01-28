@@ -185,12 +185,9 @@ export const SchematicViewer = ({
       const ports = su(circuitJson).schematic_port?.list() ?? []
       return ports.map((port) => {
         const sourcePort = su(circuitJson).source_port.get(port.source_port_id)
-        const sourceComponent =
-          sourcePort?.source_component_id
-            ? su(circuitJson).source_component.get(
-                sourcePort.source_component_id,
-              )
-            : null
+        const sourceComponent = sourcePort?.source_component_id
+          ? su(circuitJson).source_component.get(sourcePort.source_component_id)
+          : null
         const componentName = sourceComponent?.name ?? "?"
         const pinLabel =
           port.display_pin_label ??
