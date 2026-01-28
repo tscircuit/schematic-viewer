@@ -1,0 +1,1 @@
+- Use `bun`/`bunx` instead of `npm`/`npx`

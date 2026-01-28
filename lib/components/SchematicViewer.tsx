@@ -30,6 +30,7 @@ import { getSpiceFromCircuitJson } from "../utils/spice-utils"
 import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
+import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
 
 interface Props {
   circuitJson: CircuitJson
@@ -48,6 +49,11 @@ interface Props {
     schematicComponentId: string
     event: MouseEvent
   }) => void
+  showSchematicPorts?: boolean
+  onSchematicPortClicked?: (options: {
+    schematicPortId: string
+    event: MouseEvent
+  }) => void
 }
 
 export const SchematicViewer = ({
@@ -64,6 +70,8 @@ export const SchematicViewer = ({
   spiceSimulationEnabled = false,
   disableGroups = false,
   onSchematicComponentClicked,
+  showSchematicPorts = false,
+  onSchematicPortClicked,
 }: Props) => {
   if (debug) {
     enableDebug()
@@ -139,6 +147,22 @@ export const SchematicViewer = ({
     },
     [],
   )
+
+  const [isHoveringClickablePort, setIsHoveringClickablePort] = useState(false)
+  const hoveringPortsRef = useRef<Set<string>>(new Set())
+
+  const handlePortHoverChange = useCallback(
+    (portId: string, isHovering: boolean) => {
+      if (isHovering) {
+        hoveringPortsRef.current.add(portId)
+      } else {
+        hoveringPortsRef.current.delete(portId)
+      }
+      setIsHoveringClickablePort(hoveringPortsRef.current.size > 0)
+    },
+    [],
+  )
+
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
@@ -154,6 +178,35 @@ export const SchematicViewer = ({
       return []
     }
   }, [circuitJsonKey, circuitJson])
+
+  const schematicPortsInfo = useMemo(() => {
+    if (!showSchematicPorts) return []
+    try {
+      const ports = su(circuitJson).schematic_port?.list() ?? []
+      return ports.map((port) => {
+        const sourcePort = su(circuitJson).source_port.get(port.source_port_id)
+        const sourceComponent =
+          sourcePort?.source_component_id
+            ? su(circuitJson).source_component.get(
+                sourcePort.source_component_id,
+              )
+            : null
+        const componentName = sourceComponent?.name ?? "?"
+        const pinLabel =
+          port.display_pin_label ??
+          (sourcePort as any)?.pin_number ??
+          (sourcePort as any)?.name ??
+          "?"
+        return {
+          portId: port.source_port_id as string,
+          label: `${componentName}.${pinLabel}`,
+        }
+      })
+    } catch (err) {
+      console.error("Failed to derive schematic port info", err)
+      return []
+    }
+  }, [circuitJsonKey, circuitJson, showSchematicPorts])
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
@@ -343,6 +396,11 @@ export const SchematicViewer = ({
           {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
         </style>
       )}
+      {onSchematicPortClicked && (
+        <style>
+          {`[data-schematic-port-id]:hover { cursor: pointer !important; }`}
+        </style>
+      )}
       <div
         ref={containerRef}
         style={{
@@ -357,7 +415,9 @@ export const SchematicViewer = ({
                 ? "pointer"
                 : isHoveringClickableComponent && onSchematicComponentClicked
                   ? "pointer"
-                  : "grab",
+                  : isHoveringClickablePort && onSchematicPortClicked
+                    ? "pointer"
+                    : "grab",
           minHeight: "300px",
           ...containerStyle,
         }}
@@ -493,6 +553,29 @@ export const SchematicViewer = ({
                   event,
                 })
               }}
+            />
+          ))}
+        {showSchematicPorts &&
+          schematicPortsInfo.map(({ portId, label }) => (
+            <SchematicPortMouseTarget
+              key={portId}
+              portId={portId}
+              portLabel={label}
+              svgDivRef={svgDivRef}
+              containerRef={containerRef}
+              showOutline={true}
+              circuitJsonKey={circuitJsonKey}
+              onHoverChange={handlePortHoverChange}
+              onPortClick={
+                onSchematicPortClicked
+                  ? (id, event) => {
+                      onSchematicPortClicked?.({
+                        schematicPortId: id,
+                        event,
+                      })
+                    }
+                  : undefined
+              }
             />
           ))}
         {svgDiv}
