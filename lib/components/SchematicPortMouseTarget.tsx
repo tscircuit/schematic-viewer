@@ -171,7 +171,7 @@ export const SchematicPortMouseTarget = ({
     }
   }, [hovering, portId, onHoverChange])
 
-  if (!measurement || !hovering || !showOutline) {
+  if (!measurement || !showOutline) {
     return null
   }
 
@@ -186,13 +186,19 @@ export const SchematicPortMouseTarget = ({
           top: rect.top,
           width: rect.width,
           height: rect.height,
-          border: "1.5px solid rgba(255, 153, 51, 0.9)",
+          border: hovering
+            ? "1.5px solid rgba(255, 153, 51, 0.9)"
+            : "1.5px solid rgba(255, 153, 51, 0.3)",
+          backgroundColor: hovering
+            ? "rgba(255, 153, 51, 0.15)"
+            : "rgba(255, 153, 51, 0.05)",
           borderRadius: "50%",
           pointerEvents: "none",
           zIndex: zIndexMap.schematicPortHoverOutline,
+          transition: "border-color 0.15s, background-color 0.15s",
         }}
       />
-      {portLabel && (
+      {hovering && portLabel && (
         <div
           style={{
             position: "absolute",

@@ -555,6 +555,7 @@ export const SchematicViewer = ({
               }}
             />
           ))}
+        {svgDiv}
         {showSchematicPorts &&
           schematicPortsInfo.map(({ portId, label }) => (
             <SchematicPortMouseTarget
@@ -578,7 +579,6 @@ export const SchematicViewer = ({
               }
             />
           ))}
-        {svgDiv}
       </div>
     </MouseTracker>
   )
