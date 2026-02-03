@@ -123,7 +123,8 @@ export const SchematicViewer = ({
 
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
   const [snapToGrid, setSnapToGrid] = useState(true)
-  const [showGrid, setShowGrid] = useState(debugGrid)
+  const [showGridInternal, setShowGridInternal] = useState(false)
+  const showGrid = debugGrid || showGridInternal
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
     !clickToInteractEnabled,
   )
@@ -513,7 +514,7 @@ export const SchematicViewer = ({
             }
           }}
           showGrid={showGrid}
-          onToggleGrid={setShowGrid}
+          onToggleGrid={setShowGridInternal}
         />
         {spiceSimulationEnabled && (
           <SpiceSimulationIcon onClick={() => setShowSpiceOverlay(true)} />
