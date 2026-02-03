@@ -24,7 +24,8 @@ export const useHighlightConnectedTracesOnHover = ({
           const sourceTraceId = trace.source_trace_id as string
 
           schematicTraceToSourceTraceId.set(schematicTraceId, sourceTraceId)
-          const existing = sourceTraceToSchematicTraceIds.get(sourceTraceId) ?? []
+          const existing =
+            sourceTraceToSchematicTraceIds.get(sourceTraceId) ?? []
           existing.push(schematicTraceId)
           sourceTraceToSchematicTraceIds.set(sourceTraceId, existing)
         }
