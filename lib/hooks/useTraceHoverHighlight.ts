@@ -1,11 +1,11 @@
 import { useEffect } from "react"
-import { su } from "@tscircuit/soup-util"
 import type { CircuitJson } from "circuit-json"
 
 const HIGHLIGHT_COLOR = "#60a5fa"
 
 /**
- * This hook highlights traces on hover and all traces connected to the same net
+ * This hook highlights traces on hover and all traces connected to the same net.
+ * Net grouping is derived from the SVG's data-subcircuit-connectivity-map-key attribute.
  */
 export const useTraceHoverHighlight = ({
   svgDivRef,
@@ -18,136 +18,69 @@ export const useTraceHoverHighlight = ({
     const svg = svgDivRef.current
     if (!svg) return
 
-    const sourceTraces = su(circuitJson).source_trace.list()
-    const schematicTraces = su(circuitJson).schematic_trace.list()
-
-    if (schematicTraces.length === 0) return
-
-    // Build schematic_trace_id → source_trace_id
-    const schematicToSource = new Map<string, string>()
-    for (const st of schematicTraces) {
-      if (st.source_trace_id) {
-        schematicToSource.set(st.schematic_trace_id, st.source_trace_id)
-      }
-    }
-
-    // Build source_port_id → Set<source_trace_id>
-    const portToSources = new Map<string, Set<string>>()
-    for (const st of sourceTraces) {
-      for (const portId of st.connected_source_port_ids ?? []) {
-        if (!portToSources.has(portId)) portToSources.set(portId, new Set())
-        portToSources.get(portId)!.add(st.source_trace_id)
-      }
-    }
-
-    // Build source_trace_id → Set<schematic_trace_id>
-    const sourceToSchematics = new Map<string, Set<string>>()
-    for (const st of schematicTraces) {
-      if (!st.source_trace_id) continue
-      if (!sourceToSchematics.has(st.source_trace_id)) {
-        sourceToSchematics.set(st.source_trace_id, new Set())
-      }
-      sourceToSchematics.get(st.source_trace_id)!.add(st.schematic_trace_id)
-    }
-
-    // Precompute net groups: traces sharing connected ports are on the same net
-    const traceNetMap = new Map<string, number>()
-    const netTraces = new Map<number, Set<string>>()
-    let nextNetId = 0
-
-    for (const st of schematicTraces) {
-      if (traceNetMap.has(st.schematic_trace_id)) continue
-
-      const visited = new Set<string>()
-      const queue = [st.schematic_trace_id]
-
-      while (queue.length > 0) {
-        const currentSchId = queue.pop()!
-        if (visited.has(currentSchId)) continue
-        visited.add(currentSchId)
-
-        const srcId = schematicToSource.get(currentSchId)
-        if (!srcId) continue
-
-        const srcTrace = sourceTraces.find((s) => s.source_trace_id === srcId)
-        if (!srcTrace) continue
-
-        for (const portId of srcTrace.connected_source_port_ids ?? []) {
-          const connectedSrcIds = portToSources.get(portId)
-          if (!connectedSrcIds) continue
-          for (const connSrcId of connectedSrcIds) {
-            const schIds = sourceToSchematics.get(connSrcId)
-            if (!schIds) continue
-            for (const schId of schIds) {
-              if (!visited.has(schId)) queue.push(schId)
-            }
-          }
-        }
-      }
-
-      const netId = nextNetId++
-      netTraces.set(netId, visited)
-      for (const id of visited) {
-        traceNetMap.set(id, netId)
-      }
-    }
-
     // Hover state
     const originalStrokes = new Map<Element, string>()
-    let currentNetId: number | null = null
+    let currentNetKey: string | null = null
 
     const clearHighlights = () => {
       for (const [el, stroke] of originalStrokes) {
         el.setAttribute("stroke", stroke)
       }
       originalStrokes.clear()
-      currentNetId = null
+      currentNetKey = null
     }
 
-    const applyHighlights = (netId: number) => {
-      const traceIds = netTraces.get(netId)
-      if (!traceIds) return
-
-      for (const traceId of traceIds) {
-        const paths = svg.querySelectorAll(
-          `[data-schematic-trace-id="${traceId}"] path`,
-        )
+    const applyHighlights = (netKey: string) => {
+      // Find all trace groups on the same net
+      const sameNetTraces = svg.querySelectorAll(
+        `[data-subcircuit-connectivity-map-key="${netKey}"][data-circuit-json-type="schematic_trace"]`,
+      )
+      for (const traceGroup of Array.from(sameNetTraces)) {
+        const paths = traceGroup.querySelectorAll("path")
         for (const path of Array.from(paths)) {
           if (path.getAttribute("class")?.includes("invisible")) continue
           originalStrokes.set(path, path.getAttribute("stroke") || "")
           path.setAttribute("stroke", HIGHLIGHT_COLOR)
         }
       }
-      currentNetId = netId
+      currentNetKey = netKey
     }
 
     const handlePointerMove = (e: PointerEvent) => {
       const target = e.target as Element
       if (!target?.closest) return
 
-      const traceGroup = target.closest("[data-schematic-trace-id]")
+      const traceGroup = target.closest(
+        "[data-circuit-json-type='schematic_trace']",
+      )
       if (!traceGroup) {
-        if (currentNetId !== null) clearHighlights()
+        if (currentNetKey !== null) clearHighlights()
         return
       }
 
-      const traceId = traceGroup.getAttribute("data-schematic-trace-id")
-      if (!traceId) {
-        if (currentNetId !== null) clearHighlights()
-        return
-      }
-
-      const netId = traceNetMap.get(traceId)
-      if (netId === undefined) {
-        if (currentNetId !== null) clearHighlights()
+      const netKey = traceGroup.getAttribute(
+        "data-subcircuit-connectivity-map-key",
+      )
+      if (!netKey) {
+        // No net key — highlight just this single trace
+        const traceId = traceGroup.getAttribute("data-schematic-trace-id")
+        if (!traceId || currentNetKey === `single:${traceId}`) return
+        clearHighlights()
+        const paths = traceGroup.querySelectorAll("path")
+        for (const path of Array.from(paths)) {
+          if (path.getAttribute("class")?.includes("invisible")) continue
+          originalStrokes.set(path, path.getAttribute("stroke") || "")
+          path.setAttribute("stroke", HIGHLIGHT_COLOR)
+        }
+        currentNetKey = `single:${traceId}`
         return
       }
 
       // Already highlighting this net
-      if (netId === currentNetId) return
+      if (netKey === currentNetKey) return
 
       clearHighlights()
-      applyHighlights(netId)
+      applyHighlights(netKey)
     }
 
     const handlePointerLeave = () => {
