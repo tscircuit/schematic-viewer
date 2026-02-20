@@ -16,3 +16,4 @@ storybook-static
 cosmos-export
 .env
 lib/workers/spice-simulation.worker.blob.js
+.cursor
