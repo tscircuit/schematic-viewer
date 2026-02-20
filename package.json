@@ -13,6 +13,9 @@
     "format": "biome format --write .",
     "format:check": "biome format ."
   },
+  "files": [
+    "dist"
+  ],
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/bun": "latest",
