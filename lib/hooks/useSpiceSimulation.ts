@@ -93,6 +93,20 @@ export const useSpiceSimulation = (spiceString: string | null) => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const normalizeErrorMessage = (raw: unknown, fallback: string): string => {
+    if (typeof raw === "string" && raw.trim().length > 0) return raw
+    if (
+      raw &&
+      typeof raw === "object" &&
+      "message" in raw &&
+      typeof (raw as any).message === "string" &&
+      (raw as any).message.trim().length > 0
+    ) {
+      return (raw as any).message
+    }
+    return fallback
+  }
+
   useEffect(() => {
     if (!spiceString) {
       setIsLoading(false)
@@ -114,7 +128,16 @@ export const useSpiceSimulation = (spiceString: string | null) => {
       return
     }
 
-    const worker = new Worker(workerUrl, { type: "module" })
+    let worker: Worker
+    try {
+      worker = new Worker(workerUrl, { type: "module" })
+    } catch (err) {
+      setError(
+        normalizeErrorMessage(err, "Could not create SPICE simulation worker."),
+      )
+      setIsLoading(false)
+      return
+    }
 
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
       if (event.data.type === "result") {
@@ -124,17 +147,29 @@ export const useSpiceSimulation = (spiceString: string | null) => {
           setPlotData(parsedData)
           setNodes(parsedNodes)
         } catch (e: any) {
-          setError(e.message || "Failed to parse simulation result")
+          setError(
+            normalizeErrorMessage(e, "Failed to parse simulation result"),
+          )
           console.error(e)
         }
       } else if (event.data.type === "error") {
-        setError(event.data.error)
+        setError(
+          normalizeErrorMessage(
+            event.data.error,
+            "Simulation failed with an unknown worker error.",
+          ),
+        )
       }
       setIsLoading(false)
     }
 
     worker.onerror = (err) => {
-      setError(err.message)
+      setError(
+        normalizeErrorMessage(
+          err,
+          "SPICE simulation worker crashed while running the simulation.",
+        ),
+      )
       setIsLoading(false)
     }
 

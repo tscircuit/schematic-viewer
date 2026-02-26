@@ -12,6 +12,10 @@ import {
 } from "chart.js"
 import { Line } from "react-chartjs-2"
 import type { PlotPoint } from "../hooks/useSpiceSimulation"
+import {
+  classifySpiceSimulationError,
+  type SpiceSimulationFeedback,
+} from "../utils/spice-sim-feedback"
 
 ChartJS.register(
   CategoryScale,
@@ -51,6 +55,115 @@ const formatTimeWithUnits = (seconds: number) => {
   return `${parseFloat((seconds * scale).toPrecision(3))}${unit}`
 }
 
+const getFeedbackColors = (tone: SpiceSimulationFeedback["tone"]) => {
+  if (tone === "error") {
+    return {
+      backgroundColor: "#fef2f2",
+      borderColor: "#fecaca",
+      titleColor: "#991b1b",
+      textColor: "#7f1d1d",
+    }
+  }
+  if (tone === "warning") {
+    return {
+      backgroundColor: "#fff7ed",
+      borderColor: "#fed7aa",
+      titleColor: "#9a3412",
+      textColor: "#7c2d12",
+    }
+  }
+  if (tone === "success") {
+    return {
+      backgroundColor: "#ecfdf5",
+      borderColor: "#a7f3d0",
+      titleColor: "#065f46",
+      textColor: "#065f46",
+    }
+  }
+  return {
+    backgroundColor: "#eff6ff",
+    borderColor: "#bfdbfe",
+    titleColor: "#1e3a8a",
+    textColor: "#1e40af",
+  }
+}
+
+const FeedbackPanel = ({
+  feedback,
+  rawError,
+}: {
+  feedback: SpiceSimulationFeedback
+  rawError?: string
+}) => {
+  const colors = getFeedbackColors(feedback.tone)
+  return (
+    <div
+      style={{
+        minHeight: "300px",
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "760px",
+          border: `1px solid ${colors.borderColor}`,
+          backgroundColor: colors.backgroundColor,
+          borderRadius: "8px",
+          padding: "12px 14px",
+          fontSize: "14px",
+          lineHeight: 1.5,
+        }}
+      >
+        <div
+          style={{
+            fontSize: "15px",
+            fontWeight: 600,
+            marginBottom: "4px",
+            color: colors.titleColor,
+          }}
+        >
+          {feedback.title}
+        </div>
+        <div style={{ color: colors.textColor }}>{feedback.message}</div>
+        {feedback.suggestions && feedback.suggestions.length > 0 && (
+          <ul
+            style={{
+              margin: "8px 0 0 18px",
+              padding: 0,
+              color: colors.textColor,
+            }}
+          >
+            {feedback.suggestions.map((suggestion) => (
+              <li key={suggestion}>{suggestion}</li>
+            ))}
+          </ul>
+        )}
+        {rawError && feedback.code === "unknown_simulation_error" && (
+          <div
+            style={{
+              marginTop: "10px",
+              fontFamily: "monospace",
+              fontSize: "12px",
+              color: "#111827",
+              backgroundColor: "rgba(255, 255, 255, 0.7)",
+              borderRadius: "6px",
+              padding: "8px 10px",
+              border: "1px solid rgba(17, 24, 39, 0.1)",
+              wordBreak: "break-word",
+            }}
+          >
+            Raw error: {rawError}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export const SpicePlot = ({
   plotData,
   nodes,
@@ -75,66 +188,69 @@ export const SpicePlot = ({
 
   if (isLoading) {
     return (
-      <div
-        style={{
-          height: "300px",
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+      <FeedbackPanel
+        feedback={{
+          code: "simulation_running",
+          tone: "info",
+          title: "Running Simulation",
+          message:
+            "SPICE analysis is currently running. Results will appear automatically when complete.",
         }}
-      >
-        Running simulation...
-      </div>
+      />
     )
   }
 
   if (!hasRun) {
     return (
-      <div
-        style={{
-          height: "300px",
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+      <FeedbackPanel
+        feedback={{
+          code: "simulation_not_started",
+          tone: "info",
+          title: "Ready To Simulate",
+          message:
+            'Click "Run" to execute the SPICE simulation and generate waveform data.',
         }}
-      >
-        Click "Run" to start the simulation.
-      </div>
+      />
     )
   }
 
   if (error) {
-    return (
-      <div
-        style={{
-          height: "300px",
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "red",
-        }}
-      >
-        Error: {error}
-      </div>
-    )
+    const feedback = classifySpiceSimulationError(error)
+    return <FeedbackPanel feedback={feedback} rawError={error} />
   }
 
   if (plotData.length === 0) {
     return (
-      <div
-        style={{
-          height: "300px",
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+      <FeedbackPanel
+        feedback={{
+          code: "empty_plot_data",
+          tone: "warning",
+          title: "No Plot Data Returned",
+          message:
+            "The simulation completed without any chartable points. Check probe variables and analysis commands.",
+          suggestions: [
+            "Confirm the netlist includes `.probe` variables.",
+            "Verify transient settings produce non-empty output.",
+          ],
         }}
-      >
-        No data to plot. Check simulation output or SPICE netlist.
-      </div>
+      />
+    )
+  }
+
+  if (nodes.length === 0) {
+    return (
+      <FeedbackPanel
+        feedback={{
+          code: "all_traces_filtered",
+          tone: "warning",
+          title: "No Traces Selected",
+          message:
+            "Simulation data exists, but current visibility filters hide all traces.",
+          suggestions: [
+            "Enable Voltage and/or Current in the simulation controls.",
+          ],
+        }}
+      />
     )
   }
 
@@ -214,8 +330,26 @@ export const SpicePlot = ({
   }
 
   return (
-    <div style={{ position: "relative", height: "300px", width: "100%" }}>
-      <Line options={options} data={chartData} />
+    <div style={{ width: "100%" }}>
+      <div
+        style={{
+          marginBottom: "10px",
+          border: "1px solid #a7f3d0",
+          backgroundColor: "#ecfdf5",
+          color: "#065f46",
+          borderRadius: "6px",
+          padding: "8px 10px",
+          fontSize: "13px",
+          lineHeight: 1.4,
+        }}
+      >
+        Simulation complete: {plotData.length} sample
+        {plotData.length === 1 ? "" : "s"} across {nodes.length} trace
+        {nodes.length === 1 ? "" : "s"}.
+      </div>
+      <div style={{ position: "relative", height: "260px", width: "100%" }}>
+        <Line options={options} data={chartData} />
+      </div>
     </div>
   )
 }
