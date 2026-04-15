@@ -6,6 +6,7 @@ import { su } from "@tscircuit/soup-util"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
+import { useSchematicTraceHoverHighlight } from "lib/hooks/useSchematicTraceHoverHighlight"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -277,7 +278,7 @@ export const SchematicViewer = ({
 
   const containerBackgroundColor = useMemo(() => {
     const match = svgString.match(
-      /<svg[^>]*style="[^"]*background-color:\s*([^;\"]+)/i,
+      /<svg[^>]*style="[^"]*background-color:\s*([^;\"]+ )/i,
     )
     return match?.[1] ?? "transparent"
   }, [svgString])
@@ -336,6 +337,13 @@ export const SchematicViewer = ({
     circuitJson,
     activeEditEvent,
     editEvents: editEventsWithUnappliedEditEvents,
+  })
+
+  // Highlight all traces in the same net on hover
+  useSchematicTraceHoverHighlight({
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey,
   })
 
   // Add group overlays when enabled
