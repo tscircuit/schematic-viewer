@@ -278,7 +278,7 @@ export const SchematicViewer = ({
 
   const containerBackgroundColor = useMemo(() => {
     const match = svgString.match(
-      /<svg[^>]*style="[^"]*background-color:\s*([^;\"]+)/i,
+      /<svg[^>]*style="[^"]*background-color:\s*([^;\"]+ )/i,
     )
     return match?.[1] ?? "transparent"
   }, [svgString])

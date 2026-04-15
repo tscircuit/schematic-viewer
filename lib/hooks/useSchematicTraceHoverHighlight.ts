@@ -96,7 +96,7 @@ export const useSchematicTraceHoverHighlight = ({
       for (const traceId of group) {
         const paths = svgEl.querySelectorAll(
           `[data-schematic-trace-id="${traceId}"] path,` +
-          `[data-schematic-trace-id="${traceId}"] line`,
+            `[data-schematic-trace-id="${traceId}"] line`,
         )
         for (const path of Array.from(paths)) {
           const el = path as Element
