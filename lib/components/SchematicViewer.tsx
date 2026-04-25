@@ -399,6 +399,17 @@ export const SchematicViewer = ({
           {`[data-schematic-port-id]:hover { cursor: pointer !important; }`}
         </style>
       )}
+      <style>
+        {`
+          [data-schematic-trace-id]:hover path {
+            stroke: #3399ff !important;
+            stroke-width: 2px !important;
+          }
+          [data-schematic-trace-id]:hover {
+            cursor: pointer;
+          }
+        `}
+      </style>
       <div
         ref={containerRef}
         style={{
