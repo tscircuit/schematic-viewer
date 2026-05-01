@@ -16,7 +16,9 @@ export const useTraceNetHighlighting = ({
     if (!svgDiv) return
 
     const getNetIdFromElement = (element: Element): string | null => {
-      const traceId = element.closest("[data-schematic-trace-id]")?.getAttribute("data-schematic-trace-id")
+      const traceId = element
+        .closest("[data-schematic-trace-id]")
+        ?.getAttribute("data-schematic-trace-id")
       if (!traceId) return null
 
       const trace = su(circuitJson).schematic_trace.get(traceId)
@@ -24,22 +26,31 @@ export const useTraceNetHighlighting = ({
 
       // Try to get netId via source_trace_id first
       if (trace.source_trace_id) {
-        const sourceTrace = su(circuitJson).source_trace.get(trace.source_trace_id)
+        const sourceTrace = su(circuitJson).source_trace.get(
+          trace.source_trace_id,
+        )
         if (sourceTrace?.connected_source_net_ids?.[0]) {
           return sourceTrace.connected_source_net_ids[0]
         }
       }
 
       // Fallback: find netId via connected ports
-      const portId = trace.edges.find(e => e.from_schematic_port_id)?.from_schematic_port_id ||
-                     trace.edges.find(e => e.to_schematic_port_id)?.to_schematic_port_id
-      
+      const edges = (trace as any).edges || []
+      const portId =
+        edges.find((e: any) => e.from_schematic_port_id)
+          ?.from_schematic_port_id ||
+        edges.find((e: any) => e.to_schematic_port_id)?.to_schematic_port_id
+
       if (portId) {
         const schematicPort = su(circuitJson).schematic_port.get(portId)
         if (schematicPort?.source_port_id) {
-          const sourceTrace = su(circuitJson).source_trace.list().find(st => 
-            st.connected_source_port_ids?.includes(schematicPort.source_port_id)
-          )
+          const sourceTrace = su(circuitJson)
+            .source_trace.list()
+            .find((st) =>
+              st.connected_source_port_ids?.includes(
+                schematicPort.source_port_id,
+              ),
+            )
           if (sourceTrace?.connected_source_net_ids?.[0]) {
             return sourceTrace.connected_source_net_ids[0]
           }
@@ -52,32 +63,49 @@ export const useTraceNetHighlighting = ({
     const highlightNet = (netId: string | null, highlight: boolean) => {
       if (!netId) return
 
-      const sourceTraces = su(circuitJson).source_trace.list().filter(st => 
-        st.connected_source_net_ids?.includes(netId)
-      )
-      const sourceTraceIds = new Set(sourceTraces.map(st => st.source_trace_id))
-      
-      const schematicTraces = su(circuitJson).schematic_trace.list().filter(st => 
-        sourceTraceIds.has(st.source_trace_id)
+      const sourceTraces = su(circuitJson)
+        .source_trace.list()
+        .filter((st) => st.connected_source_net_ids?.includes(netId))
+      const sourceTraceIds = new Set(
+        sourceTraces.map((st) => st.source_trace_id),
       )
 
-      schematicTraces.forEach(st => {
-        const paths = svgDiv.querySelectorAll(`[data-schematic-trace-id="${st.schematic_trace_id}"] path`)
-        paths.forEach(path => {
+      const schematicTraces = su(circuitJson)
+        .schematic_trace.list()
+        .filter(
+          (st) => st.source_trace_id && sourceTraceIds.has(st.source_trace_id),
+        )
+
+      schematicTraces.forEach((st) => {
+        const paths = svgDiv.querySelectorAll(
+          `[data-schematic-trace-id="${st.schematic_trace_id}"] path`,
+        )
+        paths.forEach((path) => {
           const el = path as SVGPathElement
           if (highlight) {
             if (!el.hasAttribute("data-original-stroke")) {
-              el.setAttribute("data-original-stroke", el.getAttribute("stroke") || "")
-              el.setAttribute("data-original-stroke-width", el.getAttribute("stroke-width") || "")
+              el.setAttribute(
+                "data-original-stroke",
+                el.getAttribute("stroke") || "",
+              )
+              el.setAttribute(
+                "data-original-stroke-width",
+                el.getAttribute("stroke-width") || "",
+              )
             }
             el.setAttribute("stroke", "#ffb700")
-            const originalWidth = parseFloat(el.getAttribute("data-original-stroke-width") || "0.05")
+            const originalWidthAttr = el.getAttribute(
+              "data-original-stroke-width",
+            )
+            const originalWidth = parseFloat(originalWidthAttr ?? "0.05")
             el.setAttribute("stroke-width", (originalWidth * 1.5).toString())
           } else {
             const originalStroke = el.getAttribute("data-original-stroke")
             const originalWidth = el.getAttribute("data-original-stroke-width")
-            if (originalStroke !== null) el.setAttribute("stroke", originalStroke)
-            if (originalWidth !== null) el.setAttribute("stroke-width", originalWidth)
+            if (originalStroke !== null)
+              el.setAttribute("stroke", originalStroke)
+            if (originalWidth !== null)
+              el.setAttribute("stroke-width", originalWidth)
           }
         })
       })
@@ -86,7 +114,7 @@ export const useTraceNetHighlighting = ({
     const handleMouseOver = (e: MouseEvent) => {
       const target = e.target as Element
       const netId = getNetIdFromElement(target)
-      
+
       if (netId !== hoveredNetIdRef.current) {
         if (hoveredNetIdRef.current) {
           highlightNet(hoveredNetIdRef.current, false)
