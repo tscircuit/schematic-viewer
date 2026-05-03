@@ -265,6 +265,7 @@ export const SchematicViewer = ({
     return convertCircuitJsonToSchematicSvg(circuitJson as any, {
       width: containerWidth,
       height: containerHeight || 720,
+      drawPorts: showSchematicPorts,
       grid: !showGrid
         ? undefined
         : {
@@ -273,7 +274,13 @@ export const SchematicViewer = ({
           },
       colorOverrides,
     })
-  }, [circuitJsonKey, containerWidth, containerHeight, showGrid])
+  }, [
+    circuitJsonKey,
+    containerWidth,
+    containerHeight,
+    showGrid,
+    showSchematicPorts,
+  ])
 
   const containerBackgroundColor = useMemo(() => {
     const match = svgString.match(
