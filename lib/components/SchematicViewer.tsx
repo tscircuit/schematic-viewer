@@ -171,10 +171,16 @@ export const SchematicViewer = ({
     (traceId: string, isHovering: boolean) => {
       if (isHovering) {
         const trace = su(circuitJson).schematic_trace.get(traceId)
+        if (!trace || !trace.source_trace_id) {
+          setHoveredNetId(null)
+          return
+        }
         const sourceTrace = su(circuitJson).source_trace.get(
-          trace?.source_trace_id!,
+          trace.source_trace_id,
         )
-        setHoveredNetId(sourceTrace?.source_net_id ?? null)
+        // @ts-ignore - connected_source_net_ids exists on newer circuit-json versions
+        const netIds = sourceTrace?.connected_source_net_ids || sourceTrace?.source_net_id ? [sourceTrace.source_net_id] : []
+        setHoveredNetId(netIds[0] ?? null)
       } else {
         setHoveredNetId(null)
       }
