@@ -4,6 +4,41 @@ import { su } from "@tscircuit/soup-util"
 
 const HOVERED_TRACE_CLASS = "schematic-trace-hovered"
 
+type CircuitJsonElement = CircuitJson[number] & Record<string, any>
+
+class UnionFind {
+  parent = new Map<string, string>()
+
+  find(id: string): string {
+    const parent = this.parent.get(id)
+    if (!parent) {
+      this.parent.set(id, id)
+      return id
+    }
+    if (parent === id) return id
+
+    const root = this.find(parent)
+    this.parent.set(id, root)
+    return root
+  }
+
+  union(a: string, b: string) {
+    const rootA = this.find(a)
+    const rootB = this.find(b)
+    if (rootA !== rootB) this.parent.set(rootB, rootA)
+  }
+}
+
+const addToMapSet = (
+  map: Map<string, Set<string>>,
+  key: string,
+  value: string,
+) => {
+  const values = map.get(key) ?? new Set<string>()
+  values.add(value)
+  map.set(key, values)
+}
+
 export const useHighlightConnectedSchematicTraces = ({
   svgDivRef,
   circuitJson,
@@ -17,11 +52,31 @@ export const useHighlightConnectedSchematicTraces = ({
     const idsByConnectionKey = new Map<string, Set<string>>()
 
     try {
-      const sourceTracesById = new Map(
-        su(circuitJson)
-          .source_trace.list()
-          .map((sourceTrace) => [sourceTrace.source_trace_id, sourceTrace]),
-      )
+      const unionFind = new UnionFind()
+      const sourceTraceIdsByNetId = new Map<string, Set<string>>()
+      const sourceTraceIdsByPortId = new Map<string, Set<string>>()
+      const sourceTraceIdBySchematicTraceId = new Map<string, string>()
+      const sourceTraces = su(circuitJson).source_trace.list()
+
+      for (const sourceTrace of sourceTraces) {
+        if (!sourceTrace.source_trace_id) continue
+
+        const sourceTraceId = sourceTrace.source_trace_id
+        unionFind.find(sourceTraceId)
+
+        for (const sourceNetId of sourceTrace.connected_source_net_ids ?? []) {
+          addToMapSet(sourceTraceIdsByNetId, String(sourceNetId), sourceTraceId)
+        }
+
+        for (const sourcePortId of sourceTrace.connected_source_port_ids ??
+          []) {
+          addToMapSet(
+            sourceTraceIdsByPortId,
+            String(sourcePortId),
+            sourceTraceId,
+          )
+        }
+      }
 
       for (const schematicTrace of su(circuitJson).schematic_trace.list()) {
         if (
@@ -31,15 +86,55 @@ export const useHighlightConnectedSchematicTraces = ({
           continue
         }
 
-        const sourceTrace = sourceTracesById.get(schematicTrace.source_trace_id)
-        const connectedNetIds = sourceTrace?.connected_source_net_ids ?? []
-        const connectionKey =
-          connectedNetIds.length > 0
-            ? `source-net:${[...connectedNetIds].sort().join(",")}`
-            : `source-trace:${schematicTrace.source_trace_id}`
+        sourceTraceIdBySchematicTraceId.set(
+          schematicTrace.schematic_trace_id,
+          schematicTrace.source_trace_id,
+        )
+        unionFind.find(schematicTrace.source_trace_id)
+      }
 
+      for (const element of circuitJson as CircuitJsonElement[]) {
+        if (element?.type !== "source_net" || !element.source_net_id) continue
+
+        const sourceNetId = String(element.source_net_id)
+
+        for (const sourceTraceId of element.connected_source_trace_ids ?? []) {
+          addToMapSet(sourceTraceIdsByNetId, sourceNetId, String(sourceTraceId))
+        }
+
+        for (const sourcePortId of element.connected_source_port_ids ?? []) {
+          const sourceTraceIds = sourceTraceIdsByPortId.get(
+            String(sourcePortId),
+          )
+          if (!sourceTraceIds) continue
+
+          for (const sourceTraceId of sourceTraceIds) {
+            addToMapSet(sourceTraceIdsByNetId, sourceNetId, sourceTraceId)
+          }
+        }
+      }
+
+      for (const connectedTraceIds of [
+        ...sourceTraceIdsByNetId.values(),
+        ...sourceTraceIdsByPortId.values(),
+      ]) {
+        const [firstTraceId, ...restTraceIds] = Array.from(connectedTraceIds)
+        if (!firstTraceId) continue
+
+        for (const sourceTraceId of restTraceIds) {
+          unionFind.union(firstTraceId, sourceTraceId)
+        }
+      }
+
+      for (const [
+        schematicTraceId,
+        sourceTraceId,
+      ] of sourceTraceIdBySchematicTraceId) {
+        const connectionKey = `source-trace-group:${unionFind.find(
+          sourceTraceId,
+        )}`
         const traceIds = idsByConnectionKey.get(connectionKey) ?? new Set()
-        traceIds.add(schematicTrace.schematic_trace_id)
+        traceIds.add(schematicTraceId)
         idsByConnectionKey.set(connectionKey, traceIds)
       }
     } catch (err) {
