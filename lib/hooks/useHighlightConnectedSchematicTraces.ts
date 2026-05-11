@@ -219,12 +219,18 @@ export const useHighlightConnectedSchematicTraces = ({
       clearHoveredTraces()
     }
 
+    const mutationObserver = new MutationObserver(() => {
+      clearHoveredTraces()
+    })
+
     svgDiv.addEventListener("mouseover", handleMouseOver)
     svgDiv.addEventListener("mouseout", handleMouseOut)
+    mutationObserver.observe(svgDiv, { childList: true, subtree: true })
 
     return () => {
       svgDiv.removeEventListener("mouseover", handleMouseOver)
       svgDiv.removeEventListener("mouseout", handleMouseOut)
+      mutationObserver.disconnect()
       clearHoveredTraces()
     }
   }, [
