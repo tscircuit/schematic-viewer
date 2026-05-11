@@ -180,9 +180,10 @@ export const SchematicViewer = ({
         )
         // @ts-ignore - connected_source_net_ids exists on newer circuit-json versions
         const netIds =
-          sourceTrace?.connected_source_net_ids || sourceTrace?.source_net_id
-            ? [sourceTrace.source_net_id]
-            : []
+          sourceTrace?.connected_source_net_ids ||
+          ((sourceTrace as any)?.source_net_id
+            ? [(sourceTrace as any).source_net_id]
+            : [])
         setHoveredNetId(netIds[0] ?? null)
       } else {
         setHoveredNetId(null)
@@ -398,7 +399,9 @@ export const SchematicViewer = ({
       const sourceTrace = su(circuitJson).source_trace.get(
         trace.source_trace_id!,
       )
-      const netId = sourceTrace?.source_net_id
+      const netId =
+        sourceTrace?.connected_source_net_ids?.[0] ??
+        (sourceTrace as any)?.source_net_id
       if (netId) {
         for (const el of Array.from(traceElements)) {
           el.setAttribute("data-net-id", netId)
