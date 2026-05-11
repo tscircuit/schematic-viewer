@@ -31,6 +31,7 @@ import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
+import { SchematicTraceMouseTarget } from "./SchematicTraceMouseTarget"
 
 interface Props {
   circuitJson: CircuitJson
@@ -164,6 +165,33 @@ export const SchematicViewer = ({
     [],
   )
 
+  const [hoveredNetId, setHoveredNetId] = useState<string | null>(null)
+
+  const handleTraceHoverChange = useCallback(
+    (traceId: string, isHovering: boolean) => {
+      if (isHovering) {
+        const trace = su(circuitJson).schematic_trace.get(traceId)
+        if (!trace || !trace.source_trace_id) {
+          setHoveredNetId(null)
+          return
+        }
+        const sourceTrace = su(circuitJson).source_trace.get(
+          trace.source_trace_id,
+        )
+        // @ts-ignore - connected_source_net_ids exists on newer circuit-json versions
+        const netIds =
+          sourceTrace?.connected_source_net_ids ||
+          ((sourceTrace as any)?.source_net_id
+            ? [(sourceTrace as any).source_net_id]
+            : [])
+        setHoveredNetId(netIds[0] ?? null)
+      } else {
+        setHoveredNetId(null)
+      }
+    },
+    [circuitJson],
+  )
+
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
@@ -176,6 +204,19 @@ export const SchematicViewer = ({
       )
     } catch (err) {
       console.error("Failed to derive schematic component ids", err)
+      return []
+    }
+  }, [circuitJsonKey, circuitJson])
+
+  const schematicTraceIds = useMemo(() => {
+    try {
+      return (
+        su(circuitJson)
+          .schematic_trace?.list()
+          ?.map((trace) => trace.schematic_trace_id as string) ?? []
+      )
+    } catch (err) {
+      console.error("Failed to derive schematic trace ids", err)
       return []
     }
   }, [circuitJsonKey, circuitJson])
@@ -345,6 +386,30 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
   })
 
+  // Add data-net-id to traces in the SVG
+  useEffect(() => {
+    const svg = svgDivRef.current
+    if (!svg) return
+
+    const traces = su(circuitJson).schematic_trace.list()
+    for (const trace of traces) {
+      const traceElements = svg.querySelectorAll(
+        `[data-schematic-trace-id="${trace.schematic_trace_id}"]`,
+      )
+      const sourceTrace = su(circuitJson).source_trace.get(
+        trace.source_trace_id!,
+      )
+      const netId =
+        sourceTrace?.connected_source_net_ids?.[0] ??
+        (sourceTrace as any)?.source_net_id
+      if (netId) {
+        for (const el of Array.from(traceElements)) {
+          el.setAttribute("data-net-id", netId)
+        }
+      }
+    }
+  }, [svgString, circuitJson])
+
   // Add group overlays when enabled
   useSchematicGroupsOverlay({
     svgDivRef,
@@ -404,6 +469,11 @@ export const SchematicViewer = ({
       {onSchematicPortClicked && (
         <style>
           {`[data-schematic-port-id]:hover { cursor: pointer !important; }`}
+        </style>
+      )}
+      {hoveredNetId && (
+        <style>
+          {`[data-net-id="${hoveredNetId}"] path:not(.trace-invisible-hover-outline) { stroke: #3399ff !important; }`}
         </style>
       )}
       <div
@@ -561,6 +631,16 @@ export const SchematicViewer = ({
             />
           ))}
         {svgDiv}
+        {schematicTraceIds.map((traceId) => (
+          <SchematicTraceMouseTarget
+            key={traceId}
+            traceId={traceId}
+            svgDivRef={svgDivRef}
+            containerRef={containerRef}
+            circuitJsonKey={circuitJsonKey}
+            onHoverChange={handleTraceHoverChange}
+          />
+        ))}
         {showSchematicPorts &&
           schematicPortsInfo.map(({ portId, label }) => (
             <SchematicPortMouseTarget
