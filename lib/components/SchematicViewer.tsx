@@ -31,6 +31,7 @@ import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
+import { getSchematicTraceNetKeyMap } from "../utils/get-schematic-trace-net-keys"
 
 interface Props {
   circuitJson: CircuitJson
@@ -303,6 +304,71 @@ export const SchematicViewer = ({
     }
   }, [svgString])
 
+  const schematicTraceNetKeyMap = useMemo(
+    () => getSchematicTraceNetKeyMap(circuitJson),
+    [circuitJsonKey, circuitJson],
+  )
+
+  useEffect(() => {
+    const svgRoot = svgDivRef.current
+    if (!svgRoot) return
+
+    const traceElements = Array.from(
+      svgRoot.querySelectorAll<SVGGElement>(
+        '[data-circuit-json-type="schematic_trace"][data-schematic-trace-id]',
+      ),
+    )
+
+    const traceElementsByNetKey = new Map<string, SVGGElement[]>()
+
+    for (const traceElement of traceElements) {
+      const schematicTraceId = traceElement.dataset.schematicTraceId
+      if (!schematicTraceId) continue
+
+      const netKey = schematicTraceNetKeyMap.get(schematicTraceId)
+      if (!netKey) continue
+
+      traceElement.dataset.schematicNetKey = netKey
+      if (!traceElementsByNetKey.has(netKey)) {
+        traceElementsByNetKey.set(netKey, [])
+      }
+      traceElementsByNetKey.get(netKey)!.push(traceElement)
+    }
+
+    const cleanupCallbacks: Array<() => void> = []
+
+    for (const [netKey, sameNetTraceElements] of traceElementsByNetKey) {
+      const setSameNetHover = (isHovered: boolean) => {
+        for (const traceElement of sameNetTraceElements) {
+          traceElement.toggleAttribute(
+            "data-tscircuit-same-net-hovered",
+            isHovered,
+          )
+        }
+      }
+
+      for (const traceElement of sameNetTraceElements) {
+        const handleMouseEnter = () => setSameNetHover(true)
+        const handleMouseLeave = () => setSameNetHover(false)
+
+        traceElement.addEventListener("mouseenter", handleMouseEnter)
+        traceElement.addEventListener("mouseleave", handleMouseLeave)
+        cleanupCallbacks.push(() => {
+          traceElement.removeEventListener("mouseenter", handleMouseEnter)
+          traceElement.removeEventListener("mouseleave", handleMouseLeave)
+          traceElement.removeAttribute("data-tscircuit-same-net-hovered")
+          if (traceElement.dataset.schematicNetKey === netKey) {
+            delete traceElement.dataset.schematicNetKey
+          }
+        })
+      }
+    }
+
+    return () => {
+      for (const cleanup of cleanupCallbacks) cleanup()
+    }
+  }, [svgString, schematicTraceNetKeyMap])
+
   const handleEditEvent = (event: ManualEditEvent) => {
     setInternalEditEvents((prev) => [...prev, event])
     if (onEditEvent) {
@@ -406,6 +472,17 @@ export const SchematicViewer = ({
           {`[data-schematic-port-id]:hover { cursor: pointer !important; }`}
         </style>
       )}
+      <style>
+        {`
+          [data-circuit-json-type="schematic_trace"][data-tscircuit-same-net-hovered] {
+            filter: invert(1);
+          }
+
+          [data-circuit-json-type="schematic_trace"][data-tscircuit-same-net-hovered] .trace-crossing-outline {
+            opacity: 0;
+          }
+        `}
+      </style>
       <div
         ref={containerRef}
         style={{
