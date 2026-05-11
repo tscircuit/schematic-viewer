@@ -6,6 +6,9 @@ const HOVERED_TRACE_CLASS = "schematic-trace-hovered"
 
 type CircuitJsonElement = CircuitJson[number] & Record<string, any>
 
+const cssString = (value: string) =>
+  value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+
 class UnionFind {
   parent = new Map<string, string>()
 
@@ -209,10 +212,12 @@ export const useHighlightConnectedSchematicTraces = ({
         schematicTraceIdsByConnectionKey.get(connectionKey) ?? new Set()
 
       for (const connectedSchematicTraceId of schematicTraceIds) {
-        const connectedTrace = svgDiv.querySelector(
-          `[data-schematic-trace-id="${connectedSchematicTraceId}"]`,
+        const connectedTraces = svgDiv.querySelectorAll(
+          `[data-schematic-trace-id="${cssString(connectedSchematicTraceId)}"]`,
         )
-        connectedTrace?.classList.add(HOVERED_TRACE_CLASS)
+        for (const connectedTrace of Array.from(connectedTraces)) {
+          connectedTrace.classList.add(HOVERED_TRACE_CLASS)
+        }
       }
     }
 
