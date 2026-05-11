@@ -39,6 +39,20 @@ const addToMapSet = (
   map.set(key, values)
 }
 
+const getKnownNetKeys = (element: CircuitJsonElement | undefined) => {
+  if (!element) return []
+
+  return [
+    element.subcircuit_connectivity_map_key,
+    element.global_connectivity_map_key,
+    element.global_conn_net_id,
+    element.net_id,
+    element.pcb_net_id,
+  ]
+    .filter(Boolean)
+    .map((value) => `known-net:${String(value)}`)
+}
+
 export const getSchematicTraceIdsByConnectionKey = (
   circuitJson: CircuitJson,
 ) => {
@@ -59,6 +73,10 @@ export const getSchematicTraceIdsByConnectionKey = (
 
       for (const sourceNetId of sourceTrace.connected_source_net_ids ?? []) {
         addToMapSet(sourceTraceIdsByNetId, String(sourceNetId), sourceTraceId)
+      }
+
+      for (const knownNetKey of getKnownNetKeys(sourceTrace)) {
+        addToMapSet(sourceTraceIdsByNetId, knownNetKey, sourceTraceId)
       }
 
       for (const sourcePortId of sourceTrace.connected_source_port_ids ?? []) {
@@ -85,9 +103,16 @@ export const getSchematicTraceIdsByConnectionKey = (
       if (element?.type !== "source_net" || !element.source_net_id) continue
 
       const sourceNetId = String(element.source_net_id)
+      const sourceNetKeys = [sourceNetId, ...getKnownNetKeys(element)]
 
       for (const sourceTraceId of element.connected_source_trace_ids ?? []) {
-        addToMapSet(sourceTraceIdsByNetId, sourceNetId, String(sourceTraceId))
+        for (const sourceNetKey of sourceNetKeys) {
+          addToMapSet(
+            sourceTraceIdsByNetId,
+            sourceNetKey,
+            String(sourceTraceId),
+          )
+        }
       }
 
       for (const sourcePortId of element.connected_source_port_ids ?? []) {
@@ -95,7 +120,9 @@ export const getSchematicTraceIdsByConnectionKey = (
         if (!sourceTraceIds) continue
 
         for (const sourceTraceId of sourceTraceIds) {
-          addToMapSet(sourceTraceIdsByNetId, sourceNetId, sourceTraceId)
+          for (const sourceNetKey of sourceNetKeys) {
+            addToMapSet(sourceTraceIdsByNetId, sourceNetKey, sourceTraceId)
+          }
         }
       }
     }
