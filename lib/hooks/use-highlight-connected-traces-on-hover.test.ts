@@ -48,13 +48,15 @@ test("groups schematic traces by net connectivity instead of source trace id", (
   ] as any
 
   const hoverKeys = getSchematicTraceHoverKeys(circuitJson)
+  const voutHoverKey = hoverKeys.get("schematic_trace_1")
+  const gndHoverKey = hoverKeys.get("schematic_trace_3")
 
-  expect(hoverKeys.get("schematic_trace_1")).toBe(
-    hoverKeys.get("schematic_trace_2"),
-  )
-  expect(hoverKeys.get("schematic_trace_1")).not.toBe(
-    hoverKeys.get("schematic_trace_3"),
-  )
+  if (!voutHoverKey || !gndHoverKey) {
+    throw new Error("Expected schematic traces to have hover keys")
+  }
+
+  expect(hoverKeys.get("schematic_trace_2")).toBe(voutHoverKey)
+  expect(voutHoverKey).not.toBe(gndHoverKey)
 })
 
 test("falls back to connected source net ids when no connectivity key exists", () => {
@@ -88,8 +90,11 @@ test("falls back to connected source net ids when no connectivity key exists", (
   ] as any
 
   const hoverKeys = getSchematicTraceHoverKeys(circuitJson)
+  const hoverKey = hoverKeys.get("schematic_trace_1")
 
-  expect(hoverKeys.get("schematic_trace_1")).toBe(
-    hoverKeys.get("schematic_trace_2"),
-  )
+  if (!hoverKey) {
+    throw new Error("Expected schematic trace to have a hover key")
+  }
+
+  expect(hoverKeys.get("schematic_trace_2")).toBe(hoverKey)
 })
