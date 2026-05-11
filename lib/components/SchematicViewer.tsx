@@ -179,7 +179,10 @@ export const SchematicViewer = ({
           trace.source_trace_id,
         )
         // @ts-ignore - connected_source_net_ids exists on newer circuit-json versions
-        const netIds = sourceTrace?.connected_source_net_ids || sourceTrace?.source_net_id ? [sourceTrace.source_net_id] : []
+        const netIds =
+          sourceTrace?.connected_source_net_ids || sourceTrace?.source_net_id
+            ? [sourceTrace.source_net_id]
+            : []
         setHoveredNetId(netIds[0] ?? null)
       } else {
         setHoveredNetId(null)
