@@ -82,3 +82,44 @@ test("groups schematic traces connected through source net ports", () => {
     "schematic_trace_2",
   ])
 })
+
+test("groups schematic traces with the same subcircuit connectivity key", () => {
+  const groupedTraceIds = getGroupedTraceIds([
+    {
+      type: "source_trace",
+      source_trace_id: "source_trace_1",
+      subcircuit_connectivity_map_key: "main.vout",
+    },
+    {
+      type: "source_trace",
+      source_trace_id: "source_trace_2",
+      subcircuit_connectivity_map_key: "main.vout",
+    },
+    {
+      type: "source_trace",
+      source_trace_id: "source_trace_3",
+      subcircuit_connectivity_map_key: "main.gnd",
+    },
+    {
+      type: "schematic_trace",
+      schematic_trace_id: "schematic_trace_1",
+      source_trace_id: "source_trace_1",
+    },
+    {
+      type: "schematic_trace",
+      schematic_trace_id: "schematic_trace_2",
+      source_trace_id: "source_trace_2",
+    },
+    {
+      type: "schematic_trace",
+      schematic_trace_id: "schematic_trace_3",
+      source_trace_id: "source_trace_3",
+    },
+  ] as CircuitJson)
+
+  expect(groupedTraceIds).toContainEqual([
+    "schematic_trace_1",
+    "schematic_trace_2",
+  ])
+  expect(groupedTraceIds).toContainEqual(["schematic_trace_3"])
+})
