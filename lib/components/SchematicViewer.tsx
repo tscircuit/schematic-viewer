@@ -5,6 +5,7 @@ import {
 import { su } from "@tscircuit/soup-util"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import { useHighlightConnectedSchematicTraces } from "lib/hooks/useHighlightConnectedSchematicTraces"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -343,6 +344,13 @@ export const SchematicViewer = ({
     circuitJson,
     activeEditEvent,
     editEvents: editEventsWithUnappliedEditEvents,
+  })
+
+  useHighlightConnectedSchematicTraces({
+    svgDivRef,
+    circuitJson,
+    svgContentKey: svgString,
+    enabled: !editModeEnabled && !showSpiceOverlay,
   })
 
   // Add group overlays when enabled
