@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   fromString,
   identity,
+  type Matrix,
   toString as transformToString,
 } from "transformation-matrix"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
@@ -235,6 +236,11 @@ export const SchematicViewer = ({
   >([])
   const circuitJsonRef = useRef<CircuitJson>(circuitJson)
 
+  const handleSetTransform = useCallback((transform: Matrix) => {
+    if (!svgDivRef.current) return
+    svgDivRef.current.style.transform = transformToString(transform)
+  }, [])
+
   useEffect(() => {
     const circuitHash = getCircuitHash(circuitJson)
     const circuitHashRef = getCircuitHash(circuitJsonRef.current)
@@ -249,14 +255,16 @@ export const SchematicViewer = ({
     ref: containerRef,
     cancelDrag,
     transform: svgToScreenProjection,
+    setTransform: setSvgToScreenProjection,
   } = useMouseMatrixTransform({
-    onSetTransform(transform) {
-      if (!svgDivRef.current) return
-      svgDivRef.current.style.transform = transformToString(transform)
-    },
+    onSetTransform: handleSetTransform,
     // @ts-ignore disabled is a valid prop but not typed
     enabled: isInteractionEnabled && !showSpiceOverlay,
   })
+
+  useEffect(() => {
+    setSvgToScreenProjection(identity())
+  }, [circuitJsonKey, setSvgToScreenProjection])
 
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
   const svgString = useMemo(() => {
