@@ -353,6 +353,50 @@ export const SchematicViewer = ({
     showGroups: showSchematicGroups && !disableGroups,
   })
 
+  // Trace hover: highlight all same-net traces when any trace is hovered
+  useEffect(() => {
+    const div = svgDivRef.current
+    if (!div) return
+
+    const clearNetHighlight = () => {
+      div
+        .querySelectorAll("[data-net-hovered]")
+        .forEach((el) => el.removeAttribute("data-net-hovered"))
+    }
+
+    const handleTraceMouseEnter = (e: Event) => {
+      clearNetHighlight()
+      const target = e.currentTarget as Element
+      const key = target.getAttribute("data-subcircuit-connectivity-map-key")
+      if (!key) return
+      const escaped = CSS.escape(key)
+      div
+        .querySelectorAll(
+          `[data-circuit-json-type="schematic_trace"][data-subcircuit-connectivity-map-key="${escaped}"]`,
+        )
+        .forEach((el) => el.setAttribute("data-net-hovered", "true"))
+    }
+
+    const handleTraceMouseLeave = () => {
+      clearNetHighlight()
+    }
+
+    const traces = div.querySelectorAll(
+      '[data-circuit-json-type="schematic_trace"][data-layer="base"]',
+    )
+    traces.forEach((el) => {
+      el.addEventListener("mouseenter", handleTraceMouseEnter)
+      el.addEventListener("mouseleave", handleTraceMouseLeave)
+    })
+
+    return () => {
+      traces.forEach((el) => {
+        el.removeEventListener("mouseenter", handleTraceMouseEnter)
+        el.removeEventListener("mouseleave", handleTraceMouseLeave)
+      })
+    }
+  }, [svgString])
+
   // keep the latest touch handler without re-rendering the svg div
   const handleComponentTouchStartRef = useRef(handleComponentTouchStart)
   useEffect(() => {
@@ -396,6 +440,9 @@ export const SchematicViewer = ({
 
   return (
     <MouseTracker>
+      <style>
+        {`[data-circuit-json-type="schematic_trace"][data-net-hovered="true"] > path:first-child { opacity: 0.3 !important; transition: opacity 0.1s; }`}
+      </style>
       {onSchematicComponentClicked && (
         <style>
           {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
