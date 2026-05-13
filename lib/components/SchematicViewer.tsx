@@ -5,6 +5,7 @@ import {
 import { su } from "@tscircuit/soup-util"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import { useTraceNetHoverHighlight } from "lib/hooks/useTraceNetHoverHighlight"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -345,6 +346,11 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
   })
 
+  useTraceNetHoverHighlight({
+    svgDivRef,
+    circuitJsonKey,
+  })
+
   // Add group overlays when enabled
   useSchematicGroupsOverlay({
     svgDivRef,
@@ -396,6 +402,17 @@ export const SchematicViewer = ({
 
   return (
     <MouseTracker>
+      <style>
+        {`
+          g.trace.trace-net-hover,
+          g.trace-overlays.trace-net-hover {
+            filter: invert(1);
+          }
+          g.trace-overlays.trace-net-hover .trace-crossing-outline {
+            opacity: 0;
+          }
+        `}
+      </style>
       {onSchematicComponentClicked && (
         <style>
           {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
