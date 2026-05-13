@@ -64,7 +64,10 @@ export const useHighlightConnectedSchematicTraces = ({
     }
 
     const ensureStyle = () => {
-      if (svgDiv.querySelector(`style#${STYLE_ID}`)) return
+      const existingStyle = svgDiv.querySelector<HTMLStyleElement>(
+        `style#${STYLE_ID}`,
+      )
+      if (existingStyle) return existingStyle
 
       const style = document.createElement("style")
       style.id = STYLE_ID
@@ -81,6 +84,7 @@ export const useHighlightConnectedSchematicTraces = ({
         }
       `
       svgDiv.appendChild(style)
+      return style
     }
 
     const handlePointerEnter = (event: Event) => {
@@ -97,7 +101,7 @@ export const useHighlightConnectedSchematicTraces = ({
       svgDiv.querySelectorAll("[data-schematic-trace-id]"),
     )
 
-    ensureStyle()
+    const styleElement = ensureStyle()
     for (const traceElement of traceElements) {
       traceElement.addEventListener("pointerenter", handlePointerEnter)
     }
@@ -110,6 +114,7 @@ export const useHighlightConnectedSchematicTraces = ({
       }
       svgDiv.removeEventListener("pointerleave", clearHighlights)
       svgDiv.removeEventListener("pointercancel", clearHighlights)
+      styleElement.remove()
       clearHighlights()
     }
   }, [svgDivRef, circuitJson, svgContentKey, enabled])
