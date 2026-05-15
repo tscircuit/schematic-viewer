@@ -26,7 +26,7 @@ export function useHighlightConnectedSchematicTraces({
     if (traceGroups.length === 0) return
 
     const schematicTraces = circuitJson.filter(isSchematicTrace)
-    const netKeyByTraceId = getNetKeyByTraceId(schematicTraces)
+    const netKeyByTraceId = getSchematicTraceNetKeyByTraceId(schematicTraces)
     if (netKeyByTraceId.size === 0) return
 
     const clearHoveredTraces = () => {
@@ -75,7 +75,7 @@ function isSchematicTrace(
   return element.type === "schematic_trace"
 }
 
-function getNetKeyByTraceId(
+export function getSchematicTraceNetKeyByTraceId(
   schematicTraces: Array<
     Extract<CircuitJson[number], { type: "schematic_trace" }>
   >,
