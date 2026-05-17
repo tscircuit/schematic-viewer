@@ -39,7 +39,9 @@
     "tscircuit": "*"
   },
   "dependencies": {
+    "@tscircuit/soup-util": "*",
     "chart.js": "^4.5.0",
+    "circuit-json-to-connectivity-map": "^0.0.17",
     "circuit-json-to-spice": "^0.0.30",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
