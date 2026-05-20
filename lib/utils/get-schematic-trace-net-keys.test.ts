@@ -27,11 +27,11 @@ test("groups source traces by shared source ports transitively", () => {
     },
   ] as any)
 
-  expect(sourceTraceNetKeyMap.get("source_trace_1")).toBe(
-    sourceTraceNetKeyMap.get("source_trace_2"),
+  expect(sourceTraceNetKeyMap.get("source_trace_1")!).toBe(
+    sourceTraceNetKeyMap.get("source_trace_2")!,
   )
-  expect(sourceTraceNetKeyMap.get("source_trace_1")).not.toBe(
-    sourceTraceNetKeyMap.get("source_trace_3"),
+  expect(sourceTraceNetKeyMap.get("source_trace_1")!).not.toBe(
+    sourceTraceNetKeyMap.get("source_trace_3")!,
   )
 })
 
@@ -61,8 +61,8 @@ test("maps schematic trace ids to their source trace net groups", () => {
     },
   ] as any)
 
-  expect(schematicTraceNetKeyMap.get("schematic_trace_1")).toBe(
-    schematicTraceNetKeyMap.get("schematic_trace_2"),
+  expect(schematicTraceNetKeyMap.get("schematic_trace_1")!).toBe(
+    schematicTraceNetKeyMap.get("schematic_trace_2")!,
   )
 })
 
@@ -82,8 +82,8 @@ test("groups source traces by shared nets", () => {
     },
   ] as any)
 
-  expect(sourceTraceNetKeyMap.get("source_trace_1")).toBe(
-    sourceTraceNetKeyMap.get("source_trace_2"),
+  expect(sourceTraceNetKeyMap.get("source_trace_1")!).toBe(
+    sourceTraceNetKeyMap.get("source_trace_2")!,
   )
 })
 
@@ -105,8 +105,8 @@ test("groups source traces by subcircuit_connectivity_map_key", () => {
     },
   ] as any)
 
-  expect(sourceTraceNetKeyMap.get("source_trace_1")).toBe(
-    sourceTraceNetKeyMap.get("source_trace_2"),
+  expect(sourceTraceNetKeyMap.get("source_trace_1")!).toBe(
+    sourceTraceNetKeyMap.get("source_trace_2")!,
   )
 })
 
@@ -136,10 +136,10 @@ test("getSameNetSchematicTraceIdsMap returns same Set for same-net traces", () =
     },
   ] as any)
 
-  const set1 = sameNetMap.get("schematic_trace_1")
-  const set2 = sameNetMap.get("schematic_trace_2")
+  const set1 = sameNetMap.get("schematic_trace_1")!
+  const set2 = sameNetMap.get("schematic_trace_2")!
   expect(set1).toBe(set2)
-  expect(set1!.has("schematic_trace_1")).toBe(true)
-  expect(set1!.has("schematic_trace_2")).toBe(true)
-  expect(set1!.size).toBe(2)
+  expect(set1.has("schematic_trace_1")).toBe(true)
+  expect(set1.has("schematic_trace_2")).toBe(true)
+  expect(set1.size).toBe(2)
 })
