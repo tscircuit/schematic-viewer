@@ -31,6 +31,7 @@ import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
+import { addSubcircuitConnectivityMapKeysToSchematicTraces } from "lib/utils/add-subcircuit-connectivity-map-keys-to-schematic-traces"
 
 interface Props {
   circuitJson: CircuitJson
@@ -262,18 +263,24 @@ export const SchematicViewer = ({
   const svgString = useMemo(() => {
     if (!containerWidth || !containerHeight) return ""
 
-    return convertCircuitJsonToSchematicSvg(circuitJson as any, {
-      width: containerWidth,
-      height: containerHeight || 720,
-      drawPorts: showSchematicPorts,
-      grid: !showGrid
-        ? undefined
-        : {
-            cellSize: 1,
-            labelCells: true,
-          },
-      colorOverrides,
-    })
+    const circuitJsonWithTraceConnectivity =
+      addSubcircuitConnectivityMapKeysToSchematicTraces(circuitJson)
+
+    return convertCircuitJsonToSchematicSvg(
+      circuitJsonWithTraceConnectivity as any,
+      {
+        width: containerWidth,
+        height: containerHeight || 720,
+        drawPorts: showSchematicPorts,
+        grid: !showGrid
+          ? undefined
+          : {
+              cellSize: 1,
+              labelCells: true,
+            },
+        colorOverrides,
+      },
+    )
   }, [
     circuitJsonKey,
     containerWidth,
