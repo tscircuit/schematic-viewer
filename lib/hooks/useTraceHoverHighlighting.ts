@@ -2,7 +2,8 @@ import { useEffect, useMemo } from "react"
 import type { CircuitJson } from "circuit-json"
 import { getSchematicTraceNetKeyMap } from "lib/utils/get-schematic-trace-net-keys"
 
-const HOVER_FILTER = "brightness(1.3) drop-shadow(0 0 3px rgba(255, 107, 53, 0.5))"
+const HOVER_FILTER =
+  "brightness(1.3) drop-shadow(0 0 3px rgba(255, 107, 53, 0.5))"
 
 export const useTraceHoverHighlighting = ({
   svgDivRef,
