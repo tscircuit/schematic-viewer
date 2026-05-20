@@ -31,6 +31,7 @@ import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
+import { useTraceHoverHighlighting } from "lib/hooks/useTraceHoverHighlighting"
 
 interface Props {
   circuitJson: CircuitJson
@@ -343,6 +344,13 @@ export const SchematicViewer = ({
     circuitJson,
     activeEditEvent,
     editEvents: editEventsWithUnappliedEditEvents,
+  })
+
+  useTraceHoverHighlighting({
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey,
+    enabled: !editModeEnabled,
   })
 
   // Add group overlays when enabled
