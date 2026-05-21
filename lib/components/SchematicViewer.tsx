@@ -16,6 +16,7 @@ import {
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
+import { useTraceHoverHighlight } from "lib/hooks/useTraceHoverHighlight"
 import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
@@ -353,6 +354,8 @@ export const SchematicViewer = ({
     showGroups: showSchematicGroups && !disableGroups,
   })
 
+  useTraceHoverHighlight({ svgDivRef, circuitJson })
+
   // keep the latest touch handler without re-rendering the svg div
   const handleComponentTouchStartRef = useRef(handleComponentTouchStart)
   useEffect(() => {
@@ -406,6 +409,10 @@ export const SchematicViewer = ({
           {`[data-schematic-port-id]:hover { cursor: pointer !important; }`}
         </style>
       )}
+      <style>
+        {`.trace-highlighted { filter: invert(1); }
+          .trace-highlighted .trace-crossing-outline { opacity: 0; }`}
+      </style>
       <div
         ref={containerRef}
         style={{
