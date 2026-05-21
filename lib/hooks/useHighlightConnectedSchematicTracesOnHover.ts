@@ -69,7 +69,9 @@ const addHoverStyle = (svgContainer: HTMLDivElement) => {
 }
 
 const clearHoveredTraceGroups = (svgContainer: HTMLDivElement) => {
-  for (const traceGroup of svgContainer.querySelectorAll(`.${HOVER_CLASS}`)) {
+  for (const traceGroup of Array.from(
+    svgContainer.querySelectorAll(`.${HOVER_CLASS}`),
+  )) {
     traceGroup.classList.remove(HOVER_CLASS)
   }
 }
@@ -125,8 +127,10 @@ export const useHighlightConnectedSchematicTracesOnHover = ({
       const group = sourceTraceGroupById.get(sourceTraceId)
       if (!group) continue
 
-      for (const traceGroup of svgContainer.querySelectorAll(
-        `[data-schematic-trace-id="${getAttributeSelectorValue(schematicTraceId)}"]`,
+      for (const traceGroup of Array.from(
+        svgContainer.querySelectorAll(
+          `[data-schematic-trace-id="${getAttributeSelectorValue(schematicTraceId)}"]`,
+        ),
       )) {
         ;(traceGroup as HTMLElement).dataset.schematicNetGroup = group
       }
@@ -146,8 +150,10 @@ export const useHighlightConnectedSchematicTracesOnHover = ({
       clearHoveredTraceGroups(svgContainer)
       hoveredGroup = group
 
-      for (const connectedTrace of svgContainer.querySelectorAll(
-        `[data-schematic-net-group="${getAttributeSelectorValue(group)}"]`,
+      for (const connectedTrace of Array.from(
+        svgContainer.querySelectorAll(
+          `[data-schematic-net-group="${getAttributeSelectorValue(group)}"]`,
+        ),
       )) {
         connectedTrace.classList.add(HOVER_CLASS)
       }
