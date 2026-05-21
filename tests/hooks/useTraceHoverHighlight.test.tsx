@@ -92,7 +92,7 @@ function attachListeners(svgDiv: HTMLElement): () => void {
 
   const handleMouseLeave = (e: Event) => {
     const target = e.currentTarget as Element
-    const relatedTarget = e.relatedTarget as Element | null
+    const relatedTarget = (e as MouseEvent).relatedTarget as Element | null
     if (
       relatedTarget &&
       getConnectivityKey(relatedTarget) === getConnectivityKey(target)

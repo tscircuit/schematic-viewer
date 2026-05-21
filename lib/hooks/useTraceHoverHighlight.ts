@@ -105,7 +105,7 @@ export function useTraceHoverHighlight({
 
     const handleMouseLeave = (e: Event) => {
       const target = e.currentTarget as Element
-      const relatedTarget = e.relatedTarget as Element | null
+      const relatedTarget = (e as MouseEvent).relatedTarget as Element | null
 
       // Check if the mouse is moving to another trace in the same net
       if (
