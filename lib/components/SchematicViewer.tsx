@@ -1,10 +1,12 @@
-import {
-  convertCircuitJsonToSchematicSvg,
-  type ColorOverrides,
-} from "circuit-to-svg"
 import { su } from "@tscircuit/soup-util"
+import type { CircuitJson } from "circuit-json"
+import {
+  type ColorOverrides,
+  convertCircuitJsonToSchematicSvg,
+} from "circuit-to-svg"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -16,21 +18,20 @@ import {
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
+import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
 import type { ManualEditEvent } from "../types/edit-events"
+import { addConnectivityKeysToSchematicTraces } from "../utils/getConnectedSchematicTraceGroups"
+import { getSpiceFromCircuitJson } from "../utils/spice-utils"
+import { zIndexMap } from "../utils/z-index-map"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
-import { ViewMenuIcon } from "./ViewMenuIcon"
-import { ViewMenu } from "./ViewMenu"
-import type { CircuitJson } from "circuit-json"
-import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
-import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
-import { zIndexMap } from "../utils/z-index-map"
-import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
-import { getSpiceFromCircuitJson } from "../utils/spice-utils"
-import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
+import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
+import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
+import { ViewMenu } from "./ViewMenu"
+import { ViewMenuIcon } from "./ViewMenuIcon"
 
 interface Props {
   circuitJson: CircuitJson
@@ -258,11 +259,16 @@ export const SchematicViewer = ({
     enabled: isInteractionEnabled && !showSpiceOverlay,
   })
 
+  const augmentedCircuitJson = useMemo(
+    () => addConnectivityKeysToSchematicTraces(circuitJson),
+    [circuitJsonKey, circuitJson],
+  )
+
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
   const svgString = useMemo(() => {
     if (!containerWidth || !containerHeight) return ""
 
-    return convertCircuitJsonToSchematicSvg(circuitJson as any, {
+    return convertCircuitJsonToSchematicSvg(augmentedCircuitJson as any, {
       width: containerWidth,
       height: containerHeight || 720,
       drawPorts: showSchematicPorts,
@@ -276,6 +282,7 @@ export const SchematicViewer = ({
     })
   }, [
     circuitJsonKey,
+    augmentedCircuitJson,
     containerWidth,
     containerHeight,
     showGrid,
@@ -398,12 +405,14 @@ export const SchematicViewer = ({
     <MouseTracker>
       {onSchematicComponentClicked && (
         <style>
-          {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
+          {
+            ".schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }"
+          }
         </style>
       )}
       {onSchematicPortClicked && (
         <style>
-          {`[data-schematic-port-id]:hover { cursor: pointer !important; }`}
+          {"[data-schematic-port-id]:hover { cursor: pointer !important; }"}
         </style>
       )}
       <div
