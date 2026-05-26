@@ -289,6 +289,38 @@ export const SchematicViewer = ({
     return match?.[1] ?? "transparent"
   }, [svgString])
 
+  const traceHoverStyles = useMemo(() => {
+    if (!svgString) return ""
+
+    const keys = Array.from(
+      new Set(
+        Array.from(
+          svgString.matchAll(/data-subcircuit-connectivity-map-key="([^"]+)"/g),
+        ).map((match) => match[1]),
+      ),
+    )
+
+    const escapeAttr = (value: string) =>
+      value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
+
+    const rules = [
+      `svg g.trace:hover, svg g.trace-overlays:hover { filter: none !important; }`,
+      `svg g.trace:hover path, svg g.trace-overlays:hover path { stroke: #60a5fa !important; }`,
+      `svg g.trace:hover .trace-crossing-outline, svg g.trace-overlays:hover .trace-crossing-outline { opacity: 0 !important; }`,
+    ]
+
+    for (const key of keys) {
+      const k = escapeAttr(key)
+      rules.push(
+        `svg:has(g.trace[data-subcircuit-connectivity-map-key="${k}"]:hover) g.trace[data-subcircuit-connectivity-map-key="${k}"], svg:has(g.trace-overlays[data-subcircuit-connectivity-map-key="${k}"]:hover) g.trace-overlays[data-subcircuit-connectivity-map-key="${k}"] { filter: none !important; }`,
+        `svg:has(g.trace[data-subcircuit-connectivity-map-key="${k}"]:hover) g.trace[data-subcircuit-connectivity-map-key="${k}"] path, svg:has(g.trace-overlays[data-subcircuit-connectivity-map-key="${k}"]:hover) g.trace-overlays[data-subcircuit-connectivity-map-key="${k}"] path { stroke: #60a5fa !important; }`,
+        `svg:has(g.trace[data-subcircuit-connectivity-map-key="${k}"]:hover) g.trace-overlays[data-subcircuit-connectivity-map-key="${k}"] .trace-crossing-outline, svg:has(g.trace-overlays[data-subcircuit-connectivity-map-key="${k}"]:hover) g.trace-overlays[data-subcircuit-connectivity-map-key="${k}"] .trace-crossing-outline { opacity: 0 !important; }`,
+      )
+    }
+
+    return rules.join("\n")
+  }, [svgString])
+
   const realToSvgProjection = useMemo(() => {
     if (!svgString) return identity()
     const transformString = svgString.match(
@@ -542,6 +574,7 @@ export const SchematicViewer = ({
             hasRun={hasSpiceSimRun}
           />
         )}
+        {traceHoverStyles && <style>{traceHoverStyles}</style>}
         {onSchematicComponentClicked &&
           schematicComponentIds.map((componentId) => (
             <SchematicComponentMouseTarget
