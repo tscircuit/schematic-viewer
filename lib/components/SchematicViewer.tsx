@@ -1,11 +1,14 @@
-import {
-  convertCircuitJsonToSchematicSvg,
-  type ColorOverrides,
-} from "circuit-to-svg"
 import { su } from "@tscircuit/soup-util"
+import type { CircuitJson } from "circuit-json"
+import {
+  type ColorOverrides,
+  convertCircuitJsonToSchematicSvg,
+} from "circuit-to-svg"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
+import { useTraceHoverHighlight } from "lib/hooks/useTraceHoverHighlight"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -16,21 +19,19 @@ import {
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
+import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
 import type { ManualEditEvent } from "../types/edit-events"
+import { getSpiceFromCircuitJson } from "../utils/spice-utils"
+import { zIndexMap } from "../utils/z-index-map"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
-import { ViewMenuIcon } from "./ViewMenuIcon"
-import { ViewMenu } from "./ViewMenu"
-import type { CircuitJson } from "circuit-json"
-import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
-import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
-import { zIndexMap } from "../utils/z-index-map"
-import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
-import { getSpiceFromCircuitJson } from "../utils/spice-utils"
-import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
+import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
+import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
+import { ViewMenu } from "./ViewMenu"
+import { ViewMenuIcon } from "./ViewMenuIcon"
 
 interface Props {
   circuitJson: CircuitJson
@@ -345,6 +346,10 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
   })
 
+  useTraceHoverHighlight({
+    svgDivRef,
+  })
+
   // Add group overlays when enabled
   useSchematicGroupsOverlay({
     svgDivRef,
@@ -398,14 +403,28 @@ export const SchematicViewer = ({
     <MouseTracker>
       {onSchematicComponentClicked && (
         <style>
-          {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
+          {
+            ".schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }"
+          }
         </style>
       )}
       {onSchematicPortClicked && (
         <style>
-          {`[data-schematic-port-id]:hover { cursor: pointer !important; }`}
+          {"[data-schematic-port-id]:hover { cursor: pointer !important; }"}
         </style>
       )}
+      <style>
+        {`
+          [data-circuit-json-type="schematic_trace"][data-net-hovered="true"] {
+            filter: invert(1) !important;
+          }
+
+          [data-circuit-json-type="schematic_trace"][data-net-hovered="true"] .trace-crossing-outline,
+          [data-circuit-json-type="schematic_trace"][data-net-hovered="true"] .trace-invisible-hover-outline {
+            opacity: 0 !important;
+          }
+        `}
+      </style>
       <div
         ref={containerRef}
         style={{
