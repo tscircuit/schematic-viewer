@@ -6,6 +6,7 @@ import { su } from "@tscircuit/soup-util"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
+import { useHighlightConnectedTracesOnHover } from "lib/hooks/useHighlightConnectedTracesOnHover"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -351,6 +352,12 @@ export const SchematicViewer = ({
     circuitJson,
     circuitJsonKey,
     showGroups: showSchematicGroups && !disableGroups,
+  })
+
+  useHighlightConnectedTracesOnHover({
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey,
   })
 
   // keep the latest touch handler without re-rendering the svg div
