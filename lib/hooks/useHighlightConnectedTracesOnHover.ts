@@ -60,6 +60,162 @@ const getConnectedSourceTraceIds = (
   return connectedSourceTraceIds
 }
 
+export const getConnectedSchematicTraceIdsByHoveredTrace = (
+  circuitJson: CircuitJson,
+) => {
+  const schematicTraceIdToSourceTraceId = new Map<string, string>()
+  const sourceTraceIdToSchematicTraceIds = new Map<string, Set<string>>()
+  const sourceTraceIdToNetIds = new Map<string, Set<string>>()
+  const netIdToSourceTraceIds = new Map<string, Set<string>>()
+  const sourceTraceIdToPortIds = new Map<string, Set<string>>()
+  const portIdToSourceTraceIds = new Map<string, Set<string>>()
+  const sourcePortSelectorToPortId = new Map<string, string>()
+  const sourcePortIdToConnectivityKey = new Map<string, string>()
+
+  for (const sourceComponent of su(
+    circuitJson,
+  ).source_component.list() as any[]) {
+    const sourceComponentId = sourceComponent.source_component_id as
+      | string
+      | undefined
+    const componentName = sourceComponent.name as string | undefined
+    if (!sourceComponentId || !componentName) continue
+
+    for (const sourcePort of su(circuitJson).source_port.list({
+      source_component_id: sourceComponentId,
+    }) as any[]) {
+      const sourcePortId = sourcePort.source_port_id as string | undefined
+      if (!sourcePortId) continue
+
+      const portSelectors = [
+        sourcePort.name,
+        sourcePort.pin_number,
+        ...(sourcePort.port_hints ?? []),
+      ]
+        .filter(Boolean)
+        .map(String)
+
+      for (const portSelector of portSelectors) {
+        sourcePortSelectorToPortId.set(
+          `${componentName}.${portSelector}`,
+          sourcePortId,
+        )
+      }
+
+      const connectivityKey = sourcePort.subcircuit_connectivity_map_key as
+        | string
+        | undefined
+      if (connectivityKey) {
+        sourcePortIdToConnectivityKey.set(sourcePortId, connectivityKey)
+      }
+    }
+  }
+
+  for (const sourceTrace of su(circuitJson).source_trace.list() as any[]) {
+    const sourceTraceId = sourceTrace.source_trace_id as string | undefined
+    if (!sourceTraceId) continue
+
+    const netIds = new Set<string>(
+      (sourceTrace.connected_source_net_ids ?? []).filter(Boolean),
+    )
+    if (sourceTrace.subcircuit_connectivity_map_key) {
+      netIds.add(`connectivity:${sourceTrace.subcircuit_connectivity_map_key}`)
+    }
+    sourceTraceIdToNetIds.set(sourceTraceId, netIds)
+
+    for (const netId of netIds) {
+      addToSetMap(netIdToSourceTraceIds, netId, sourceTraceId)
+    }
+
+    const portIds = new Set<string>(
+      (sourceTrace.connected_source_port_ids ?? []).filter(Boolean),
+    )
+    sourceTraceIdToPortIds.set(sourceTraceId, portIds)
+
+    for (const portId of portIds) {
+      addToSetMap(portIdToSourceTraceIds, portId, sourceTraceId)
+    }
+  }
+
+  for (const schematicTrace of su(
+    circuitJson,
+  ).schematic_trace.list() as any[]) {
+    const schematicTraceId = schematicTrace.schematic_trace_id as
+      | string
+      | undefined
+    const sourceTraceId = schematicTrace.source_trace_id as string | undefined
+
+    if (!schematicTraceId || !sourceTraceId) continue
+
+    schematicTraceIdToSourceTraceId.set(schematicTraceId, sourceTraceId)
+    addToSetMap(
+      sourceTraceIdToSchematicTraceIds,
+      sourceTraceId,
+      schematicTraceId,
+    )
+
+    const solverPortIds = getSolverSourcePortSelectors(sourceTraceId)
+      .map((portSelector) => sourcePortSelectorToPortId.get(portSelector))
+      .filter(Boolean) as string[]
+
+    if (solverPortIds.length > 0) {
+      const netIds = sourceTraceIdToNetIds.get(sourceTraceId) ?? new Set()
+      const portIds = sourceTraceIdToPortIds.get(sourceTraceId) ?? new Set()
+
+      for (const sourcePortId of solverPortIds) {
+        portIds.add(sourcePortId)
+
+        const connectivityKey = sourcePortIdToConnectivityKey.get(sourcePortId)
+        if (connectivityKey) {
+          netIds.add(`connectivity:${connectivityKey}`)
+        }
+      }
+
+      sourceTraceIdToPortIds.set(sourceTraceId, portIds)
+      sourceTraceIdToNetIds.set(sourceTraceId, netIds)
+
+      for (const sourcePortId of portIds) {
+        addToSetMap(portIdToSourceTraceIds, sourcePortId, sourceTraceId)
+      }
+
+      for (const netId of netIds) {
+        addToSetMap(netIdToSourceTraceIds, netId, sourceTraceId)
+      }
+    }
+  }
+
+  const connectedSchematicTraceIdsByTraceId = new Map<string, Set<string>>()
+
+  for (const [
+    schematicTraceId,
+    sourceTraceId,
+  ] of schematicTraceIdToSourceTraceId) {
+    const connectedSchematicTraceIds = new Set<string>()
+    const connectedSourceTraceIds = getConnectedSourceTraceIds(
+      sourceTraceId,
+      sourceTraceIdToNetIds,
+      netIdToSourceTraceIds,
+      sourceTraceIdToPortIds,
+      portIdToSourceTraceIds,
+    )
+
+    for (const connectedSourceTraceId of connectedSourceTraceIds) {
+      for (const connectedSchematicTraceId of sourceTraceIdToSchematicTraceIds.get(
+        connectedSourceTraceId,
+      ) ?? []) {
+        connectedSchematicTraceIds.add(connectedSchematicTraceId)
+      }
+    }
+
+    connectedSchematicTraceIdsByTraceId.set(
+      schematicTraceId,
+      connectedSchematicTraceIds,
+    )
+  }
+
+  return connectedSchematicTraceIdsByTraceId
+}
+
 export const useHighlightConnectedTracesOnHover = ({
   svgDivRef,
   circuitJson,
@@ -73,129 +229,8 @@ export const useHighlightConnectedTracesOnHover = ({
     const svg = svgDivRef.current
     if (!svg) return
 
-    const schematicTraceIdToSourceTraceId = new Map<string, string>()
-    const sourceTraceIdToSchematicTraceIds = new Map<string, Set<string>>()
-    const sourceTraceIdToNetIds = new Map<string, Set<string>>()
-    const netIdToSourceTraceIds = new Map<string, Set<string>>()
-    const sourceTraceIdToPortIds = new Map<string, Set<string>>()
-    const portIdToSourceTraceIds = new Map<string, Set<string>>()
-    const sourcePortSelectorToPortId = new Map<string, string>()
-    const sourcePortIdToConnectivityKey = new Map<string, string>()
-
-    for (const sourceComponent of su(
-      circuitJson,
-    ).source_component.list() as any[]) {
-      const sourceComponentId = sourceComponent.source_component_id as
-        | string
-        | undefined
-      const componentName = sourceComponent.name as string | undefined
-      if (!sourceComponentId || !componentName) continue
-
-      for (const sourcePort of su(circuitJson).source_port.list({
-        source_component_id: sourceComponentId,
-      }) as any[]) {
-        const sourcePortId = sourcePort.source_port_id as string | undefined
-        if (!sourcePortId) continue
-
-        const portSelectors = [
-          sourcePort.name,
-          sourcePort.pin_number,
-          ...(sourcePort.port_hints ?? []),
-        ]
-          .filter(Boolean)
-          .map(String)
-
-        for (const portSelector of portSelectors) {
-          sourcePortSelectorToPortId.set(
-            `${componentName}.${portSelector}`,
-            sourcePortId,
-          )
-        }
-
-        const connectivityKey = sourcePort.subcircuit_connectivity_map_key as
-          | string
-          | undefined
-        if (connectivityKey) {
-          sourcePortIdToConnectivityKey.set(sourcePortId, connectivityKey)
-        }
-      }
-    }
-
-    for (const sourceTrace of su(circuitJson).source_trace.list() as any[]) {
-      const sourceTraceId = sourceTrace.source_trace_id as string | undefined
-      if (!sourceTraceId) continue
-
-      const netIds = new Set<string>(
-        (sourceTrace.connected_source_net_ids ?? []).filter(Boolean),
-      )
-      if (sourceTrace.subcircuit_connectivity_map_key) {
-        netIds.add(
-          `connectivity:${sourceTrace.subcircuit_connectivity_map_key}`,
-        )
-      }
-      sourceTraceIdToNetIds.set(sourceTraceId, netIds)
-
-      for (const netId of netIds) {
-        addToSetMap(netIdToSourceTraceIds, netId, sourceTraceId)
-      }
-
-      const portIds = new Set<string>(
-        (sourceTrace.connected_source_port_ids ?? []).filter(Boolean),
-      )
-      sourceTraceIdToPortIds.set(sourceTraceId, portIds)
-
-      for (const portId of portIds) {
-        addToSetMap(portIdToSourceTraceIds, portId, sourceTraceId)
-      }
-    }
-
-    for (const schematicTrace of su(
-      circuitJson,
-    ).schematic_trace.list() as any[]) {
-      const schematicTraceId = schematicTrace.schematic_trace_id as
-        | string
-        | undefined
-      const sourceTraceId = schematicTrace.source_trace_id as string | undefined
-
-      if (!schematicTraceId || !sourceTraceId) continue
-
-      schematicTraceIdToSourceTraceId.set(schematicTraceId, sourceTraceId)
-      addToSetMap(
-        sourceTraceIdToSchematicTraceIds,
-        sourceTraceId,
-        schematicTraceId,
-      )
-
-      const solverPortIds = getSolverSourcePortSelectors(sourceTraceId)
-        .map((portSelector) => sourcePortSelectorToPortId.get(portSelector))
-        .filter(Boolean) as string[]
-
-      if (solverPortIds.length > 0) {
-        const netIds = sourceTraceIdToNetIds.get(sourceTraceId) ?? new Set()
-        const portIds = sourceTraceIdToPortIds.get(sourceTraceId) ?? new Set()
-
-        for (const sourcePortId of solverPortIds) {
-          portIds.add(sourcePortId)
-
-          const connectivityKey =
-            sourcePortIdToConnectivityKey.get(sourcePortId)
-          if (connectivityKey) {
-            netIds.add(`connectivity:${connectivityKey}`)
-          }
-        }
-
-        sourceTraceIdToPortIds.set(sourceTraceId, portIds)
-        sourceTraceIdToNetIds.set(sourceTraceId, netIds)
-
-        for (const sourcePortId of portIds) {
-          addToSetMap(portIdToSourceTraceIds, sourcePortId, sourceTraceId)
-        }
-
-        for (const netId of netIds) {
-          addToSetMap(netIdToSourceTraceIds, netId, sourceTraceId)
-        }
-      }
-    }
+    const connectedSchematicTraceIdsByTraceId =
+      getConnectedSchematicTraceIdsByHoveredTrace(circuitJson)
 
     const ensureHoverStyle = () => {
       if (!svg.querySelector(`style#${HOVER_STYLE_ID}`)) {
@@ -223,29 +258,15 @@ export const useHighlightConnectedTracesOnHover = ({
     const highlightConnectedTraces = (schematicTraceId: string) => {
       clearHighlightedTraces()
 
-      const sourceTraceId =
-        schematicTraceIdToSourceTraceId.get(schematicTraceId)
-      if (!sourceTraceId) return
-
-      const connectedSourceTraceIds = getConnectedSourceTraceIds(
-        sourceTraceId,
-        sourceTraceIdToNetIds,
-        netIdToSourceTraceIds,
-        sourceTraceIdToPortIds,
-        portIdToSourceTraceIds,
-      )
-
-      for (const connectedSourceTraceId of connectedSourceTraceIds) {
-        for (const connectedSchematicTraceId of sourceTraceIdToSchematicTraceIds.get(
-          connectedSourceTraceId,
-        ) ?? []) {
-          for (const traceElement of Array.from(
-            svg.querySelectorAll(
-              `[data-circuit-json-type="schematic_trace"][data-schematic-trace-id="${connectedSchematicTraceId}"]`,
-            ),
-          )) {
-            traceElement.setAttribute(HOVER_ATTR, "true")
-          }
+      for (const connectedSchematicTraceId of connectedSchematicTraceIdsByTraceId.get(
+        schematicTraceId,
+      ) ?? []) {
+        for (const traceElement of Array.from(
+          svg.querySelectorAll(
+            `[data-circuit-json-type="schematic_trace"][data-schematic-trace-id="${connectedSchematicTraceId}"]`,
+          ),
+        )) {
+          traceElement.setAttribute(HOVER_ATTR, "true")
         }
       }
     }
