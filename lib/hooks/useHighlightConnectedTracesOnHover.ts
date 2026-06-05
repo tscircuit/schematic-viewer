@@ -237,6 +237,10 @@ export const useHighlightConnectedTracesOnHover = ({
         const style = document.createElement("style")
         style.id = HOVER_STYLE_ID
         style.textContent = `
+          .boundary {
+            pointer-events: none;
+          }
+
           [data-circuit-json-type="schematic_trace"][${HOVER_ATTR}="true"] {
             filter: invert(1);
           }
