@@ -66,17 +66,15 @@ export const useHighlightConnectedTracesOnHover = ({
       const sourceTrace = sourceTraceId
         ? su(circuitJson).source_trace.get(sourceTraceId)
         : null
-      const sourceNetId = sourceTrace?.source_net_id
+      const sourceNetIds = sourceTrace?.connected_source_net_ids || []
 
       let tracesToHighlight: any[] = []
 
-      if (sourceNetId) {
-        const sourceTracesOnNet = su(circuitJson).source_trace.list({
-          source_net_id: sourceNetId,
-        })
-        const sourceTraceIdsOnNet = new Set(
-          sourceTracesOnNet.map((t) => t.source_trace_id),
+      if (sourceNetIds.length > 0) {
+        const sourceTracesOnNet = su(circuitJson).source_trace.list().filter(
+          (t) => t.connected_source_net_ids?.some((netId: string) => sourceNetIds.includes(netId))
         )
+        const sourceTraceIdsOnNet = new Set(sourceTracesOnNet.map((t) => t.source_trace_id))
         tracesToHighlight = su(circuitJson)
           .schematic_trace.list()
           .filter(
