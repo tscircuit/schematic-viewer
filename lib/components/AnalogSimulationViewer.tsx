@@ -65,8 +65,8 @@ export const AnalogSimulationViewer = ({
   const simulationExperimentId = useMemo(() => {
     if (!circuitJson) return null
     const simulationElement = circuitJson.find(
-      (el) => el.type === "simulation_experiment",
-    )
+      (el) => el.type === ("simulation_experiment" as any),
+    ) as any
     return simulationElement?.simulation_experiment_id || null
   }, [circuitJson])
 
@@ -74,8 +74,8 @@ export const AnalogSimulationViewer = ({
   const simulationGraphIds = useMemo(() => {
     if (!circuitJson) return []
     return circuitJson
-      .filter((el) => el.type === "simulation_transient_voltage_graph")
-      .map((el) => el.simulation_transient_voltage_graph_id)
+      .filter((el) => el.type === ("simulation_transient_voltage_graph" as any))
+      .map((el: any) => el.simulation_transient_voltage_graph_id)
   }, [circuitJson])
 
   // Generate SVG from CircuitJSON
