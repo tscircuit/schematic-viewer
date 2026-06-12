@@ -45,6 +45,8 @@ interface Props {
   colorOverrides?: ColorOverrides
   spiceSimulationEnabled?: boolean
   disableGroups?: boolean
+  css?: string
+  className?: string
   onSchematicComponentClicked?: (options: {
     schematicComponentId: string
     event: MouseEvent
@@ -72,6 +74,8 @@ export const SchematicViewer = ({
   onSchematicComponentClicked,
   showSchematicPorts = false,
   onSchematicPortClicked,
+  css,
+  className,
 }: Props) => {
   if (debug) {
     enableDebug()
@@ -273,6 +277,8 @@ export const SchematicViewer = ({
             labelCells: true,
           },
       colorOverrides,
+      css,
+      className,
     })
   }, [
     circuitJsonKey,
