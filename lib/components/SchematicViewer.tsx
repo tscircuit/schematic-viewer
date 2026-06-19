@@ -210,6 +210,86 @@ export const SchematicViewer = ({
     }
   }, [circuitJsonKey, circuitJson, showSchematicPorts])
 
+  const traceIdToNetTraceIdsMap = useMemo(() => {
+    const map = new Map<string, string[]>()
+    if (!circuitJson) return map
+
+    try {
+      const schematicTraces = su(circuitJson).schematic_trace.list() ?? []
+      const sourceTraceToSchematicTraceIds = new Map<string, string[]>()
+      for (const trace of schematicTraces) {
+        if (trace.source_trace_id) {
+          if (!sourceTraceToSchematicTraceIds.has(trace.source_trace_id)) {
+            sourceTraceToSchematicTraceIds.set(trace.source_trace_id, [])
+          }
+          sourceTraceToSchematicTraceIds
+            .get(trace.source_trace_id)!
+            .push(trace.schematic_trace_id)
+        }
+      }
+
+      for (const [
+        sourceTraceId,
+        ids,
+      ] of sourceTraceToSchematicTraceIds.entries()) {
+        for (const id of ids) {
+          map.set(id, ids)
+        }
+      }
+    } catch (err) {
+      console.error("Failed to map schematic trace ids to net traces", err)
+    }
+
+    return map
+  }, [circuitJsonKey, circuitJson])
+
+  useEffect(() => {
+    const svgDiv = svgDivRef.current
+    if (!svgDiv) return
+
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const traceG = target.closest("[data-schematic-trace-id]")
+      if (!traceG) return
+
+      const traceId = traceG.getAttribute("data-schematic-trace-id")
+      if (!traceId) return
+
+      const siblingIds = traceIdToNetTraceIdsMap.get(traceId) || [traceId]
+      for (const id of siblingIds) {
+        const gEl = svgDiv.querySelector(`[data-schematic-trace-id="${id}"]`)
+        if (gEl) {
+          gEl.classList.add("trace-hovered")
+        }
+      }
+    }
+
+    const handleMouseOut = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const traceG = target.closest("[data-schematic-trace-id]")
+      if (!traceG) return
+
+      const traceId = traceG.getAttribute("data-schematic-trace-id")
+      if (!traceId) return
+
+      const siblingIds = traceIdToNetTraceIdsMap.get(traceId) || [traceId]
+      for (const id of siblingIds) {
+        const gEl = svgDiv.querySelector(`[data-schematic-trace-id="${id}"]`)
+        if (gEl) {
+          gEl.classList.remove("trace-hovered")
+        }
+      }
+    }
+
+    svgDiv.addEventListener("mouseover", handleMouseOver)
+    svgDiv.addEventListener("mouseout", handleMouseOut)
+
+    return () => {
+      svgDiv.removeEventListener("mouseover", handleMouseOver)
+      svgDiv.removeEventListener("mouseout", handleMouseOut)
+    }
+  }, [traceIdToNetTraceIdsMap])
+
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
     touchStartRef.current = {
@@ -402,6 +482,16 @@ export const SchematicViewer = ({
 
   return (
     <MouseTracker>
+      <style>
+        {`
+          .trace-hovered {
+            filter: invert(1) !important;
+          }
+          [data-schematic-trace-id]:hover {
+            cursor: pointer;
+          }
+        `}
+      </style>
       {onSchematicComponentClicked && (
         <style>
           {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
