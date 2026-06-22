@@ -26,6 +26,7 @@ import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
 import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
 import { zIndexMap } from "../utils/z-index-map"
 import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
+import { useHighlightConnectedTracesOnHover } from "../hooks/useHighlightConnectedTracesOnHover"
 import { getSpiceFromCircuitJson } from "../utils/spice-utils"
 import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
@@ -349,6 +350,12 @@ export const SchematicViewer = ({
     circuitJson,
     activeEditEvent,
     editEvents: editEventsWithUnappliedEditEvents,
+  })
+
+  useHighlightConnectedTracesOnHover({
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey,
   })
 
   // Add group overlays when enabled
