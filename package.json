@@ -6,10 +6,10 @@
   "scripts": {
     "start": "cosmos",
     "build:webworker": "tsup --config tsup-webworker.config.ts",
-    "build:blob-url": "bun scripts/build-worker-blob-url.ts",
-    "build": "bun run build:webworker && bun run build:blob-url && tsup-node ./lib/index.ts --dts --format esm --sourcemap",
+    "build:blob-url": "npx tsx scripts/build-worker-blob-url.ts",
+    "build": "npm run build:webworker && npm run build:blob-url && tsup-node ./lib/index.ts --dts --format esm --sourcemap",
     "build:site": "cosmos-export",
-    "vercel-build": "bun run build:webworker && bun run build:blob-url && bun run build:site",
+    "vercel-build": "npm run build:webworker && npm run build:blob-url && npm run build:site",
     "format": "biome format --write .",
     "format:check": "biome format ."
   },
@@ -39,6 +39,7 @@
     "tscircuit": "*"
   },
   "dependencies": {
+    "@tscircuit/soup-util": "^0.0.41",
     "chart.js": "^4.5.0",
     "circuit-json-to-spice": "^0.0.39",
     "debug": "^4.4.0",
