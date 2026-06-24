@@ -79,11 +79,18 @@ export const AnalogSimulationViewer = ({
   }, [circuitJson])
 
   // Find simulation graph IDs from circuit JSON
-  const simulationGraphIds = useMemo(() => {
+  const simulationVoltageGraphIds = useMemo(() => {
     if (!circuitJson) return []
     return circuitJson
       .filter((el) => el.type === "simulation_transient_voltage_graph")
       .map((el) => el.simulation_transient_voltage_graph_id)
+  }, [circuitJson])
+
+  const simulationCurrentGraphIds = useMemo(() => {
+    if (!circuitJson) return []
+    return circuitJson
+      .filter((el) => el.type === "simulation_transient_current_graph")
+      .map((el) => el.simulation_transient_current_graph_id)
   }, [circuitJson])
 
   // Generate SVG from CircuitJSON
@@ -100,7 +107,8 @@ export const AnalogSimulationViewer = ({
       return convertCircuitJsonToSchematicSimulationSvg({
         circuitJson,
         simulation_experiment_id: simulationExperimentId,
-        simulation_transient_voltage_graph_ids: simulationGraphIds,
+        simulation_transient_current_graph_ids: simulationCurrentGraphIds,
+        simulation_transient_voltage_graph_ids: simulationVoltageGraphIds,
         width: effectiveWidth,
         height: effectiveHeight,
         schematicOptions: { colorOverrides },
@@ -115,7 +123,8 @@ export const AnalogSimulationViewer = ({
     effectiveHeight,
     colorOverrides,
     simulationExperimentId,
-    simulationGraphIds,
+    simulationCurrentGraphIds,
+    simulationVoltageGraphIds,
   ])
 
   // Create/revoke object URL whenever the SVG changes
