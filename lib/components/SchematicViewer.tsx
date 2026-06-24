@@ -16,6 +16,7 @@ import {
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
+import { useHighlightConnectedSchematicTraces } from "../hooks/useHighlightConnectedSchematicTraces"
 import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
@@ -351,6 +352,12 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
   })
 
+  useHighlightConnectedSchematicTraces({
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey,
+  })
+
   // Add group overlays when enabled
   useSchematicGroupsOverlay({
     svgDivRef,
@@ -402,6 +409,18 @@ export const SchematicViewer = ({
 
   return (
     <MouseTracker>
+      <style>
+        {`
+          .schematic-trace-net-hover path:not(.trace-invisible-hover-outline) {
+            stroke: #f97316 !important;
+            transition: stroke 120ms ease;
+          }
+
+          .schematic-trace-net-hover .trace-crossing-outline {
+            opacity: 0 !important;
+          }
+        `}
+      </style>
       {onSchematicComponentClicked && (
         <style>
           {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
