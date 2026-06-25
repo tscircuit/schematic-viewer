@@ -16,6 +16,7 @@ import {
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
+import { useHighlightSchematicTracesOnHover } from "../hooks/useHighlightSchematicTracesOnHover"
 import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
@@ -349,6 +350,11 @@ export const SchematicViewer = ({
     circuitJson,
     activeEditEvent,
     editEvents: editEventsWithUnappliedEditEvents,
+  })
+
+  useHighlightSchematicTracesOnHover({
+    svgDivRef,
+    circuitJson,
   })
 
   // Add group overlays when enabled
