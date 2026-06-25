@@ -31,6 +31,7 @@ import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
+import { useTraceHoverHighlighting } from "../hooks/useTraceHoverHighlighting"
 
 interface Props {
   circuitJson: CircuitJson
@@ -170,6 +171,8 @@ export const SchematicViewer = ({
 
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+
+  useTraceHoverHighlighting({ svgDivRef, circuitJsonKey })
 
   const schematicComponentIds = useMemo(() => {
     try {
@@ -412,6 +415,17 @@ export const SchematicViewer = ({
           {`[data-schematic-port-id]:hover { cursor: pointer !important; }`}
         </style>
       )}
+      <style>{`
+        g[data-schematic-trace-id].trace-hover path:not(.trace-invisible-hover-outline):not(.trace-crossing-outline) {
+          stroke: #3399ff !important;
+        }
+        g[data-schematic-trace-id].trace-hover circle.trace-junction {
+          fill: #3399ff !important;
+        }
+        g[data-schematic-trace-id] {
+          cursor: crosshair;
+        }
+      `}</style>
       <div
         ref={containerRef}
         style={{
