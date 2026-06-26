@@ -1,10 +1,12 @@
-import {
-  convertCircuitJsonToSchematicSvg,
-  type ColorOverrides,
-} from "circuit-to-svg"
 import { su } from "@tscircuit/soup-util"
+import type { CircuitJson } from "circuit-json"
+import {
+  type ColorOverrides,
+  convertCircuitJsonToSchematicSvg,
+} from "circuit-to-svg"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -16,21 +18,19 @@ import {
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useComponentDragging } from "../hooks/useComponentDragging"
+import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
 import type { ManualEditEvent } from "../types/edit-events"
+import { getSpiceFromCircuitJson } from "../utils/spice-utils"
+import { zIndexMap } from "../utils/z-index-map"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
-import { ViewMenuIcon } from "./ViewMenuIcon"
-import { ViewMenu } from "./ViewMenu"
-import type { CircuitJson } from "circuit-json"
-import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
-import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
-import { zIndexMap } from "../utils/z-index-map"
-import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
-import { getSpiceFromCircuitJson } from "../utils/spice-utils"
-import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
+import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
+import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
+import { ViewMenu } from "./ViewMenu"
+import { ViewMenuIcon } from "./ViewMenuIcon"
 
 interface Props {
   circuitJson: CircuitJson
@@ -351,6 +351,86 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
   })
 
+  const sourceTraceIdBySchematicTraceId = useMemo(() => {
+    const sourceTraceIds = new Map<string, string>()
+
+    try {
+      for (const trace of su(circuitJson).schematic_trace.list()) {
+        if (!trace.schematic_trace_id || !trace.source_trace_id) continue
+        sourceTraceIds.set(trace.schematic_trace_id, trace.source_trace_id)
+      }
+    } catch (err) {
+      console.error("Failed to derive schematic trace source ids", err)
+    }
+
+    return sourceTraceIds
+  }, [circuitJsonKey, circuitJson])
+
+  useEffect(() => {
+    const svg = svgDivRef.current
+    if (!svg) return
+
+    const traceGroups = Array.from(
+      svg.querySelectorAll<SVGGElement>(
+        '[data-circuit-json-type="schematic_trace"][data-schematic-trace-id]',
+      ),
+    )
+
+    const traceGroupsBySourceTraceId = new Map<string, SVGGElement[]>()
+
+    for (const traceGroup of traceGroups) {
+      const schematicTraceId = traceGroup.dataset.schematicTraceId
+      if (!schematicTraceId) continue
+
+      const sourceTraceId =
+        sourceTraceIdBySchematicTraceId.get(schematicTraceId) ??
+        schematicTraceId
+
+      traceGroup.dataset.sourceTraceId = sourceTraceId
+
+      const groupsForSourceTrace =
+        traceGroupsBySourceTraceId.get(sourceTraceId) ?? []
+      groupsForSourceTrace.push(traceGroup)
+      traceGroupsBySourceTraceId.set(sourceTraceId, groupsForSourceTrace)
+    }
+
+    const setSameNetTraceHover = (
+      traceGroup: SVGGElement,
+      isHovering: boolean,
+    ) => {
+      const sourceTraceId = traceGroup.dataset.sourceTraceId
+      if (!sourceTraceId) return
+
+      for (const connectedTraceGroup of traceGroupsBySourceTraceId.get(
+        sourceTraceId,
+      ) ?? []) {
+        connectedTraceGroup.classList.toggle(
+          "schematic-trace-same-net-hover",
+          isHovering,
+        )
+      }
+    }
+
+    const cleanupCallbacks = traceGroups.map((traceGroup) => {
+      const handlePointerEnter = () => setSameNetTraceHover(traceGroup, true)
+      const handlePointerLeave = () => setSameNetTraceHover(traceGroup, false)
+
+      traceGroup.addEventListener("pointerenter", handlePointerEnter)
+      traceGroup.addEventListener("pointerleave", handlePointerLeave)
+
+      return () => {
+        traceGroup.removeEventListener("pointerenter", handlePointerEnter)
+        traceGroup.removeEventListener("pointerleave", handlePointerLeave)
+      }
+    })
+
+    return () => {
+      for (const cleanupCallback of cleanupCallbacks) {
+        cleanupCallback()
+      }
+    }
+  }, [svgString, sourceTraceIdBySchematicTraceId])
+
   // Add group overlays when enabled
   useSchematicGroupsOverlay({
     svgDivRef,
@@ -404,14 +484,27 @@ export const SchematicViewer = ({
     <MouseTracker>
       {onSchematicComponentClicked && (
         <style>
-          {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
+          {
+            ".schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }"
+          }
         </style>
       )}
       {onSchematicPortClicked && (
         <style>
-          {`[data-schematic-port-id]:hover { cursor: pointer !important; }`}
+          {"[data-schematic-port-id]:hover { cursor: pointer !important; }"}
         </style>
       )}
+      <style>
+        {`
+          .schematic-trace-same-net-hover {
+            filter: invert(1);
+          }
+
+          .schematic-trace-same-net-hover .trace-crossing-outline {
+            opacity: 0;
+          }
+        `}
+      </style>
       <div
         ref={containerRef}
         style={{
