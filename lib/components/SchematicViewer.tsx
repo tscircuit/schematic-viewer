@@ -484,8 +484,13 @@ export const SchematicViewer = ({
     <MouseTracker>
       <style>
         {`
-          .trace-hovered {
-            filter: invert(1) !important;
+          .trace-hovered .sch-trace-path,
+          .trace-hovered .sch-trace-crossing-path {
+            stroke: #e8a838 !important;
+            filter: drop-shadow(0 0 2px rgba(232, 168, 56, 0.7));
+          }
+          .trace-hovered .sch-trace-hitbox {
+            opacity: 0 !important;
           }
           [data-schematic-trace-id]:hover {
             cursor: pointer;
