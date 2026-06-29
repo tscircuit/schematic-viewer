@@ -247,39 +247,46 @@ export const SchematicViewer = ({
     const svgDiv = svgDivRef.current
     if (!svgDiv) return
 
-    const handleMouseOver = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      const traceG = target.closest("[data-schematic-trace-id]")
+    // Resolve every trace <g> on the same net as `traceEl`. Prefer the
+    // subcircuit connectivity-map-key emitted by circuit-to-svg — that is the
+    // true net identifier and spans multiple source traces (so the whole net
+    // highlights, per #1130). Fall back to the source_trace_id grouping when a
+    // trace carries no connectivity key.
+    const getNetSiblingElements = (traceEl: Element): Element[] => {
+      const netKey = traceEl.getAttribute(
+        "data-subcircuit-connectivity-map-key",
+      )
+      if (netKey) {
+        return Array.from(
+          svgDiv.querySelectorAll(
+            `[data-schematic-trace-id][data-subcircuit-connectivity-map-key="${CSS.escape(
+              netKey,
+            )}"]`,
+          ),
+        )
+      }
+      const traceId = traceEl.getAttribute("data-schematic-trace-id")
+      if (!traceId) return [traceEl]
+      const ids = traceIdToNetTraceIdsMap.get(traceId) || [traceId]
+      return ids
+        .map((id) =>
+          svgDiv.querySelector(`[data-schematic-trace-id="${CSS.escape(id)}"]`),
+        )
+        .filter((el): el is Element => el != null)
+    }
+
+    const setNetHovered = (e: MouseEvent, hovered: boolean) => {
+      const traceG = (e.target as HTMLElement).closest(
+        "[data-schematic-trace-id]",
+      )
       if (!traceG) return
-
-      const traceId = traceG.getAttribute("data-schematic-trace-id")
-      if (!traceId) return
-
-      const siblingIds = traceIdToNetTraceIdsMap.get(traceId) || [traceId]
-      for (const id of siblingIds) {
-        const gEl = svgDiv.querySelector(`[data-schematic-trace-id="${id}"]`)
-        if (gEl) {
-          gEl.classList.add("trace-hovered")
-        }
+      for (const el of getNetSiblingElements(traceG)) {
+        el.classList.toggle("trace-hovered", hovered)
       }
     }
 
-    const handleMouseOut = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      const traceG = target.closest("[data-schematic-trace-id]")
-      if (!traceG) return
-
-      const traceId = traceG.getAttribute("data-schematic-trace-id")
-      if (!traceId) return
-
-      const siblingIds = traceIdToNetTraceIdsMap.get(traceId) || [traceId]
-      for (const id of siblingIds) {
-        const gEl = svgDiv.querySelector(`[data-schematic-trace-id="${id}"]`)
-        if (gEl) {
-          gEl.classList.remove("trace-hovered")
-        }
-      }
-    }
+    const handleMouseOver = (e: MouseEvent) => setNetHovered(e, true)
+    const handleMouseOut = (e: MouseEvent) => setNetHovered(e, false)
 
     svgDiv.addEventListener("mouseover", handleMouseOver)
     svgDiv.addEventListener("mouseout", handleMouseOut)
