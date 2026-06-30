@@ -1,12 +1,10 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
+import type { SchematicSheet } from "circuit-json"
 import { zIndexMap } from "../utils/z-index-map"
-import {
-  getSchematicSheetLabel,
-  type SchematicSheetInfo,
-} from "../utils/schematic-sheet"
+import { getSchematicSheetLabel } from "../utils/schematic-sheet"
 
 interface SchematicSheetSelectorProps {
-  sheets: SchematicSheetInfo[]
+  sheets: SchematicSheet[]
   selectedSheetId: string | undefined
   onSelectSheet: (schematicSheetId: string) => void
 }

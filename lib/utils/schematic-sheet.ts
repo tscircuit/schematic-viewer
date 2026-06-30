@@ -1,14 +1,6 @@
-export interface SchematicSheetInfo {
-  schematic_sheet_id: string
-  name?: string
-  display_name?: string
-  sheet_index?: number
-}
+import type { SchematicSheet } from "circuit-json"
 
 export const getSchematicSheetLabel = (
-  sheet: SchematicSheetInfo,
+  sheet: SchematicSheet,
   fallbackIndex: number,
-) =>
-  sheet.display_name ??
-  sheet.name ??
-  `Sheet ${sheet.sheet_index ?? fallbackIndex + 1}`
+) => sheet.name ?? `Sheet ${sheet.sheet_index ?? fallbackIndex + 1}`

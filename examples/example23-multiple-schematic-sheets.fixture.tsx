@@ -71,11 +71,11 @@ const RcFilter = (props: SubcircuitProps) => (
 
 const circuitJson = renderToCircuitJson(
   <board routingDisabled>
-    <schematicsheet name="Sheet 1" displayName="LED Driver" sheetIndex={0} />
-    <schematicsheet name="Sheet 2" displayName="RC Filter" sheetIndex={1} />
+    <schematicsheet name="LED Driver" displayName="LED Driver" sheetIndex={0} />
+    <schematicsheet name="RC Filter" displayName="RC Filter" sheetIndex={1} />
 
-    <LedDriver name="DRV" schSheetName="Sheet 1" />
-    <RcFilter name="FLT" schSheetName="Sheet 2" />
+    <LedDriver name="DRV" schSheetName="LED Driver" />
+    <RcFilter name="FLT" schSheetName="RC Filter" />
   </board>,
 )
 

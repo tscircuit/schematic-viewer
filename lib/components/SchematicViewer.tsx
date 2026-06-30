@@ -20,7 +20,7 @@ import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
 import { ViewMenu } from "./ViewMenu"
-import type { CircuitJson } from "circuit-json"
+import type { CircuitJson, SchematicSheet } from "circuit-json"
 import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
 import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
 import { zIndexMap } from "../utils/z-index-map"
@@ -37,7 +37,6 @@ import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
-import type { SchematicSheetInfo } from "../utils/schematic-sheet"
 
 interface Props {
   circuitJson: CircuitJson
@@ -109,7 +108,7 @@ export const SchematicViewer = ({
 
   // Schematic sheets present in the circuit, sorted by sheet_index. A circuit
   // may have zero (single implicit sheet), one, or many sheets.
-  const schematicSheets = useMemo<SchematicSheetInfo[]>(() => {
+  const schematicSheets = useMemo<SchematicSheet[]>(() => {
     try {
       return (circuitJson as any[])
         .filter((elm) => elm?.type === "schematic_sheet")
