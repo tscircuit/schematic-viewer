@@ -149,8 +149,10 @@ export const ViewMenu = ({
             style={itemStyles}
             disabled={!hasGroups}
             title={hasGroups ? undefined : "No groups found in this schematic"}
-            onSelect={(e) => {
-              e.preventDefault()
+            // Toggle on pointerup (reliable on touch); keep the menu open by
+            // preventing Radix's click-based onSelect (which also closes it).
+            onSelect={(e) => e.preventDefault()}
+            onPointerUp={() => {
               if (hasGroups) onToggleGroups(!showGroups)
             }}
           >
@@ -161,10 +163,8 @@ export const ViewMenu = ({
           <DropdownMenu.Item
             className="sv-vm-item"
             style={itemStyles}
-            onSelect={(e) => {
-              e.preventDefault()
-              onToggleGrid(!showGrid)
-            }}
+            onSelect={(e) => e.preventDefault()}
+            onPointerUp={() => onToggleGrid(!showGrid)}
           >
             <span style={iconSlotStyles}>{showGrid && <CheckIcon />}</span>
             <span>Show Grid</span>

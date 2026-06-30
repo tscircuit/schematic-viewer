@@ -1,3 +1,4 @@
+import { useState } from "react"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import type { SchematicSheet } from "circuit-json"
 import { zIndexMap } from "../utils/z-index-map"
@@ -107,6 +108,8 @@ export const SchematicSheetSelector = ({
   selectedSheetId,
   onSelectSheet,
 }: SchematicSheetSelectorProps) => {
+  const [open, setOpen] = useState(false)
+
   if (sheets.length <= 1) return null
 
   const selectedSheet = sheets.find(
@@ -117,7 +120,7 @@ export const SchematicSheetSelector = ({
   return (
     <>
       <style>{MENU_CSS}</style>
-      <DropdownMenu.Root modal={false}>
+      <DropdownMenu.Root open={open} onOpenChange={setOpen} modal={false}>
         <DropdownMenu.Trigger asChild>
           <button
             type="button"
@@ -168,7 +171,13 @@ export const SchematicSheetSelector = ({
                   className="sv-sheet-item"
                   style={itemStyles}
                   title={sheet.name}
-                  onSelect={() => onSelectSheet(sheet.schematic_sheet_id)}
+                  // Select on pointerup (fires reliably on touch); Radix's own
+                  // onSelect fires on `click`, which is unreliable on mobile.
+                  onSelect={(e) => e.preventDefault()}
+                  onPointerUp={() => {
+                    onSelectSheet(sheet.schematic_sheet_id)
+                    setOpen(false)
+                  }}
                 >
                   <span style={iconSlotStyles}>
                     {selected && <CheckIcon />}
