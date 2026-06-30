@@ -1,25 +1,96 @@
 import { useMemo } from "react"
 import { su } from "@tscircuit/soup-util"
 import type { CircuitJson } from "circuit-json"
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { zIndexMap } from "../utils/z-index-map"
 import packageJson from "../../package.json"
+import { ViewMenuIcon } from "./ViewMenuIcon"
 
 interface ViewMenuProps {
   circuitJson: CircuitJson
   circuitJsonKey: string
-  isVisible: boolean
-  onClose: () => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
   showGroups: boolean
   onToggleGroups: (show: boolean) => void
   showGrid: boolean
   onToggleGrid: (show: boolean) => void
 }
 
+const FONT_FAMILY =
+  'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+
+const contentStyles: React.CSSProperties = {
+  backgroundColor: "#ffffff",
+  color: "#111111",
+  borderRadius: 8,
+  boxShadow: "0 6px 24px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)",
+  border: "1px solid #e5e7eb",
+  padding: 4,
+  minWidth: 224,
+  fontSize: 13,
+  fontFamily: FONT_FAMILY,
+  outline: "none",
+  zIndex: zIndexMap.viewMenu,
+}
+
+const itemStyles: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "7px 10px 7px 8px",
+  borderRadius: 6,
+  cursor: "pointer",
+  outline: "none",
+  userSelect: "none",
+  color: "#111111",
+  fontSize: 13,
+  fontFamily: FONT_FAMILY,
+}
+
+const iconSlotStyles: React.CSSProperties = {
+  width: 16,
+  height: 16,
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#111111",
+}
+
+const separatorStyles: React.CSSProperties = {
+  height: 1,
+  backgroundColor: "#ececec",
+  margin: "4px 0",
+}
+
+const HIGHLIGHT_CSS = `
+.sv-vm-item[data-highlighted]:not([data-disabled]),
+.sv-vm-item:hover:not([data-disabled]) { background-color: #f1f3f5; }
+.sv-vm-item[data-disabled] { opacity: 0.45; cursor: not-allowed; }
+`
+
+const CheckIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+)
+
 export const ViewMenu = ({
   circuitJson,
   circuitJsonKey,
-  isVisible,
-  onClose,
+  open,
+  onOpenChange,
   showGroups,
   onToggleGroups,
   showGrid,
@@ -56,163 +127,65 @@ export const ViewMenu = ({
     }
   }, [circuitJsonKey])
 
-  if (!isVisible) return null
-
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        onTouchEnd={(e) => {
-          e.preventDefault()
-          onClose()
-        }}
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundColor: "transparent",
-          zIndex: zIndexMap.viewMenuBackdrop,
-        }}
-      />
+    <DropdownMenu.Root open={open} onOpenChange={onOpenChange} modal={false}>
+      <DropdownMenu.Trigger asChild>
+        <ViewMenuIcon active={open} />
+      </DropdownMenu.Trigger>
 
-      {/* Menu */}
-      <div
-        style={{
-          position: "absolute",
-          top: "56px",
-          right: "16px",
-          backgroundColor: "#ffffff",
-          color: "#000000",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          minWidth: "200px",
-          zIndex: zIndexMap.viewMenu,
-        }}
-      >
-        {/* Groups Toggle Option */}
-        <div
-          onClick={() => {
-            if (hasGroups) {
-              onToggleGroups(!showGroups)
-            }
-          }}
-          onTouchEnd={(e) => {
-            e.preventDefault()
-            if (hasGroups) {
-              onToggleGroups(!showGroups)
-            }
-          }}
-          style={{
-            padding: "8px 12px",
-            cursor: hasGroups ? "pointer" : "not-allowed",
-            opacity: hasGroups ? 1 : 0.5,
-            fontSize: "13px",
-            color: "#000000",
-            fontFamily: "sans-serif",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-          onMouseEnter={(e) => {
-            if (hasGroups) {
-              e.currentTarget.style.backgroundColor = "#f0f0f0"
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (hasGroups) {
-              e.currentTarget.style.backgroundColor = "transparent"
-            }
-          }}
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          style={contentStyles}
+          side="bottom"
+          align="end"
+          sideOffset={8}
+          collisionPadding={10}
         >
-          <div
-            style={{
-              width: "16px",
-              height: "16px",
-              border: "2px solid #000",
-              borderRadius: "2px",
-              backgroundColor: "transparent",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "10px",
-              fontWeight: "bold",
+          <style>{HIGHLIGHT_CSS}</style>
+
+          {/* View toggles */}
+          <DropdownMenu.Item
+            className="sv-vm-item"
+            style={itemStyles}
+            disabled={!hasGroups}
+            title={hasGroups ? undefined : "No groups found in this schematic"}
+            onSelect={(e) => {
+              e.preventDefault()
+              if (hasGroups) onToggleGroups(!showGroups)
             }}
           >
-            {showGroups && "✓"}
-          </div>
-          View Schematic Groups
-        </div>
+            <span style={iconSlotStyles}>{showGroups && <CheckIcon />}</span>
+            <span>View Schematic Groups</span>
+          </DropdownMenu.Item>
 
-        {!hasGroups && (
-          <div
-            style={{
-              padding: "8px 12px",
-              fontSize: "11px",
-              color: "#666",
-              fontStyle: "italic",
+          <DropdownMenu.Item
+            className="sv-vm-item"
+            style={itemStyles}
+            onSelect={(e) => {
+              e.preventDefault()
+              onToggleGrid(!showGrid)
             }}
           >
-            No groups found in this schematic
-          </div>
-        )}
+            <span style={iconSlotStyles}>{showGrid && <CheckIcon />}</span>
+            <span>Show Grid</span>
+          </DropdownMenu.Item>
 
-        {/* Grid Toggle Option */}
-        <div
-          onClick={() => onToggleGrid(!showGrid)}
-          onTouchEnd={(e) => {
-            e.preventDefault()
-            onToggleGrid(!showGrid)
-          }}
-          style={{
-            padding: "8px 12px",
-            cursor: "pointer",
-            fontSize: "13px",
-            color: "#000000",
-            fontFamily: "sans-serif",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#f0f0f0"
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent"
-          }}
-        >
+          <DropdownMenu.Separator style={separatorStyles} />
+
+          {/* Version */}
           <div
             style={{
-              width: "16px",
-              height: "16px",
-              border: "2px solid #000",
-              borderRadius: "2px",
-              backgroundColor: "transparent",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "10px",
-              fontWeight: "bold",
+              padding: "4px 8px",
+              fontSize: 12,
+              color: "#9ca3af",
+              textAlign: "center",
+              fontFamily: FONT_FAMILY,
             }}
           >
-            {showGrid && "✓"}
+            v{String(packageJson?.version)}
           </div>
-          Show Grid
-        </div>
-
-        {/* Version Info */}
-        <div
-          style={{
-            padding: "4px 8px",
-            fontSize: "12px",
-            color: "#999",
-            borderTop: "1px solid #eee",
-            textAlign: "center",
-          }}
-        >
-          v{String(packageJson?.version)}
-        </div>
-      </div>
-    </>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   )
 }

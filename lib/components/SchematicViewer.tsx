@@ -19,7 +19,6 @@ import { useComponentDragging } from "../hooks/useComponentDragging"
 import type { ManualEditEvent } from "../types/edit-events"
 import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
-import { ViewMenuIcon } from "./ViewMenuIcon"
 import { ViewMenu } from "./ViewMenu"
 import type { CircuitJson } from "circuit-json"
 import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
@@ -27,10 +26,18 @@ import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
 import { zIndexMap } from "../utils/z-index-map"
 import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
 import { getSpiceFromCircuitJson } from "../utils/spice-utils"
-import { getStoredBoolean, setStoredBoolean } from "lib/hooks/useLocalStorage"
+import {
+  getStoredBoolean,
+  setStoredBoolean,
+  getStoredString,
+  setStoredString,
+  STORAGE_KEYS,
+} from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
+import { SchematicSheetSelector } from "./SchematicSheetSelector"
+import type { SchematicSheetInfo } from "../utils/schematic-sheet"
 
 interface Props {
   circuitJson: CircuitJson
@@ -56,6 +63,8 @@ interface Props {
     schematicPortId: string
     event: MouseEvent
   }) => void
+  /** Called when the active schematic sheet changes (multi-sheet circuits). */
+  onSchematicSheetChange?: (schematicSheetId: string) => void
 }
 
 export const SchematicViewer = ({
@@ -74,6 +83,7 @@ export const SchematicViewer = ({
   onSchematicComponentClicked,
   showSchematicPorts = false,
   onSchematicPortClicked,
+  onSchematicSheetChange,
   css,
   className,
 }: Props) => {
@@ -95,6 +105,64 @@ export const SchematicViewer = ({
   const circuitJsonKey = useMemo(
     () => getCircuitHash(circuitJson),
     [circuitJson],
+  )
+
+  // Schematic sheets present in the circuit, sorted by sheet_index. A circuit
+  // may have zero (single implicit sheet), one, or many sheets.
+  const schematicSheets = useMemo<SchematicSheetInfo[]>(() => {
+    try {
+      return (circuitJson as any[])
+        .filter((elm) => elm?.type === "schematic_sheet")
+        .slice()
+        .sort((a, b) => (a.sheet_index ?? 0) - (b.sheet_index ?? 0))
+    } catch (err) {
+      console.error("Failed to derive schematic sheets", err)
+      return []
+    }
+  }, [circuitJsonKey])
+
+  const hasMultipleSheets = schematicSheets.length > 1
+  const defaultSheetId = schematicSheets[0]?.schematic_sheet_id
+
+  const [selectedSheetId, setSelectedSheetId] = useState<string | undefined>(
+    () => {
+      // Restore the last-viewed sheet from localStorage so it survives reloads.
+      const stored = getStoredString(STORAGE_KEYS.SELECTED_SCHEMATIC_SHEET)
+      if (
+        stored &&
+        schematicSheets.some((s) => s.schematic_sheet_id === stored)
+      ) {
+        return stored
+      }
+      return defaultSheetId
+    },
+  )
+
+  // Keep the selection valid as the circuit changes: fall back to the default
+  // sheet if the previously-selected sheet no longer exists.
+  useEffect(() => {
+    const stillExists =
+      selectedSheetId !== undefined &&
+      schematicSheets.some((s) => s.schematic_sheet_id === selectedSheetId)
+    if (!stillExists) {
+      setSelectedSheetId(defaultSheetId)
+    }
+  }, [circuitJsonKey])
+
+  // The sheet that should actually be rendered. When there is a single sheet
+  // (or none) we leave this undefined so circuit-to-svg uses its default and
+  // behavior is unchanged for single-sheet circuits.
+  const activeSheetId = hasMultipleSheets
+    ? (selectedSheetId ?? defaultSheetId)
+    : undefined
+
+  const handleSelectSheet = useCallback(
+    (sheetId: string) => {
+      setSelectedSheetId(sheetId)
+      setStoredString(STORAGE_KEYS.SELECTED_SCHEMATIC_SHEET, sheetId)
+      onSchematicSheetChange?.(sheetId)
+    },
+    [onSchematicSheetChange],
   )
 
   const spiceString = useMemo(() => {
@@ -173,21 +241,25 @@ export const SchematicViewer = ({
 
   const schematicComponentIds = useMemo(() => {
     try {
-      return (
-        su(circuitJson)
-          .schematic_component?.list()
-          ?.map((component) => component.schematic_component_id as string) ?? []
-      )
+      const components = su(circuitJson).schematic_component?.list() ?? []
+      return components
+        .filter(
+          (component) =>
+            !activeSheetId || component.schematic_sheet_id === activeSheetId,
+        )
+        .map((component) => component.schematic_component_id as string)
     } catch (err) {
       console.error("Failed to derive schematic component ids", err)
       return []
     }
-  }, [circuitJsonKey, circuitJson])
+  }, [circuitJsonKey, circuitJson, activeSheetId])
 
   const schematicPortsInfo = useMemo(() => {
     if (!showSchematicPorts) return []
     try {
-      const ports = su(circuitJson).schematic_port?.list() ?? []
+      const ports = (su(circuitJson).schematic_port?.list() ?? []).filter(
+        (port) => !activeSheetId || port.schematic_sheet_id === activeSheetId,
+      )
       return ports.map((port) => {
         const sourcePort = su(circuitJson).source_port.get(port.source_port_id)
         const sourceComponent = sourcePort?.source_component_id
@@ -208,7 +280,7 @@ export const SchematicViewer = ({
       console.error("Failed to derive schematic port info", err)
       return []
     }
-  }, [circuitJsonKey, circuitJson, showSchematicPorts])
+  }, [circuitJsonKey, circuitJson, showSchematicPorts, activeSheetId])
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
@@ -270,6 +342,7 @@ export const SchematicViewer = ({
       width: containerWidth,
       height: containerHeight || 720,
       drawPorts: showSchematicPorts,
+      schematicSheetId: activeSheetId,
       grid: !showGrid
         ? undefined
         : {
@@ -286,6 +359,7 @@ export const SchematicViewer = ({
     containerHeight,
     showGrid,
     showSchematicPorts,
+    activeSheetId,
   ])
 
   const containerBackgroundColor = useMemo(() => {
@@ -351,11 +425,12 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
   })
 
-  // Add group overlays when enabled
+  // Add group overlays when enabled. The key includes the active sheet so
+  // overlays are recomputed against the freshly-rendered sheet's SVG.
   useSchematicGroupsOverlay({
     svgDivRef,
     circuitJson,
-    circuitJsonKey,
+    circuitJsonKey: `${circuitJsonKey}_${activeSheetId ?? ""}`,
     showGroups: showSchematicGroups && !disableGroups,
   })
 
@@ -498,10 +573,6 @@ export const SchematicViewer = ({
             </div>
           </div>
         )}
-        <ViewMenuIcon
-          active={showViewMenu}
-          onClick={() => setShowViewMenu(!showViewMenu)}
-        />
         {editingEnabled && (
           <EditIcon
             active={editModeEnabled}
@@ -517,8 +588,8 @@ export const SchematicViewer = ({
         <ViewMenu
           circuitJson={circuitJson}
           circuitJsonKey={circuitJsonKey}
-          isVisible={showViewMenu}
-          onClose={() => setShowViewMenu(false)}
+          open={showViewMenu}
+          onOpenChange={setShowViewMenu}
           showGroups={showSchematicGroups}
           onToggleGroups={(value) => {
             if (!disableGroups) {
@@ -528,6 +599,11 @@ export const SchematicViewer = ({
           }}
           showGrid={showGrid}
           onToggleGrid={setShowGridInternal}
+        />
+        <SchematicSheetSelector
+          sheets={schematicSheets}
+          selectedSheetId={activeSheetId}
+          onSelectSheet={handleSelectSheet}
         />
         {spiceSimulationEnabled && (
           <SpiceSimulationIcon onClick={() => setShowSpiceOverlay(true)} />

@@ -2,6 +2,7 @@ import { useCallback } from "react"
 
 export const STORAGE_KEYS = {
   IS_SHOWING_SCHEMATIC_GROUPS: "schematic_viewer_show_groups",
+  SELECTED_SCHEMATIC_SHEET: "schematic_viewer_selected_sheet",
 } as const
 
 export const getStoredBoolean = (
@@ -21,6 +22,22 @@ export const setStoredBoolean = (key: string, value: boolean): void => {
   if (typeof window === "undefined") return
   try {
     localStorage.setItem(key, JSON.stringify(value))
+  } catch {}
+}
+
+export const getStoredString = (key: string): string | null => {
+  if (typeof window === "undefined") return null
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+export const setStoredString = (key: string, value: string): void => {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(key, value)
   } catch {}
 }
 
