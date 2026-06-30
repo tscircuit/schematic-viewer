@@ -1,7 +1,6 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import type { SchematicSheet } from "circuit-json"
 import { zIndexMap } from "../utils/z-index-map"
-import { getSchematicSheetLabel } from "../utils/schematic-sheet"
 
 interface SchematicSheetSelectorProps {
   sheets: SchematicSheet[]
@@ -110,13 +109,10 @@ export const SchematicSheetSelector = ({
 }: SchematicSheetSelectorProps) => {
   if (sheets.length <= 1) return null
 
-  const selectedIndex = sheets.findIndex(
+  const selectedSheet = sheets.find(
     (s) => s.schematic_sheet_id === selectedSheetId,
   )
-  const selectedLabel =
-    selectedIndex >= 0
-      ? getSchematicSheetLabel(sheets[selectedIndex], selectedIndex)
-      : "Select sheet"
+  const selectedLabel = selectedSheet?.name ?? "Select sheet"
 
   return (
     <>
@@ -164,22 +160,21 @@ export const SchematicSheetSelector = ({
             sideOffset={8}
             collisionPadding={10}
           >
-            {sheets.map((sheet, index) => {
+            {sheets.map((sheet) => {
               const selected = sheet.schematic_sheet_id === selectedSheetId
-              const label = getSchematicSheetLabel(sheet, index)
               return (
                 <DropdownMenu.Item
                   key={sheet.schematic_sheet_id}
                   className="sv-sheet-item"
                   style={itemStyles}
-                  title={label}
+                  title={sheet.name}
                   onSelect={() => onSelectSheet(sheet.schematic_sheet_id)}
                 >
                   <span style={iconSlotStyles}>
                     {selected && <CheckIcon />}
                   </span>
                   <span style={{ ...ellipsisStyles, minWidth: 0 }}>
-                    {label}
+                    {sheet.name}
                   </span>
                 </DropdownMenu.Item>
               )
