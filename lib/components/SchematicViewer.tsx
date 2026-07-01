@@ -281,6 +281,93 @@ export const SchematicViewer = ({
     }
   }, [circuitJsonKey, circuitJson, showSchematicPorts, activeSheetId])
 
+  const traceIdToNetTraceIdsMap = useMemo(() => {
+    const map = new Map<string, string[]>()
+    if (!circuitJson) return map
+
+    try {
+      const schematicTraces = su(circuitJson).schematic_trace.list() ?? []
+      const sourceTraceToSchematicTraceIds = new Map<string, string[]>()
+      for (const trace of schematicTraces) {
+        if (trace.source_trace_id) {
+          if (!sourceTraceToSchematicTraceIds.has(trace.source_trace_id)) {
+            sourceTraceToSchematicTraceIds.set(trace.source_trace_id, [])
+          }
+          sourceTraceToSchematicTraceIds
+            .get(trace.source_trace_id)!
+            .push(trace.schematic_trace_id)
+        }
+      }
+
+      for (const [
+        sourceTraceId,
+        ids,
+      ] of sourceTraceToSchematicTraceIds.entries()) {
+        for (const id of ids) {
+          map.set(id, ids)
+        }
+      }
+    } catch (err) {
+      console.error("Failed to map schematic trace ids to net traces", err)
+    }
+
+    return map
+  }, [circuitJsonKey, circuitJson])
+
+  useEffect(() => {
+    const svgDiv = svgDivRef.current
+    if (!svgDiv) return
+
+    // Resolve every trace <g> on the same net as `traceEl`. Prefer the
+    // subcircuit connectivity-map-key emitted by circuit-to-svg — that is the
+    // true net identifier and spans multiple source traces (so the whole net
+    // highlights, per #1130). Fall back to the source_trace_id grouping when a
+    // trace carries no connectivity key.
+    const getNetSiblingElements = (traceEl: Element): Element[] => {
+      const netKey = traceEl.getAttribute(
+        "data-subcircuit-connectivity-map-key",
+      )
+      if (netKey) {
+        return Array.from(
+          svgDiv.querySelectorAll(
+            `[data-schematic-trace-id][data-subcircuit-connectivity-map-key="${CSS.escape(
+              netKey,
+            )}"]`,
+          ),
+        )
+      }
+      const traceId = traceEl.getAttribute("data-schematic-trace-id")
+      if (!traceId) return [traceEl]
+      const ids = traceIdToNetTraceIdsMap.get(traceId) || [traceId]
+      return ids
+        .map((id) =>
+          svgDiv.querySelector(`[data-schematic-trace-id="${CSS.escape(id)}"]`),
+        )
+        .filter((el): el is Element => el != null)
+    }
+
+    const setNetHovered = (e: MouseEvent, hovered: boolean) => {
+      const traceG = (e.target as HTMLElement).closest(
+        "[data-schematic-trace-id]",
+      )
+      if (!traceG) return
+      for (const el of getNetSiblingElements(traceG)) {
+        el.classList.toggle("trace-hovered", hovered)
+      }
+    }
+
+    const handleMouseOver = (e: MouseEvent) => setNetHovered(e, true)
+    const handleMouseOut = (e: MouseEvent) => setNetHovered(e, false)
+
+    svgDiv.addEventListener("mouseover", handleMouseOver)
+    svgDiv.addEventListener("mouseout", handleMouseOut)
+
+    return () => {
+      svgDiv.removeEventListener("mouseover", handleMouseOver)
+      svgDiv.removeEventListener("mouseout", handleMouseOut)
+    }
+  }, [traceIdToNetTraceIdsMap])
+
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
     touchStartRef.current = {
@@ -476,6 +563,21 @@ export const SchematicViewer = ({
 
   return (
     <MouseTracker>
+      <style>
+        {`
+          .trace-hovered .sch-trace-path,
+          .trace-hovered .sch-trace-crossing-path {
+            stroke: #e8a838 !important;
+            filter: drop-shadow(0 0 2px rgba(232, 168, 56, 0.7));
+          }
+          .trace-hovered .sch-trace-hitbox {
+            opacity: 0 !important;
+          }
+          [data-schematic-trace-id]:hover {
+            cursor: pointer;
+          }
+        `}
+      </style>
       {onSchematicComponentClicked && (
         <style>
           {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
