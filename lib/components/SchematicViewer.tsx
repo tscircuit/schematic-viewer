@@ -25,6 +25,7 @@ import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
 import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
 import { zIndexMap } from "../utils/z-index-map"
 import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
+import { useTraceHoverHighlighting } from "../hooks/useTraceHoverHighlighting"
 import { getSpiceFromCircuitJson } from "../utils/spice-utils"
 import {
   getStoredBoolean,
@@ -65,21 +66,6 @@ interface Props {
   /** Called when the active schematic sheet changes (multi-sheet circuits). */
   onSchematicSheetChange?: (schematicSheetId: string) => void
 }
-
-const escapeCssAttributeValue = (value: string) =>
-  value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-
-const buildTraceHoverStyles = (traceConnectivityKeys: string[]) =>
-  traceConnectivityKeys
-    .map((key) => {
-      const escapedKey = escapeCssAttributeValue(key)
-      const hoveredTraceSelector = `:is(g.trace[data-subcircuit-connectivity-map-key="${escapedKey}"], g.trace-overlays[data-subcircuit-connectivity-map-key="${escapedKey}"])`
-      return [
-        `svg:has(${hoveredTraceSelector}:hover) ${hoveredTraceSelector} { filter: invert(1); }`,
-        `svg:has(${hoveredTraceSelector}:hover) g.trace-overlays[data-subcircuit-connectivity-map-key="${escapedKey}"] .trace-crossing-outline { opacity: 0; }`,
-      ].join("\n")
-    })
-    .join("\n")
 
 export const SchematicViewer = ({
   circuitJson,
@@ -237,18 +223,13 @@ export const SchematicViewer = ({
 
   const [isHoveringClickablePort, setIsHoveringClickablePort] = useState(false)
   const hoveringPortsRef = useRef<Set<string>>(new Set())
-  const [hoveredPortsVersion, setHoveredPortsVersion] = useState(0)
 
   const handlePortHoverChange = useCallback(
     (portId: string, isHovering: boolean) => {
-      const hadPort = hoveringPortsRef.current.has(portId)
       if (isHovering) {
         hoveringPortsRef.current.add(portId)
       } else {
         hoveringPortsRef.current.delete(portId)
-      }
-      if (hadPort !== hoveringPortsRef.current.has(portId)) {
-        setHoveredPortsVersion((version) => version + 1)
       }
       setIsHoveringClickablePort(hoveringPortsRef.current.size > 0)
     },
@@ -300,96 +281,6 @@ export const SchematicViewer = ({
       return []
     }
   }, [circuitJsonKey, circuitJson, showSchematicPorts, activeSheetId])
-
-  const sourcePortConnectivityMap = useMemo(() => {
-    try {
-      const map = new Map<string, Set<string>>()
-      const sourceTraces = su(circuitJson).source_trace?.list() ?? []
-
-      for (const sourceTrace of sourceTraces) {
-        const connectivityKey = (sourceTrace as any)
-          .subcircuit_connectivity_map_key as string | undefined
-        if (!connectivityKey) continue
-
-        for (const sourcePortId of sourceTrace.connected_source_port_ids ??
-          []) {
-          const existingKeys = map.get(sourcePortId)
-          if (existingKeys) {
-            existingKeys.add(connectivityKey)
-          } else {
-            map.set(sourcePortId, new Set([connectivityKey]))
-          }
-        }
-      }
-
-      return map
-    } catch (err) {
-      console.error("Failed to derive source port connectivity map", err)
-      return new Map<string, Set<string>>()
-    }
-  }, [circuitJsonKey, circuitJson])
-
-  const traceConnectivityKeys = useMemo(() => {
-    try {
-      const keys = new Set<string>()
-      const sourceTraces = su(circuitJson).source_trace?.list() ?? []
-
-      for (const sourceTrace of sourceTraces) {
-        const connectivityKey = (sourceTrace as any)
-          .subcircuit_connectivity_map_key as string | undefined
-        if (connectivityKey) {
-          keys.add(connectivityKey)
-        }
-      }
-
-      return [...keys]
-    } catch (err) {
-      console.error("Failed to derive trace connectivity keys", err)
-      return []
-    }
-  }, [circuitJsonKey, circuitJson])
-
-  const traceHoverStyles = useMemo(
-    () => buildTraceHoverStyles(traceConnectivityKeys),
-    [traceConnectivityKeys],
-  )
-
-  const hoveredPortConnectivityKeys = useMemo(() => {
-    const keys = new Set<string>()
-    for (const portId of hoveringPortsRef.current) {
-      const portKeys = sourcePortConnectivityMap.get(portId)
-      if (!portKeys) continue
-      for (const key of portKeys) {
-        keys.add(key)
-      }
-    }
-    return [...keys]
-  }, [hoveredPortsVersion, sourcePortConnectivityMap])
-
-  useEffect(() => {
-    const svgDiv = svgDivRef.current
-    if (!svgDiv) return
-
-    const activeTraceElements = svgDiv.querySelectorAll<HTMLElement>(
-      '[data-net-hover-active="true"]',
-    )
-    for (const element of Array.from(activeTraceElements)) {
-      element.removeAttribute("data-net-hover-active")
-    }
-
-    if (hoveredPortConnectivityKeys.length === 0) {
-      return
-    }
-
-    for (const connectivityKey of hoveredPortConnectivityKeys) {
-      const escapedKey = escapeCssAttributeValue(connectivityKey)
-      const selector = `:is(g.trace[data-subcircuit-connectivity-map-key="${escapedKey}"], g.trace-overlays[data-subcircuit-connectivity-map-key="${escapedKey}"])`
-      const matchingElements = svgDiv.querySelectorAll<HTMLElement>(selector)
-      for (const element of Array.from(matchingElements)) {
-        element.setAttribute("data-net-hover-active", "true")
-      }
-    }
-  }, [hoveredPortConnectivityKeys, circuitJsonKey])
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
@@ -534,6 +425,13 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
   })
 
+  useTraceHoverHighlighting({
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey,
+    enabled: !editModeEnabled,
+  })
+
   // Add group overlays when enabled. The key includes the active sheet so
   // overlays are recomputed against the freshly-rendered sheet's SVG.
   useSchematicGroupsOverlay({
@@ -586,7 +484,6 @@ export const SchematicViewer = ({
 
   return (
     <MouseTracker>
-      {traceHoverStyles && <style>{traceHoverStyles}</style>}
       {onSchematicComponentClicked && (
         <style>
           {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
