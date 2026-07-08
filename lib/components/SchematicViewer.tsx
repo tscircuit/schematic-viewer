@@ -6,6 +6,7 @@ import { su } from "@tscircuit/soup-util"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
+import { useSchematicNetHover } from "lib/hooks/useSchematicNetHover"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -51,6 +52,8 @@ interface Props {
   colorOverrides?: ColorOverrides
   spiceSimulationEnabled?: boolean
   disableGroups?: boolean
+  /** Fade unrelated nets/chips when hovering a wire or net label. Default true. */
+  netHoverHighlightEnabled?: boolean
   css?: string
   className?: string
   onSchematicComponentClicked?: (options: {
@@ -79,6 +82,7 @@ export const SchematicViewer = ({
   colorOverrides,
   spiceSimulationEnabled = false,
   disableGroups = false,
+  netHoverHighlightEnabled = true,
   onSchematicComponentClicked,
   showSchematicPorts = false,
   onSchematicPortClicked,
@@ -433,6 +437,15 @@ export const SchematicViewer = ({
     showGroups: showSchematicGroups && !disableGroups,
   })
 
+  // Fade unrelated nets/chips when hovering a wire or net label (JS-driven; the
+  // base SVG carries no interaction).
+  useSchematicNetHover({
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey: `${circuitJsonKey}_${activeSheetId ?? ""}`,
+    enabled: netHoverHighlightEnabled,
+  })
+
   // keep the latest touch handler without re-rendering the svg div
   const handleComponentTouchStartRef = useRef(handleComponentTouchStart)
   useEffect(() => {
@@ -476,6 +489,12 @@ export const SchematicViewer = ({
 
   return (
     <MouseTracker>
+      {netHoverHighlightEnabled && (
+        <style>
+          {`.sch-net-faded { opacity: 0.35; }
+            svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id]) { transition: opacity 0.12s ease-in-out; }`}
+        </style>
+      )}
       {onSchematicComponentClicked && (
         <style>
           {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
