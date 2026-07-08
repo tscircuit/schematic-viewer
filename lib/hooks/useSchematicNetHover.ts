@@ -135,11 +135,11 @@ export const useSchematicNetHover = ({
  *  - netLabelIdToKey: a schematic_net_label_id -> its connectivity key
  */
 function buildNetRegistry(circuitJson: CircuitJson) {
-  const soup = su(circuitJson)
+  const cju = su(circuitJson)
 
   // source_component_id -> schematic_component_id
   const srcCompToSchComp = new Map<string, string>()
-  for (const c of soup.schematic_component.list()) {
+  for (const c of cju.schematic_component.list()) {
     if (c.source_component_id) {
       srcCompToSchComp.set(c.source_component_id, c.schematic_component_id)
     }
@@ -148,12 +148,12 @@ function buildNetRegistry(circuitJson: CircuitJson) {
   // schematic_component_id -> the connectivity nets its ports belong to (a chip
   // sits on several nets). The connectivity key lives on source_trace.
   const componentIdToKeys = new Map<string, Set<string>>()
-  for (const sourceTrace of soup.source_trace.list()) {
+  for (const sourceTrace of cju.source_trace.list()) {
     const key = sourceTrace.subcircuit_connectivity_map_key
     if (!key) continue
     for (const portId of sourceTrace.connected_source_port_ids ?? []) {
       const schCompId = srcCompToSchComp.get(
-        soup.source_port.get(portId)?.source_component_id ?? "",
+        cju.source_port.get(portId)?.source_component_id ?? "",
       )
       if (!schCompId) continue
       if (!componentIdToKeys.has(schCompId)) {
@@ -167,10 +167,10 @@ function buildNetRegistry(circuitJson: CircuitJson) {
   // (same key the net's traces use). Falls back to source_net_id, which already
   // *is* the key for auto-emitted labels on unrouted nets (no source_net).
   const netLabelIdToKey = new Map<string, string>()
-  for (const label of soup.schematic_net_label.list()) {
+  for (const label of cju.schematic_net_label.list()) {
     if (!label.source_net_id) continue
     const key =
-      soup.source_net.get(label.source_net_id)
+      cju.source_net.get(label.source_net_id)
         ?.subcircuit_connectivity_map_key ?? label.source_net_id
     netLabelIdToKey.set(label.schematic_net_label_id, key)
   }

@@ -53,7 +53,7 @@ interface Props {
   spiceSimulationEnabled?: boolean
   disableGroups?: boolean
   /** Fade unrelated nets/chips when hovering a wire or net label. Default true. */
-  netHighlightEnabled?: boolean
+  netHoverHighlightEnabled?: boolean
   css?: string
   className?: string
   onSchematicComponentClicked?: (options: {
@@ -82,7 +82,7 @@ export const SchematicViewer = ({
   colorOverrides,
   spiceSimulationEnabled = false,
   disableGroups = false,
-  netHighlightEnabled = true,
+  netHoverHighlightEnabled = true,
   onSchematicComponentClicked,
   showSchematicPorts = false,
   onSchematicPortClicked,
@@ -443,7 +443,7 @@ export const SchematicViewer = ({
     svgDivRef,
     circuitJson,
     circuitJsonKey: `${circuitJsonKey}_${activeSheetId ?? ""}`,
-    enabled: netHighlightEnabled,
+    enabled: netHoverHighlightEnabled,
   })
 
   // keep the latest touch handler without re-rendering the svg div
@@ -489,7 +489,7 @@ export const SchematicViewer = ({
 
   return (
     <MouseTracker>
-      {netHighlightEnabled && (
+      {netHoverHighlightEnabled && (
         <style>
           {`.sch-net-faded { opacity: 0.35; }
             svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id]) { transition: opacity 0.12s ease-in-out; }`}
