@@ -26,6 +26,7 @@ import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
 import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
 import { zIndexMap } from "../utils/z-index-map"
 import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
+import { useTraceHoverHighlighting } from "../hooks/useTraceHoverHighlighting"
 import { getSpiceFromCircuitJson } from "../utils/spice-utils"
 import {
   getStoredBoolean,
@@ -426,6 +427,13 @@ export const SchematicViewer = ({
     circuitJson,
     activeEditEvent,
     editEvents: editEventsWithUnappliedEditEvents,
+  })
+
+  useTraceHoverHighlighting({
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey,
+    enabled: !editModeEnabled,
   })
 
   // Add group overlays when enabled. The key includes the active sheet so
