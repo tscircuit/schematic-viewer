@@ -35,13 +35,16 @@ import { useWireDrawing } from "../hooks/useWireDrawing"
 import { useBusDrawing } from "../hooks/useBusDrawing"
 import { useBusEntryPlacement } from "../hooks/useBusEntryPlacement"
 import { useNoConnectPlacement } from "../hooks/useNoConnectPlacement"
+import { useNetLabelPlacement } from "../hooks/useNetLabelPlacement"
 import { WirePreview } from "./WirePreview"
 import { BusPreview } from "./BusPreview"
 import { BusEntryPreview } from "./BusEntryPreview"
 import { NoConnectPreview } from "./NoConnectPreview"
+import { NetLabelPreview } from "./NetLabelPreview"
 import type {
   EditSchematicBusAddEvent,
   EditSchematicBusEntryAddEvent,
+  EditSchematicNetLabelAddEvent,
   EditSchematicNoConnectAddEvent,
   EditSchematicWireAddEvent,
 } from "../types/edit-events"
@@ -74,10 +77,12 @@ interface Props {
     | "draw_bus"
     | "draw_bus_entry"
     | "draw_no_connect"
+    | "draw_net_label"
   onWireAdded?: (event: EditSchematicWireAddEvent) => void
   onBusAdded?: (event: EditSchematicBusAddEvent) => void
   onBusEntryAdded?: (event: EditSchematicBusEntryAddEvent) => void
   onNoConnectAdded?: (event: EditSchematicNoConnectAddEvent) => void
+  onNetLabelAdded?: (event: EditSchematicNetLabelAddEvent) => void
   allowComponentEdit?: boolean
 }
 
@@ -102,6 +107,7 @@ export const SchematicViewer = ({
   onBusAdded,
   onBusEntryAdded,
   onNoConnectAdded,
+  onNetLabelAdded,
   allowComponentEdit = false,
 }: Props) => {
   if (debug) {
@@ -160,7 +166,8 @@ export const SchematicViewer = ({
       toolMode === "draw_wire" ||
       toolMode === "draw_bus" ||
       toolMode === "draw_bus_entry" ||
-      toolMode === "draw_no_connect"
+      toolMode === "draw_no_connect" ||
+      toolMode === "draw_net_label"
     ) {
       setEditModeEnabled(false)
     } else if (toolMode === "select" && defaultEditMode) {
@@ -309,7 +316,8 @@ export const SchematicViewer = ({
         toolMode === "draw_wire" ||
         toolMode === "draw_bus" ||
         toolMode === "draw_bus_entry" ||
-        toolMode === "draw_no_connect"
+        toolMode === "draw_no_connect" ||
+        toolMode === "draw_net_label"
       )
         return false
 
@@ -437,6 +445,19 @@ export const SchematicViewer = ({
     onEditEvent: onNoConnectAdded,
   })
 
+  const { netLabelState, confirmPlacement, cancelPlacement } =
+    useNetLabelPlacement({
+      enabled:
+        toolMode === "draw_net_label" &&
+        isInteractionEnabled &&
+        isProjectionReady,
+      circuitJson,
+      svgToScreenProjection,
+      realToSvgProjection,
+      containerRef,
+      onEditEvent: onNetLabelAdded,
+    })
+
   useChangeSchematicComponentLocationsInSvg({
     svgDivRef,
     editEvents: editEventsWithUnappliedEditEvents,
@@ -524,7 +545,8 @@ export const SchematicViewer = ({
             : toolMode === "draw_wire" ||
                 toolMode === "draw_bus" ||
                 toolMode === "draw_bus_entry" ||
-                toolMode === "draw_no_connect"
+                toolMode === "draw_no_connect" ||
+                toolMode === "draw_net_label"
               ? "crosshair"
               : isDragging
                 ? "grabbing"
@@ -698,6 +720,14 @@ export const SchematicViewer = ({
           realToSvgProjection={realToSvgProjection}
           svgToScreenProjection={svgToScreenProjection}
           containerRef={containerRef}
+        />
+        <NetLabelPreview
+          state={netLabelState}
+          realToSvgProjection={realToSvgProjection}
+          svgToScreenProjection={svgToScreenProjection}
+          containerRef={containerRef}
+          onConfirm={confirmPlacement}
+          onCancel={cancelPlacement}
         />
         {showSchematicPorts &&
           schematicPortsInfo.map(({ portId, label }) => (

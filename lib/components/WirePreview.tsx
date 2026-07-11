@@ -34,12 +34,10 @@ export const WirePreview = ({
   // container, so no extra offset subtraction is needed.
   const realToScreen = compose(svgToScreenProjection, realToSvgProjection)
 
-  const toScreen = (pt: { x: number; y: number }) => applyToPoint(realToScreen, pt)
+  const toScreen = (pt: { x: number; y: number }) =>
+    applyToPoint(realToScreen, pt)
 
-  const points = [
-    ...state.waypoints.map(toScreen),
-    toScreen(state.previewEnd),
-  ]
+  const points = [...state.waypoints.map(toScreen), toScreen(state.previewEnd)]
 
   const d = points
     .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)

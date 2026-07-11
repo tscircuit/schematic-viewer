@@ -32,12 +32,21 @@ export interface EditSchematicNoConnectAddEvent extends BaseManualEditEvent {
   schematic_port_id?: string
 }
 
+export interface EditSchematicNetLabelAddEvent extends BaseManualEditEvent {
+  edit_event_type: "edit_schematic_net_label_add"
+  position: { x: number; y: number }
+  net_name: string
+  schematic_port_id?: string
+  anchor_side?: "left" | "right" | "top" | "bottom"
+}
+
 export type ExtendedManualEditEvent =
   | ManualEditEvent
   | EditSchematicWireAddEvent
   | EditSchematicBusAddEvent
   | EditSchematicBusEntryAddEvent
   | EditSchematicNoConnectAddEvent
+  | EditSchematicNetLabelAddEvent
 
 export type {
   BaseManualEditEvent,

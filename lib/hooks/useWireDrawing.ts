@@ -90,9 +90,6 @@ export const useWireDrawing = ({
       const container = containerRef.current
       if (!container) return null
 
-      // Hit-test against the rendered port elements. Their bounding rects are
-      // page-absolute, matching the incoming clientX/clientY, so this stays
-      // correct regardless of pan/zoom.
       let closest: { id: string; dist: number } | null = null
       const portEls = container.querySelectorAll("[data-schematic-port-id]")
       for (const node of portEls) {
@@ -256,7 +253,9 @@ export const useWireDrawing = ({
     window.addEventListener("mousemove", handleMouseMove)
     window.addEventListener("keydown", handleKeyDown)
     return () => {
-      window.removeEventListener("mousedown", handleMouseDown, { capture: true })
+      window.removeEventListener("mousedown", handleMouseDown, {
+        capture: true,
+      })
       window.removeEventListener("mousemove", handleMouseMove)
       window.removeEventListener("keydown", handleKeyDown)
     }

@@ -5,6 +5,7 @@ export { AnalogSimulationViewer } from "./components/AnalogSimulationViewer"
 export type {
   EditSchematicBusAddEvent,
   EditSchematicBusEntryAddEvent,
+  EditSchematicNetLabelAddEvent,
   EditSchematicNoConnectAddEvent,
   EditSchematicWireAddEvent,
 } from "./types/edit-events"
