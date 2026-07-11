@@ -9,6 +9,17 @@ export type EditSchematicComponentLocationEventWithElement =
     _element: SVGElement
   }
 
+export interface EditSchematicWireAddEvent extends BaseManualEditEvent {
+  edit_event_type: "edit_schematic_wire_add"
+  from_schematic_port_id: string
+  to_schematic_port_id: string
+  route: Array<{ x: number; y: number }>
+}
+
+export type ExtendedManualEditEvent =
+  | ManualEditEvent
+  | EditSchematicWireAddEvent
+
 export type {
   BaseManualEditEvent,
   EditSchematicComponentLocationEvent,
