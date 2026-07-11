@@ -32,8 +32,13 @@ import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
 import { useWireDrawing } from "../hooks/useWireDrawing"
+import { useBusDrawing } from "../hooks/useBusDrawing"
 import { WirePreview } from "./WirePreview"
-import type { EditSchematicWireAddEvent } from "../types/edit-events"
+import { BusPreview } from "./BusPreview"
+import type {
+  EditSchematicBusAddEvent,
+  EditSchematicWireAddEvent,
+} from "../types/edit-events"
 
 interface Props {
   circuitJson: CircuitJson
@@ -57,8 +62,9 @@ interface Props {
     schematicPortId: string
     event: MouseEvent
   }) => void
-  toolMode?: 'select' | 'draw_wire'
+  toolMode?: "select" | "draw_wire" | "draw_bus"
   onWireAdded?: (event: EditSchematicWireAddEvent) => void
+  onBusAdded?: (event: EditSchematicBusAddEvent) => void
   allowComponentEdit?: boolean
 }
 
@@ -78,8 +84,9 @@ export const SchematicViewer = ({
   onSchematicComponentClicked,
   showSchematicPorts = false,
   onSchematicPortClicked,
-  toolMode = 'select',
+  toolMode = "select",
   onWireAdded,
+  onBusAdded,
   allowComponentEdit = false,
 }: Props) => {
   if (debug) {
@@ -131,12 +138,12 @@ export const SchematicViewer = ({
   } = useSpiceSimulation(hasSpiceSimRun ? spiceString : null)
 
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
-  const effectiveEditMode = toolMode === 'select' && editModeEnabled
+  const effectiveEditMode = toolMode === "select" && editModeEnabled
 
   useEffect(() => {
-    if (toolMode === 'draw_wire') {
+    if (toolMode === "draw_wire" || toolMode === "draw_bus") {
       setEditModeEnabled(false)
-    } else if (toolMode === 'select' && defaultEditMode) {
+    } else if (toolMode === "select" && defaultEditMode) {
       setEditModeEnabled(true)
     } else {
       setEditModeEnabled(false)
@@ -269,7 +276,7 @@ export const SchematicViewer = ({
     ref: containerRef,
     cancelDrag,
     transform: svgToScreenProjection,
-    } = useMouseMatrixTransform({
+  } = useMouseMatrixTransform({
     onSetTransform(transform) {
       if (!svgDivRef.current) return
       svgDivRef.current.style.transform = transformToString(transform)
@@ -278,7 +285,7 @@ export const SchematicViewer = ({
     enabled: isInteractionEnabled && !showSpiceOverlay,
     shouldDrag: (e) => {
       if (e.type === "wheel") return true
-      if (toolMode === "draw_wire") return false
+      if (toolMode === "draw_wire" || toolMode === "draw_bus") return false
 
       if (allowComponentEdit) {
         const target = e.target as Element
@@ -363,12 +370,22 @@ export const SchematicViewer = ({
     !isNaN(realToSvgProjection.a)
 
   const { wireDrawingState, handlePortMouseDown } = useWireDrawing({
-    enabled: toolMode === 'draw_wire' && isInteractionEnabled && isProjectionReady,
+    enabled:
+      toolMode === "draw_wire" && isInteractionEnabled && isProjectionReady,
     circuitJson,
     svgToScreenProjection,
     realToSvgProjection,
     containerRef,
     onEditEvent: onWireAdded,
+  })
+
+  const { busDrawingState } = useBusDrawing({
+    enabled:
+      toolMode === "draw_bus" && isInteractionEnabled && isProjectionReady,
+    svgToScreenProjection,
+    realToSvgProjection,
+    containerRef,
+    onEditEvent: onBusAdded,
   })
 
   useChangeSchematicComponentLocationsInSvg({
@@ -455,17 +472,17 @@ export const SchematicViewer = ({
           overflow: "hidden",
           cursor: showSpiceOverlay
             ? "auto"
-            : toolMode === "draw_wire"
+            : toolMode === "draw_wire" || toolMode === "draw_bus"
               ? "crosshair"
               : isDragging
-              ? "grabbing"
-              : clickToInteractEnabled && !isInteractionEnabled
-                ? "pointer"
-                : isHoveringClickableComponent && onSchematicComponentClicked
+                ? "grabbing"
+                : clickToInteractEnabled && !isInteractionEnabled
                   ? "pointer"
-                  : isHoveringClickablePort && onSchematicPortClicked
+                  : isHoveringClickableComponent && onSchematicComponentClicked
                     ? "pointer"
-                    : "grab",
+                    : isHoveringClickablePort && onSchematicPortClicked
+                      ? "pointer"
+                      : "grab",
           minHeight: "300px",
           ...containerStyle,
         }}
@@ -607,11 +624,17 @@ export const SchematicViewer = ({
           ))}
         {svgDiv}
         <WirePreview
-            state={wireDrawingState}
-            realToSvgProjection={realToSvgProjection}
-            svgToScreenProjection={svgToScreenProjection}
-            containerRef={containerRef}
-          />
+          state={wireDrawingState}
+          realToSvgProjection={realToSvgProjection}
+          svgToScreenProjection={svgToScreenProjection}
+          containerRef={containerRef}
+        />
+        <BusPreview
+          state={busDrawingState}
+          realToSvgProjection={realToSvgProjection}
+          svgToScreenProjection={svgToScreenProjection}
+          containerRef={containerRef}
+        />
         {showSchematicPorts &&
           schematicPortsInfo.map(({ portId, label }) => (
             <SchematicPortMouseTarget

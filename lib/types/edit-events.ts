@@ -16,9 +16,15 @@ export interface EditSchematicWireAddEvent extends BaseManualEditEvent {
   route: Array<{ x: number; y: number }>
 }
 
+export interface EditSchematicBusAddEvent extends BaseManualEditEvent {
+  edit_event_type: "edit_schematic_bus_add"
+  route: Array<{ x: number; y: number }>
+}
+
 export type ExtendedManualEditEvent =
   | ManualEditEvent
   | EditSchematicWireAddEvent
+  | EditSchematicBusAddEvent
 
 export type {
   BaseManualEditEvent,
