@@ -4,5 +4,6 @@ export { useMouseEventsOverBoundingBox } from "./hooks/useMouseEventsOverBoundin
 export { AnalogSimulationViewer } from "./components/AnalogSimulationViewer"
 export type {
   EditSchematicBusAddEvent,
+  EditSchematicBusEntryAddEvent,
   EditSchematicWireAddEvent,
 } from "./types/edit-events"

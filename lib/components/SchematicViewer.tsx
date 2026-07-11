@@ -33,10 +33,13 @@ import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
 import { useWireDrawing } from "../hooks/useWireDrawing"
 import { useBusDrawing } from "../hooks/useBusDrawing"
+import { useBusEntryPlacement } from "../hooks/useBusEntryPlacement"
 import { WirePreview } from "./WirePreview"
 import { BusPreview } from "./BusPreview"
+import { BusEntryPreview } from "./BusEntryPreview"
 import type {
   EditSchematicBusAddEvent,
+  EditSchematicBusEntryAddEvent,
   EditSchematicWireAddEvent,
 } from "../types/edit-events"
 
@@ -62,9 +65,10 @@ interface Props {
     schematicPortId: string
     event: MouseEvent
   }) => void
-  toolMode?: "select" | "draw_wire" | "draw_bus"
+  toolMode?: "select" | "draw_wire" | "draw_bus" | "draw_bus_entry"
   onWireAdded?: (event: EditSchematicWireAddEvent) => void
   onBusAdded?: (event: EditSchematicBusAddEvent) => void
+  onBusEntryAdded?: (event: EditSchematicBusEntryAddEvent) => void
   allowComponentEdit?: boolean
 }
 
@@ -87,6 +91,7 @@ export const SchematicViewer = ({
   toolMode = "select",
   onWireAdded,
   onBusAdded,
+  onBusEntryAdded,
   allowComponentEdit = false,
 }: Props) => {
   if (debug) {
@@ -141,7 +146,11 @@ export const SchematicViewer = ({
   const effectiveEditMode = toolMode === "select" && editModeEnabled
 
   useEffect(() => {
-    if (toolMode === "draw_wire" || toolMode === "draw_bus") {
+    if (
+      toolMode === "draw_wire" ||
+      toolMode === "draw_bus" ||
+      toolMode === "draw_bus_entry"
+    ) {
       setEditModeEnabled(false)
     } else if (toolMode === "select" && defaultEditMode) {
       setEditModeEnabled(true)
@@ -285,7 +294,12 @@ export const SchematicViewer = ({
     enabled: isInteractionEnabled && !showSpiceOverlay,
     shouldDrag: (e) => {
       if (e.type === "wheel") return true
-      if (toolMode === "draw_wire" || toolMode === "draw_bus") return false
+      if (
+        toolMode === "draw_wire" ||
+        toolMode === "draw_bus" ||
+        toolMode === "draw_bus_entry"
+      )
+        return false
 
       if (allowComponentEdit) {
         const target = e.target as Element
@@ -388,6 +402,17 @@ export const SchematicViewer = ({
     onEditEvent: onBusAdded,
   })
 
+  const { busEntryPreviewState } = useBusEntryPlacement({
+    enabled:
+      toolMode === "draw_bus_entry" &&
+      isInteractionEnabled &&
+      isProjectionReady,
+    svgToScreenProjection,
+    realToSvgProjection,
+    containerRef,
+    onEditEvent: onBusEntryAdded,
+  })
+
   useChangeSchematicComponentLocationsInSvg({
     svgDivRef,
     editEvents: editEventsWithUnappliedEditEvents,
@@ -472,7 +497,9 @@ export const SchematicViewer = ({
           overflow: "hidden",
           cursor: showSpiceOverlay
             ? "auto"
-            : toolMode === "draw_wire" || toolMode === "draw_bus"
+            : toolMode === "draw_wire" ||
+                toolMode === "draw_bus" ||
+                toolMode === "draw_bus_entry"
               ? "crosshair"
               : isDragging
                 ? "grabbing"
@@ -631,6 +658,12 @@ export const SchematicViewer = ({
         />
         <BusPreview
           state={busDrawingState}
+          realToSvgProjection={realToSvgProjection}
+          svgToScreenProjection={svgToScreenProjection}
+          containerRef={containerRef}
+        />
+        <BusEntryPreview
+          state={busEntryPreviewState}
           realToSvgProjection={realToSvgProjection}
           svgToScreenProjection={svgToScreenProjection}
           containerRef={containerRef}
