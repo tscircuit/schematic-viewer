@@ -26,11 +26,18 @@ export interface EditSchematicBusEntryAddEvent extends BaseManualEditEvent {
   anchor: { x: number; y: number }
 }
 
+export interface EditSchematicNoConnectAddEvent extends BaseManualEditEvent {
+  edit_event_type: "edit_schematic_no_connect_add"
+  center: { x: number; y: number }
+  schematic_port_id?: string
+}
+
 export type ExtendedManualEditEvent =
   | ManualEditEvent
   | EditSchematicWireAddEvent
   | EditSchematicBusAddEvent
   | EditSchematicBusEntryAddEvent
+  | EditSchematicNoConnectAddEvent
 
 export type {
   BaseManualEditEvent,

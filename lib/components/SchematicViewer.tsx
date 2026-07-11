@@ -34,12 +34,15 @@ import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
 import { useWireDrawing } from "../hooks/useWireDrawing"
 import { useBusDrawing } from "../hooks/useBusDrawing"
 import { useBusEntryPlacement } from "../hooks/useBusEntryPlacement"
+import { useNoConnectPlacement } from "../hooks/useNoConnectPlacement"
 import { WirePreview } from "./WirePreview"
 import { BusPreview } from "./BusPreview"
 import { BusEntryPreview } from "./BusEntryPreview"
+import { NoConnectPreview } from "./NoConnectPreview"
 import type {
   EditSchematicBusAddEvent,
   EditSchematicBusEntryAddEvent,
+  EditSchematicNoConnectAddEvent,
   EditSchematicWireAddEvent,
 } from "../types/edit-events"
 
@@ -65,10 +68,16 @@ interface Props {
     schematicPortId: string
     event: MouseEvent
   }) => void
-  toolMode?: "select" | "draw_wire" | "draw_bus" | "draw_bus_entry"
+  toolMode?:
+    | "select"
+    | "draw_wire"
+    | "draw_bus"
+    | "draw_bus_entry"
+    | "draw_no_connect"
   onWireAdded?: (event: EditSchematicWireAddEvent) => void
   onBusAdded?: (event: EditSchematicBusAddEvent) => void
   onBusEntryAdded?: (event: EditSchematicBusEntryAddEvent) => void
+  onNoConnectAdded?: (event: EditSchematicNoConnectAddEvent) => void
   allowComponentEdit?: boolean
 }
 
@@ -92,6 +101,7 @@ export const SchematicViewer = ({
   onWireAdded,
   onBusAdded,
   onBusEntryAdded,
+  onNoConnectAdded,
   allowComponentEdit = false,
 }: Props) => {
   if (debug) {
@@ -149,7 +159,8 @@ export const SchematicViewer = ({
     if (
       toolMode === "draw_wire" ||
       toolMode === "draw_bus" ||
-      toolMode === "draw_bus_entry"
+      toolMode === "draw_bus_entry" ||
+      toolMode === "draw_no_connect"
     ) {
       setEditModeEnabled(false)
     } else if (toolMode === "select" && defaultEditMode) {
@@ -297,7 +308,8 @@ export const SchematicViewer = ({
       if (
         toolMode === "draw_wire" ||
         toolMode === "draw_bus" ||
-        toolMode === "draw_bus_entry"
+        toolMode === "draw_bus_entry" ||
+        toolMode === "draw_no_connect"
       )
         return false
 
@@ -413,6 +425,18 @@ export const SchematicViewer = ({
     onEditEvent: onBusEntryAdded,
   })
 
+  const { noConnectPreviewState } = useNoConnectPlacement({
+    enabled:
+      toolMode === "draw_no_connect" &&
+      isInteractionEnabled &&
+      isProjectionReady,
+    circuitJson,
+    svgToScreenProjection,
+    realToSvgProjection,
+    containerRef,
+    onEditEvent: onNoConnectAdded,
+  })
+
   useChangeSchematicComponentLocationsInSvg({
     svgDivRef,
     editEvents: editEventsWithUnappliedEditEvents,
@@ -499,7 +523,8 @@ export const SchematicViewer = ({
             ? "auto"
             : toolMode === "draw_wire" ||
                 toolMode === "draw_bus" ||
-                toolMode === "draw_bus_entry"
+                toolMode === "draw_bus_entry" ||
+                toolMode === "draw_no_connect"
               ? "crosshair"
               : isDragging
                 ? "grabbing"
@@ -664,6 +689,12 @@ export const SchematicViewer = ({
         />
         <BusEntryPreview
           state={busEntryPreviewState}
+          realToSvgProjection={realToSvgProjection}
+          svgToScreenProjection={svgToScreenProjection}
+          containerRef={containerRef}
+        />
+        <NoConnectPreview
+          state={noConnectPreviewState}
           realToSvgProjection={realToSvgProjection}
           svgToScreenProjection={svgToScreenProjection}
           containerRef={containerRef}
