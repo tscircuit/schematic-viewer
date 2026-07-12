@@ -36,14 +36,37 @@ import { useBusDrawing } from "../hooks/useBusDrawing"
 import { useBusEntryPlacement } from "../hooks/useBusEntryPlacement"
 import { useNoConnectPlacement } from "../hooks/useNoConnectPlacement"
 import { useNetLabelPlacement } from "../hooks/useNetLabelPlacement"
+import { useGlobalLabelPlacement } from "../hooks/useGlobalLabelPlacement"
+import { useHierSheetPlacement } from "../hooks/useHierSheetPlacement"
 import { WirePreview } from "./WirePreview"
 import { BusPreview } from "./BusPreview"
 import { BusEntryPreview } from "./BusEntryPreview"
 import { NoConnectPreview } from "./NoConnectPreview"
 import { NetLabelPreview } from "./NetLabelPreview"
+import { GlobalLabelPreview } from "./GlobalLabelPreview"
+import { HierSheetPreview, type HierSheetTarget } from "./HierSheetPreview"
+import { isSpacePanHeld, setSpacePanHeld } from "lib/hooks/useLocalStorage"
+import { usePowerPortPlacement } from "../hooks/usePowerPortPlacement"
+import { PowerPortPreview } from "./PowerPortPreview"
+import type { EditSchematicPowerPortAddEvent } from "../types/edit-events"
+import { useGroundPortPlacement } from "../hooks/useGroundPortPlacement"
+import { GroundPortPreview } from "./GroundPortPreview"
+import type { EditSchematicGroundPortAddEvent } from "../types/edit-events"
+import { useTextNotePlacement } from "../hooks/useTextNotePlacement"
+import { TextNotePreview } from "./TextNotePreview"
+import type { EditSchematicTextNoteAddEvent } from "../types/edit-events"
+import { useTraceDrawing } from "../hooks/useTraceDrawing"
+import { useComponentPlacement } from "../hooks/useComponentPlacement"
+import { ComponentPlacementPreview } from "./ComponentPlacementPreview"
+import type {
+  EditSchematicComponentAddEvent,
+  PlacementComponentKind,
+} from "../types/edit-events"
 import type {
   EditSchematicBusAddEvent,
   EditSchematicBusEntryAddEvent,
+  EditSchematicGlobalLabelAddEvent,
+  EditSchematicHierSheetAddEvent,
   EditSchematicNetLabelAddEvent,
   EditSchematicNoConnectAddEvent,
   EditSchematicWireAddEvent,
@@ -78,12 +101,29 @@ interface Props {
     | "draw_bus_entry"
     | "draw_no_connect"
     | "draw_net_label"
+    | "draw_global_label"
+    | "draw_hier_sheet"
+    | "draw_power_port"
+    | "draw_ground_port"
+    | "draw_text_note"
+    | "draw_trace"
+    | "draw_component"
   onWireAdded?: (event: EditSchematicWireAddEvent) => void
   onBusAdded?: (event: EditSchematicBusAddEvent) => void
   onBusEntryAdded?: (event: EditSchematicBusEntryAddEvent) => void
   onNoConnectAdded?: (event: EditSchematicNoConnectAddEvent) => void
   onNetLabelAdded?: (event: EditSchematicNetLabelAddEvent) => void
+  onGlobalLabelAdded?: (event: EditSchematicGlobalLabelAddEvent) => void
+  onHierSheetAdded?: (event: EditSchematicHierSheetAddEvent) => void
+  onPowerPortAdded?: (event: EditSchematicPowerPortAddEvent) => void
+  onGroundPortAdded?: (event: EditSchematicGroundPortAddEvent) => void
+  onTextNoteAdded?: (event: EditSchematicTextNoteAddEvent) => void
+  onComponentAdded?: (event: EditSchematicComponentAddEvent) => void
+  placementComponentKind?: PlacementComponentKind
+  hierSheetTargets?: HierSheetTarget[]
+  activeSheetId?: string
   allowComponentEdit?: boolean
+  allowCanvasPan?: boolean
 }
 
 export const SchematicViewer = ({
@@ -108,7 +148,17 @@ export const SchematicViewer = ({
   onBusEntryAdded,
   onNoConnectAdded,
   onNetLabelAdded,
+  onGlobalLabelAdded,
+  onHierSheetAdded,
+  onPowerPortAdded,
+  onGroundPortAdded,
+  onTextNoteAdded,
+  onComponentAdded,
+  placementComponentKind = "resistor",
+  hierSheetTargets = [],
+  activeSheetId,
   allowComponentEdit = false,
+  allowCanvasPan = true,
 }: Props) => {
   if (debug) {
     enableDebug()
@@ -151,6 +201,25 @@ export const SchematicViewer = ({
     setHasSpiceSimRun(false)
   }, [circuitJsonKey])
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== "Space") return
+      const t = e.target
+      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) return
+      setSpacePanHeld(true)
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") setSpacePanHeld(false)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    window.addEventListener("keyup", onKeyUp)
+    return () => {
+      window.removeEventListener("keydown", onKeyDown)
+      window.removeEventListener("keyup", onKeyUp)
+      setSpacePanHeld(false)
+    }
+  }, [])
+
   const {
     plotData,
     nodes,
@@ -167,7 +236,12 @@ export const SchematicViewer = ({
       toolMode === "draw_bus" ||
       toolMode === "draw_bus_entry" ||
       toolMode === "draw_no_connect" ||
-      toolMode === "draw_net_label"
+      toolMode === "draw_net_label" ||
+      toolMode === "draw_global_label" ||
+      toolMode === "draw_hier_sheet" ||
+      toolMode === "draw_power_port" ||
+      toolMode === "draw_ground_port" ||
+      toolMode === "draw_text_note"
     ) {
       setEditModeEnabled(false)
     } else if (toolMode === "select" && defaultEditMode) {
@@ -299,37 +373,67 @@ export const SchematicViewer = ({
     }
   }, [circuitJson])
 
+  const panPolicyRef = useRef({ toolMode, allowComponentEdit, allowCanvasPan })
+  panPolicyRef.current = { toolMode, allowComponentEdit, allowCanvasPan }
+
+  const onSetSvgTransform = useCallback((transform: Parameters<typeof transformToString>[0]) => {
+    if (!svgDivRef.current) return
+    svgDivRef.current.style.transform = transformToString(transform)
+  }, [])
+
+  const shouldDrag = useCallback((e: MouseEvent | TouchEvent | WheelEvent) => {
+    if (e.type === "wheel") return true
+    // Hit-target checks only on mousedown; re-checking on move/up stops pan mid-drag
+    if (e.type === "mousemove" || e.type === "mouseup" || e.type === "mouseout") {
+      return true
+    }
+
+    if (e instanceof MouseEvent && e.button !== 0) return true
+    if (isSpacePanHeld() && e instanceof MouseEvent) return true
+
+    const { toolMode: mode, allowComponentEdit: allowEdit, allowCanvasPan: pan } =
+      panPolicyRef.current
+
+    if (!pan && e.type !== "wheel") {
+      return false
+    }
+
+    if (
+      mode === "draw_wire" ||
+      mode === "draw_trace" ||
+      mode === "draw_component" ||
+      mode === "draw_bus" ||
+      mode === "draw_bus_entry" ||
+      mode === "draw_no_connect" ||
+      mode === "draw_net_label" ||
+      mode === "draw_global_label" ||
+      mode === "draw_hier_sheet" ||
+      mode === "draw_power_port" ||
+      mode === "draw_ground_port" ||
+      mode === "draw_text_note"
+    ) {
+      return false
+    }
+
+    if (allowEdit) {
+      const target = e.target as Element
+      if (target.closest('[data-circuit-json-type="schematic_component"]')) {
+        return false
+      }
+    }
+
+    return true
+  }, [])
+
   const {
     ref: containerRef,
     cancelDrag,
     transform: svgToScreenProjection,
   } = useMouseMatrixTransform({
-    onSetTransform(transform) {
-      if (!svgDivRef.current) return
-      svgDivRef.current.style.transform = transformToString(transform)
-    },
+    onSetTransform: onSetSvgTransform,
     // @ts-ignore disabled is a valid prop but not typed
     enabled: isInteractionEnabled && !showSpiceOverlay,
-    shouldDrag: (e) => {
-      if (e.type === "wheel") return true
-      if (
-        toolMode === "draw_wire" ||
-        toolMode === "draw_bus" ||
-        toolMode === "draw_bus_entry" ||
-        toolMode === "draw_no_connect" ||
-        toolMode === "draw_net_label"
-      )
-        return false
-
-      if (allowComponentEdit) {
-        const target = e.target as Element
-        if (target.closest('[data-circuit-json-type="schematic_component"]')) {
-          return false
-        }
-      }
-
-      return true
-    },
+    shouldDrag,
   })
 
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
@@ -347,7 +451,7 @@ export const SchematicViewer = ({
           },
       colorOverrides,
     })
-  }, [circuitJsonKey, containerWidth, containerHeight, showGrid])
+  }, [circuitJsonKey, circuitJson, containerWidth, containerHeight, showGrid, colorOverrides])
 
   const containerBackgroundColor = useMemo(() => {
     const match = svgString.match(
@@ -413,6 +517,32 @@ export const SchematicViewer = ({
     onEditEvent: onWireAdded,
   })
 
+  const { wireDrawingState: tracePreviewState, handlePortMouseDown: handleTracePortMouseDown } =
+    useTraceDrawing({
+      enabled:
+        toolMode === "draw_trace" && isInteractionEnabled && isProjectionReady,
+      circuitJson,
+      svgToScreenProjection,
+      realToSvgProjection,
+      containerRef,
+      onEditEvent: onWireAdded,
+    })
+
+  const { componentPlacementState } = useComponentPlacement({
+    enabled:
+      toolMode === "draw_component" && isInteractionEnabled && isProjectionReady,
+    componentKind: placementComponentKind,
+    svgToScreenProjection,
+    realToSvgProjection,
+    containerRef,
+    onEditEvent: onComponentAdded,
+  })
+
+  const portMouseDownHandler =
+    toolMode === "draw_trace" ? handleTracePortMouseDown : handlePortMouseDown
+  const activeWirePreviewState =
+    toolMode === "draw_trace" ? tracePreviewState : wireDrawingState
+
   const { busDrawingState } = useBusDrawing({
     enabled:
       toolMode === "draw_bus" && isInteractionEnabled && isProjectionReady,
@@ -457,6 +587,84 @@ export const SchematicViewer = ({
       containerRef,
       onEditEvent: onNetLabelAdded,
     })
+
+  const {
+    globalLabelState,
+    confirmPlacement: confirmGlobalPlacement,
+    cancelPlacement: cancelGlobalPlacement,
+  } = useGlobalLabelPlacement({
+    enabled:
+      toolMode === "draw_global_label" &&
+      isInteractionEnabled &&
+      isProjectionReady,
+    circuitJson,
+    svgToScreenProjection,
+    realToSvgProjection,
+    containerRef,
+    onEditEvent: onGlobalLabelAdded,
+  })
+
+  const {
+    powerPortState,
+    confirmPlacement: confirmPowerPlacement,
+    cancelPlacement: cancelPowerPlacement,
+  } = usePowerPortPlacement({
+    enabled:
+      toolMode === "draw_power_port" &&
+      isInteractionEnabled &&
+      isProjectionReady,
+    circuitJson,
+    svgToScreenProjection,
+    realToSvgProjection,
+    containerRef,
+    onEditEvent: onPowerPortAdded,
+  })
+
+  const {
+    groundPortState,
+    confirmPlacement: confirmGroundPlacement,
+    cancelPlacement: cancelGroundPlacement,
+  } = useGroundPortPlacement({
+    enabled:
+      toolMode === "draw_ground_port" &&
+      isInteractionEnabled &&
+      isProjectionReady,
+    circuitJson,
+    svgToScreenProjection,
+    realToSvgProjection,
+    containerRef,
+    onEditEvent: onGroundPortAdded,
+  })
+
+  const {
+    textNoteState,
+    confirmPlacement: confirmTextNotePlacement,
+    cancelPlacement: cancelTextNotePlacement,
+  } = useTextNotePlacement({
+    enabled:
+      toolMode === "draw_text_note" &&
+      isInteractionEnabled &&
+      isProjectionReady,
+    svgToScreenProjection,
+    realToSvgProjection,
+    containerRef,
+    onEditEvent: onTextNoteAdded,
+  })
+
+  const {
+    hierSheetState,
+    confirmPlacement: confirmHierSheetPlacement,
+    cancelPlacement: cancelHierSheetPlacement,
+  } = useHierSheetPlacement({
+    enabled:
+      toolMode === "draw_hier_sheet" &&
+      isInteractionEnabled &&
+      isProjectionReady,
+    svgToScreenProjection,
+    realToSvgProjection,
+    containerRef,
+    onEditEvent: onHierSheetAdded,
+  })
 
   useChangeSchematicComponentLocationsInSvg({
     svgDivRef,
@@ -539,14 +747,21 @@ export const SchematicViewer = ({
         style={{
           position: "relative",
           backgroundColor: containerBackgroundColor,
-          overflow: "hidden",
+          overflow: hierSheetState.pendingBox ? "visible" : "hidden",
           cursor: showSpiceOverlay
             ? "auto"
             : toolMode === "draw_wire" ||
+                toolMode === "draw_trace" ||
                 toolMode === "draw_bus" ||
                 toolMode === "draw_bus_entry" ||
                 toolMode === "draw_no_connect" ||
-                toolMode === "draw_net_label"
+                toolMode === "draw_net_label" ||
+                toolMode === "draw_global_label" ||
+                toolMode === "draw_hier_sheet" ||
+                toolMode === "draw_power_port" ||
+                toolMode === "draw_ground_port" ||
+                toolMode === "draw_text_note" ||
+                toolMode === "draw_component"
               ? "crosshair"
               : isDragging
                 ? "grabbing"
@@ -698,10 +913,17 @@ export const SchematicViewer = ({
           ))}
         {svgDiv}
         <WirePreview
-          state={wireDrawingState}
+          state={activeWirePreviewState}
           realToSvgProjection={realToSvgProjection}
           svgToScreenProjection={svgToScreenProjection}
           containerRef={containerRef}
+        />
+        <ComponentPlacementPreview
+          state={componentPlacementState}
+          realToSvgProjection={realToSvgProjection}
+          svgToScreenProjection={svgToScreenProjection}
+          containerRef={containerRef}
+          componentKind={placementComponentKind}
         />
         <BusPreview
           state={busDrawingState}
@@ -729,6 +951,48 @@ export const SchematicViewer = ({
           onConfirm={confirmPlacement}
           onCancel={cancelPlacement}
         />
+        <GlobalLabelPreview
+          state={globalLabelState}
+          realToSvgProjection={realToSvgProjection}
+          svgToScreenProjection={svgToScreenProjection}
+          containerRef={containerRef}
+          onConfirm={confirmGlobalPlacement}
+          onCancel={cancelGlobalPlacement}
+        />
+        <PowerPortPreview
+          state={powerPortState}
+          realToSvgProjection={realToSvgProjection}
+          svgToScreenProjection={svgToScreenProjection}
+          containerRef={containerRef}
+          onConfirm={confirmPowerPlacement}
+          onCancel={cancelPowerPlacement}
+        />
+        <GroundPortPreview
+          state={groundPortState}
+          realToSvgProjection={realToSvgProjection}
+          svgToScreenProjection={svgToScreenProjection}
+          containerRef={containerRef}
+          onConfirm={confirmGroundPlacement}
+          onCancel={cancelGroundPlacement}
+        />
+        <TextNotePreview
+          state={textNoteState}
+          realToSvgProjection={realToSvgProjection}
+          svgToScreenProjection={svgToScreenProjection}
+          containerRef={containerRef}
+          onConfirm={confirmTextNotePlacement}
+          onCancel={cancelTextNotePlacement}
+        />
+        <HierSheetPreview
+          state={hierSheetState}
+          realToSvgProjection={realToSvgProjection}
+          svgToScreenProjection={svgToScreenProjection}
+          containerRef={containerRef}
+          sheetTargets={hierSheetTargets}
+          activeSheetId={activeSheetId}
+          onConfirm={confirmHierSheetPlacement}
+          onCancel={cancelHierSheetPlacement}
+        />
         {showSchematicPorts &&
           schematicPortsInfo.map(({ portId, label }) => (
             <SchematicPortMouseTarget
@@ -738,8 +1002,9 @@ export const SchematicViewer = ({
               svgDivRef={svgDivRef}
               containerRef={containerRef}
               showOutline={true}
-              interactive={toolMode === "draw_wire"}
-              onPortMouseDown={handlePortMouseDown}
+              interactive={toolMode === "draw_wire" || toolMode === "draw_trace"}
+              hitPaddingPx={toolMode === "draw_trace" ? 12 : 4}
+              onPortMouseDown={portMouseDownHandler}
               circuitJsonKey={circuitJsonKey}
               onHoverChange={handlePortHoverChange}
               onPortClick={

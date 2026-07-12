@@ -40,6 +40,7 @@ interface Props {
   onHoverChange?: (portId: string, isHovering: boolean) => void
   showOutline: boolean
   interactive?: boolean
+  hitPaddingPx?: number
   circuitJsonKey: string
 }
 
@@ -53,6 +54,7 @@ export const SchematicPortMouseTarget = ({
   onHoverChange,
   showOutline,
   interactive = false,
+  hitPaddingPx = 4,
   circuitJsonKey,
 }: Props) => {
   const [measurement, setMeasurement] = useState<Measurement | null>(null)
@@ -77,8 +79,8 @@ export const SchematicPortMouseTarget = ({
     const elementRect = element.getBoundingClientRect()
     const containerRect = container.getBoundingClientRect()
 
-    // Add some padding around the port for easier interaction
-    const padding = 4
+    // Padding around the rendered port for easier hit testing.
+    const padding = hitPaddingPx
 
     const nextMeasurement: Measurement = {
       bounds: {
@@ -98,7 +100,7 @@ export const SchematicPortMouseTarget = ({
     setMeasurement((prev) =>
       areMeasurementsEqual(prev, nextMeasurement) ? prev : nextMeasurement,
     )
-  }, [portId, containerRef, svgDivRef])
+  }, [portId, containerRef, svgDivRef, hitPaddingPx])
 
   const scheduleMeasure = useCallback(() => {
     if (frameRef.current !== null) return

@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { type Matrix, compose } from "transformation-matrix"
-import type { EditSchematicNetLabelAddEvent } from "../types/edit-events"
+import type { EditSchematicGroundPortAddEvent } from "../types/edit-events"
 import { isMouseCaptureIgnoredTarget } from "../utils/isMouseCaptureIgnoredTarget"
 
 const PORT_SNAP_RADIUS_PX = 32
 
-export interface NetLabelPlacementState {
+export interface GroundPortPlacementState {
   previewPos: { x: number; y: number } | null
   pendingPos: { x: number; y: number } | null
   pendingPortId: string | null
 }
 
-export const useNetLabelPlacement = ({
+export const useGroundPortPlacement = ({
   enabled,
   circuitJson,
   svgToScreenProjection,
@@ -24,9 +24,9 @@ export const useNetLabelPlacement = ({
   svgToScreenProjection: Matrix
   realToSvgProjection: Matrix
   containerRef: React.RefObject<HTMLDivElement | null>
-  onEditEvent?: (event: EditSchematicNetLabelAddEvent) => void
+  onEditEvent?: (event: EditSchematicGroundPortAddEvent) => void
 }) => {
-  const [state, setState] = useState<NetLabelPlacementState>({
+  const [state, setState] = useState<GroundPortPlacementState>({
     previewPos: null,
     pendingPos: null,
     pendingPortId: null,
@@ -129,13 +129,13 @@ export const useNetLabelPlacement = ({
     (netName: string) => {
       const current = stateRef.current
       if (!current.pendingPos || !netName.trim()) return
-      const event: EditSchematicNetLabelAddEvent = {
+      const event: EditSchematicGroundPortAddEvent = {
         edit_event_id: Math.random().toString(36).substr(2, 9),
-        edit_event_type: "edit_schematic_net_label_add",
+        edit_event_type: "edit_schematic_ground_port_add",
         position: current.pendingPos,
         net_name: netName.trim(),
         schematic_port_id: current.pendingPortId ?? undefined,
-        anchor_side: "right",
+        anchor_side: "top",
         created_at: Date.now(),
         in_progress: false,
       }
@@ -166,5 +166,5 @@ export const useNetLabelPlacement = ({
     }
   }, [enabled, handleMouseMove, handleMouseDown, handleKeyDown])
 
-  return { netLabelState: state, confirmPlacement, cancelPlacement }
+  return { groundPortState: state, confirmPlacement, cancelPlacement }
 }

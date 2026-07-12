@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { type Matrix } from "transformation-matrix"
 import type { EditSchematicWireAddEvent } from "../types/edit-events"
+import { computeTraceRoute } from "../utils/computeTraceRoute"
 import { isMouseCaptureIgnoredTarget } from "../utils/isMouseCaptureIgnoredTarget"
 import {
   createScreenToReal,
@@ -9,14 +10,14 @@ import {
   resolveSchematicPortId,
 } from "../utils/schematicPortHitTest"
 
-export interface WireDrawingState {
+export interface TraceDrawingState {
   isDrawing: boolean
   fromPortId: string | null
   previewEnd: { x: number; y: number } | null
-  waypoints: Array<{ x: number; y: number }>
+  previewRoute: Array<{ x: number; y: number }>
 }
 
-export const useWireDrawing = ({
+export const useTraceDrawing = ({
   enabled,
   circuitJson,
   svgToScreenProjection,
@@ -31,11 +32,11 @@ export const useWireDrawing = ({
   containerRef: React.RefObject<HTMLDivElement | null>
   onEditEvent?: (event: EditSchematicWireAddEvent) => void
 }) => {
-  const [state, setState] = useState<WireDrawingState>({
+  const [state, setState] = useState<TraceDrawingState>({
     isDrawing: false,
     fromPortId: null,
     previewEnd: null,
-    waypoints: [],
+    previewRoute: [],
   })
 
   const stateRef = useRef(state)
@@ -71,7 +72,7 @@ export const useWireDrawing = ({
     [circuitJson, containerRef],
   )
 
-  const beginWireAtPort = useCallback(
+  const beginTraceAtPort = useCallback(
     (portId: string) => {
       const schematicPortId = resolveSchematicPortId(circuitJson, portId)
       if (!schematicPortId) return false
@@ -83,14 +84,14 @@ export const useWireDrawing = ({
         isDrawing: true,
         fromPortId: schematicPortId,
         previewEnd: center,
-        waypoints: [center],
+        previewRoute: [center],
       })
       return true
     },
     [circuitJson, getPortCenter],
   )
 
-  const finishWireAtPort = useCallback(
+  const finishTraceAtPort = useCallback(
     (portId: string) => {
       const current = stateRef.current
       if (!current.isDrawing || !current.fromPortId) return false
@@ -100,15 +101,17 @@ export const useWireDrawing = ({
         return false
       }
 
+      const fromCenter = getPortCenter(current.fromPortId)
       const toCenter = getPortCenter(schematicPortId)
-      if (!toCenter) return false
+      if (!fromCenter || !toCenter) return false
 
+      const route = computeTraceRoute(fromCenter, toCenter)
       const event: EditSchematicWireAddEvent = {
         edit_event_id: Math.random().toString(36).substr(2, 9),
         edit_event_type: "edit_schematic_wire_add",
         from_schematic_port_id: current.fromPortId,
         to_schematic_port_id: schematicPortId,
-        route: [...current.waypoints, toCenter],
+        route,
         created_at: Date.now(),
         in_progress: false,
       }
@@ -117,7 +120,7 @@ export const useWireDrawing = ({
         isDrawing: false,
         fromPortId: null,
         previewEnd: null,
-        waypoints: [],
+        previewRoute: [],
       })
       return true
     },
@@ -135,19 +138,13 @@ export const useWireDrawing = ({
 
       const current = stateRef.current
       if (!current.isDrawing) {
-        beginWireAtPort(portId)
+        beginTraceAtPort(portId)
         return
       }
 
-      if (!finishWireAtPort(portId)) {
-        const realPos = screenToReal(e.clientX, e.clientY)
-        setState((prev) => ({
-          ...prev,
-          waypoints: [...prev.waypoints, realPos],
-        }))
-      }
+      finishTraceAtPort(portId)
     },
-    [enabled, beginWireAtPort, finishWireAtPort, screenToReal],
+    [enabled, beginTraceAtPort, finishTraceAtPort],
   )
 
   const handleMouseDown = useCallback(
@@ -163,34 +160,33 @@ export const useWireDrawing = ({
         if (!portId) return
         e.preventDefault()
         e.stopPropagation()
-        beginWireAtPort(portId)
+        beginTraceAtPort(portId)
         return
       }
 
-      if (portId && finishWireAtPort(portId)) {
+      if (portId && finishTraceAtPort(portId)) {
         e.preventDefault()
         e.stopPropagation()
-        return
       }
-
-      e.preventDefault()
-      e.stopPropagation()
-      const realPos = screenToReal(e.clientX, e.clientY)
-      setState((prev) => ({
-        ...prev,
-        waypoints: [...prev.waypoints, realPos],
-      }))
     },
-    [enabled, getPortAtScreen, beginWireAtPort, finishWireAtPort, screenToReal],
+    [enabled, getPortAtScreen, beginTraceAtPort, finishTraceAtPort],
   )
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!enabled || !stateRef.current.isDrawing) return
-      const realPos = screenToReal(e.clientX, e.clientY)
-      setState((prev) => ({ ...prev, previewEnd: realPos }))
+      if (!enabled || !stateRef.current.isDrawing || !stateRef.current.fromPortId) {
+        return
+      }
+      const fromCenter = getPortCenter(stateRef.current.fromPortId)
+      if (!fromCenter) return
+      const hover = screenToReal(e.clientX, e.clientY)
+      setState((prev) => ({
+        ...prev,
+        previewEnd: hover,
+        previewRoute: computeTraceRoute(fromCenter, hover),
+      }))
     },
-    [enabled, screenToReal],
+    [enabled, getPortCenter, screenToReal],
   )
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -199,7 +195,7 @@ export const useWireDrawing = ({
         isDrawing: false,
         fromPortId: null,
         previewEnd: null,
-        waypoints: [],
+        previewRoute: [],
       })
     }
   }, [])
@@ -210,7 +206,7 @@ export const useWireDrawing = ({
         isDrawing: false,
         fromPortId: null,
         previewEnd: null,
-        waypoints: [],
+        previewRoute: [],
       })
       return
     }
@@ -218,13 +214,18 @@ export const useWireDrawing = ({
     window.addEventListener("mousemove", handleMouseMove)
     window.addEventListener("keydown", handleKeyDown)
     return () => {
-      window.removeEventListener("mousedown", handleMouseDown, {
-        capture: true,
-      })
+      window.removeEventListener("mousedown", handleMouseDown, { capture: true })
       window.removeEventListener("mousemove", handleMouseMove)
       window.removeEventListener("keydown", handleKeyDown)
     }
   }, [enabled, handleMouseDown, handleMouseMove, handleKeyDown])
 
-  return { wireDrawingState: state, handlePortMouseDown }
+  const wireDrawingState = {
+    isDrawing: state.isDrawing,
+    fromPortId: state.fromPortId,
+    previewEnd: state.previewEnd,
+    waypoints: state.previewRoute,
+  }
+
+  return { traceDrawingState: state, wireDrawingState, handlePortMouseDown }
 }

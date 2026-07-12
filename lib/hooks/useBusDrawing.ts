@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { type Matrix, compose } from "transformation-matrix"
 import type { EditSchematicBusAddEvent } from "../types/edit-events"
+import { isMouseCaptureIgnoredTarget } from "../utils/isMouseCaptureIgnoredTarget"
 
 export interface BusDrawingState {
   isDrawing: boolean
@@ -75,12 +76,11 @@ export const useBusDrawing = ({
 
   const handleMouseDown = useCallback(
     (e: MouseEvent) => {
-      if (!enabled || e.button !== 0) return
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return
       const current = stateRef.current
       const realPos = screenToReal(e.clientX, e.clientY)
 
       if (!current.isDrawing) {
-        e.preventDefault()
         e.stopPropagation()
         setState({
           isDrawing: true,
@@ -90,7 +90,6 @@ export const useBusDrawing = ({
         return
       }
 
-      e.preventDefault()
       e.stopPropagation()
       setState((prev) => ({
         ...prev,
@@ -124,11 +123,25 @@ export const useBusDrawing = ({
     [enabled, screenToReal],
   )
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape" && stateRef.current.isDrawing) {
-      setState({ isDrawing: false, previewEnd: null, waypoints: [] })
-    }
-  }, [])
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      const target = e.target as Element | null
+      if (target?.closest("input, textarea, select")) return
+
+      if (e.key === "Enter" && stateRef.current.isDrawing) {
+        const route = stateRef.current.waypoints
+        if (finishBus(route)) {
+          e.preventDefault()
+        }
+        return
+      }
+
+      if (e.key === "Escape" && stateRef.current.isDrawing) {
+        setState({ isDrawing: false, previewEnd: null, waypoints: [] })
+      }
+    },
+    [finishBus],
+  )
 
   useEffect(() => {
     if (!enabled) {

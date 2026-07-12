@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { type Matrix, compose } from "transformation-matrix"
 import type { EditSchematicBusEntryAddEvent } from "../types/edit-events"
+import { isMouseCaptureIgnoredTarget } from "../utils/isMouseCaptureIgnoredTarget"
 
 export const BUS_ENTRY_STUB_LEN = 2.5
 
@@ -57,7 +58,7 @@ export const useBusEntryPlacement = ({
 
   const handleMouseDown = useCallback(
     (e: MouseEvent) => {
-      if (!enabled || e.button !== 0) return
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return
       const anchor = screenToReal(e.clientX, e.clientY)
       e.preventDefault()
       e.stopPropagation()

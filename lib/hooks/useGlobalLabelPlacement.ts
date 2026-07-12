@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { type Matrix, compose } from "transformation-matrix"
-import type { EditSchematicNetLabelAddEvent } from "../types/edit-events"
+import type { EditSchematicGlobalLabelAddEvent } from "../types/edit-events"
 import { isMouseCaptureIgnoredTarget } from "../utils/isMouseCaptureIgnoredTarget"
 
 const PORT_SNAP_RADIUS_PX = 32
 
-export interface NetLabelPlacementState {
+export interface GlobalLabelPlacementState {
   previewPos: { x: number; y: number } | null
   pendingPos: { x: number; y: number } | null
   pendingPortId: string | null
 }
 
-export const useNetLabelPlacement = ({
+export const useGlobalLabelPlacement = ({
   enabled,
   circuitJson,
   svgToScreenProjection,
@@ -24,9 +24,9 @@ export const useNetLabelPlacement = ({
   svgToScreenProjection: Matrix
   realToSvgProjection: Matrix
   containerRef: React.RefObject<HTMLDivElement | null>
-  onEditEvent?: (event: EditSchematicNetLabelAddEvent) => void
+  onEditEvent?: (event: EditSchematicGlobalLabelAddEvent) => void
 }) => {
-  const [state, setState] = useState<NetLabelPlacementState>({
+  const [state, setState] = useState<GlobalLabelPlacementState>({
     previewPos: null,
     pendingPos: null,
     pendingPortId: null,
@@ -129,9 +129,9 @@ export const useNetLabelPlacement = ({
     (netName: string) => {
       const current = stateRef.current
       if (!current.pendingPos || !netName.trim()) return
-      const event: EditSchematicNetLabelAddEvent = {
+      const event: EditSchematicGlobalLabelAddEvent = {
         edit_event_id: Math.random().toString(36).substr(2, 9),
-        edit_event_type: "edit_schematic_net_label_add",
+        edit_event_type: "edit_schematic_global_label_add",
         position: current.pendingPos,
         net_name: netName.trim(),
         schematic_port_id: current.pendingPortId ?? undefined,
@@ -166,5 +166,5 @@ export const useNetLabelPlacement = ({
     }
   }, [enabled, handleMouseMove, handleMouseDown, handleKeyDown])
 
-  return { netLabelState: state, confirmPlacement, cancelPlacement }
+  return { globalLabelState: state, confirmPlacement, cancelPlacement }
 }

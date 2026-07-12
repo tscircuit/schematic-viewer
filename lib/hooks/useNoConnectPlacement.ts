@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { type Matrix, compose } from "transformation-matrix"
 import type { EditSchematicNoConnectAddEvent } from "../types/edit-events"
+import { isMouseCaptureIgnoredTarget } from "../utils/isMouseCaptureIgnoredTarget"
 
 export const NO_CONNECT_HALF = 0.4
 const PORT_HIT_RADIUS_PX = 36
@@ -112,7 +113,7 @@ export const useNoConnectPlacement = ({
 
   const handleMouseDown = useCallback(
     (e: MouseEvent) => {
-      if (!enabled || e.button !== 0) return
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return
       e.preventDefault()
       e.stopPropagation()
 
