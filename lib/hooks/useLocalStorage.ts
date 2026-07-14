@@ -78,3 +78,9 @@ export const useLocalStorageValue = (key: string, defaultValue: boolean) => {
     setValue,
   }
 }
+
+let spacePanHeld = false
+export const isSpacePanHeld = () => spacePanHeld
+export const setSpacePanHeld = (held: boolean) => {
+  spacePanHeld = held
+}
