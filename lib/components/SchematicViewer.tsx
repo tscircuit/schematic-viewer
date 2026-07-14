@@ -22,11 +22,7 @@ import { EditIcon } from "./EditIcon"
 import { GridIcon } from "./GridIcon"
 import { ViewMenu } from "./ViewMenu"
 import type { CircuitJson, SchematicSheet } from "circuit-json"
-import { SpiceSimulationIcon } from "./SpiceSimulationIcon"
-import { SpiceSimulationOverlay } from "./SpiceSimulationOverlay"
 import { zIndexMap } from "../utils/z-index-map"
-import { useSpiceSimulation } from "../hooks/useSpiceSimulation"
-import { getSpiceFromCircuitJson } from "../utils/spice-utils"
 import {
   getStoredBoolean,
   setStoredBoolean,
@@ -50,7 +46,6 @@ interface Props {
   debug?: boolean
   clickToInteractEnabled?: boolean
   colorOverrides?: ColorOverrides
-  spiceSimulationEnabled?: boolean
   disableGroups?: boolean
   /** Fade unrelated nets/chips when hovering a wire or net label. Default true. */
   netHoverHighlightEnabled?: boolean
@@ -80,7 +75,6 @@ export const SchematicViewer = ({
   debug = false,
   clickToInteractEnabled = false,
   colorOverrides,
-  spiceSimulationEnabled = false,
   disableGroups = false,
   netHoverHighlightEnabled = true,
   onSchematicComponentClicked,
@@ -93,13 +87,6 @@ export const SchematicViewer = ({
   if (debug) {
     enableDebug()
   }
-  const [showSpiceOverlay, setShowSpiceOverlay] = useState(false)
-  const [spiceSimOptions, setSpiceSimOptions] = useState({
-    showVoltage: true,
-    showCurrent: false,
-    startTime: 0, // in ms
-    duration: 20, // in ms
-  })
 
   const getCircuitHash = (circuitJson: CircuitJson) => {
     return `${circuitJson?.length || 0}_${(circuitJson as any)?.editCount || 0}`
@@ -167,34 +154,6 @@ export const SchematicViewer = ({
     },
     [onSchematicSheetChange],
   )
-
-  const spiceString = useMemo(() => {
-    if (!spiceSimulationEnabled) return null
-    try {
-      return getSpiceFromCircuitJson(circuitJson, spiceSimOptions)
-    } catch (e) {
-      console.error("Failed to generate SPICE string", e)
-      return null
-    }
-  }, [
-    circuitJsonKey,
-    spiceSimulationEnabled,
-    spiceSimOptions.startTime,
-    spiceSimOptions.duration,
-  ])
-
-  const [hasSpiceSimRun, setHasSpiceSimRun] = useState(false)
-
-  useEffect(() => {
-    setHasSpiceSimRun(false)
-  }, [circuitJsonKey])
-
-  const {
-    plotData,
-    nodes,
-    isLoading: isSpiceSimLoading,
-    error: spiceSimError,
-  } = useSpiceSimulation(hasSpiceSimRun ? spiceString : null)
 
   const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
   const [snapToGrid, setSnapToGrid] = useState(true)
@@ -334,7 +293,7 @@ export const SchematicViewer = ({
       svgDivRef.current.style.transform = transformToString(transform)
     },
     // @ts-ignore disabled is a valid prop but not typed
-    enabled: isInteractionEnabled && !showSpiceOverlay,
+    enabled: isInteractionEnabled,
   })
 
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
@@ -409,7 +368,7 @@ export const SchematicViewer = ({
     svgToScreenProjection,
     circuitJson,
     editEvents: editEventsWithUnappliedEditEvents,
-    enabled: editModeEnabled && isInteractionEnabled && !showSpiceOverlay,
+    enabled: editModeEnabled && isInteractionEnabled,
     snapToGrid,
   })
 
@@ -470,7 +429,7 @@ export const SchematicViewer = ({
             : undefined
         }
         onTouchStart={(e) => {
-          if (editModeEnabled && isInteractionEnabled && !showSpiceOverlay) {
+          if (editModeEnabled && isInteractionEnabled) {
             handleComponentTouchStartRef.current(e)
           }
         }}
@@ -478,13 +437,7 @@ export const SchematicViewer = ({
         dangerouslySetInnerHTML={{ __html: svgString }}
       />
     ),
-    [
-      svgString,
-      isInteractionEnabled,
-      clickToInteractEnabled,
-      editModeEnabled,
-      showSpiceOverlay,
-    ],
+    [svgString, isInteractionEnabled, clickToInteractEnabled, editModeEnabled],
   )
 
   return (
@@ -511,24 +464,17 @@ export const SchematicViewer = ({
           position: "relative",
           backgroundColor: containerBackgroundColor,
           overflow: "hidden",
-          cursor: showSpiceOverlay
-            ? "auto"
-            : isDragging
-              ? "grabbing"
-              : clickToInteractEnabled && !isInteractionEnabled
+          cursor: isDragging
+            ? "grabbing"
+            : clickToInteractEnabled && !isInteractionEnabled
+              ? "pointer"
+              : isHoveringClickableComponent && onSchematicComponentClicked
                 ? "pointer"
-                : isHoveringClickableComponent && onSchematicComponentClicked
+                : isHoveringClickablePort && onSchematicPortClicked
                   ? "pointer"
-                  : isHoveringClickablePort && onSchematicPortClicked
-                    ? "pointer"
-                    : "grab",
+                  : "grab",
           minHeight: "300px",
           ...containerStyle,
-        }}
-        onWheelCapture={(e) => {
-          if (showSpiceOverlay) {
-            e.stopPropagation()
-          }
         }}
         onMouseDown={(e) => {
           if (clickToInteractEnabled && !isInteractionEnabled) {
@@ -545,14 +491,8 @@ export const SchematicViewer = ({
             return
           }
         }}
-        onTouchStart={(e) => {
-          if (showSpiceOverlay) return
-          handleTouchStart(e)
-        }}
-        onTouchEnd={(e) => {
-          if (showSpiceOverlay) return
-          handleTouchEnd(e)
-        }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {!isInteractionEnabled && clickToInteractEnabled && (
           <div
@@ -623,25 +563,6 @@ export const SchematicViewer = ({
           selectedSheetId={activeSheetId}
           onSelectSheet={handleSelectSheet}
         />
-        {spiceSimulationEnabled && (
-          <SpiceSimulationIcon onClick={() => setShowSpiceOverlay(true)} />
-        )}
-        {showSpiceOverlay && (
-          <SpiceSimulationOverlay
-            spiceString={spiceString}
-            onClose={() => setShowSpiceOverlay(false)}
-            plotData={plotData}
-            nodes={nodes}
-            isLoading={isSpiceSimLoading}
-            error={spiceSimError}
-            simOptions={spiceSimOptions}
-            onSimOptionsChange={(options) => {
-              setHasSpiceSimRun(true)
-              setSpiceSimOptions(options)
-            }}
-            hasRun={hasSpiceSimRun}
-          />
-        )}
         {onSchematicComponentClicked &&
           schematicComponentIds.map((componentId) => (
             <SchematicComponentMouseTarget

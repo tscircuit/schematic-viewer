@@ -5,11 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "cosmos",
-    "build:webworker": "tsup --config tsup-webworker.config.ts",
-    "build:blob-url": "bun scripts/build-worker-blob-url.ts",
-    "build": "bun run build:webworker && bun run build:blob-url && tsup-node ./lib/index.ts --dts --format esm --sourcemap",
+    "build": "tsup-node ./lib/index.ts --dts --format esm --sourcemap",
     "build:site": "cosmos-export",
-    "vercel-build": "bun run build:webworker && bun run build:blob-url && bun run build:site",
+    "vercel-build": "bun run build:site",
     "format": "biome format --write .",
     "format:check": "biome format ."
   },
@@ -22,7 +20,6 @@
     "@types/debug": "^4.1.12",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",
-    "@types/recharts": "^2.0.1",
     "@vitejs/plugin-react": "^4.3.4",
     "react": "^19.1.0",
     "react-cosmos": "^6.2.1",
@@ -36,15 +33,12 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0",
-    "tscircuit": "*",
-    "circuit-json-to-spice": "*"
+    "tscircuit": "*"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
-    "chart.js": "^4.5.0",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
-    "react-chartjs-2": "^5.3.0",
     "use-mouse-matrix-transform": "^1.2.2"
   }
 }
