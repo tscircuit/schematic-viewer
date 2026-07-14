@@ -57,10 +57,7 @@ export function getSchematicPortCenter(
   if (!el) return null
 
   const rect = el.getBoundingClientRect()
-  return screenToReal(
-    rect.left + rect.width / 2,
-    rect.top + rect.height / 2,
-  )
+  return screenToReal(rect.left + rect.width / 2, rect.top + rect.height / 2)
 }
 
 export function getSchematicPortAtScreen(
@@ -73,7 +70,9 @@ export function getSchematicPortAtScreen(
   if (!container) return null
 
   let closest: { id: string; dist: number } | null = null
-  for (const node of container.querySelectorAll("[data-schematic-port-id]")) {
+  for (const node of Array.from(
+    container.querySelectorAll("[data-schematic-port-id]"),
+  )) {
     const rect = node.getBoundingClientRect()
     const cx = rect.left + rect.width / 2
     const cy = rect.top + rect.height / 2

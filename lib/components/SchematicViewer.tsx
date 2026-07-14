@@ -281,7 +281,8 @@ export const SchematicViewer = ({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "Space") return
       const t = e.target
-      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) return
+      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement)
+        return
       setSpacePanHeld(true)
     }
     const onKeyUp = (e: KeyboardEvent) => {
@@ -415,7 +416,12 @@ export const SchematicViewer = ({
       console.error("Failed to derive schematic port info", err)
       return []
     }
-  }, [circuitJsonKey, circuitJson, showSchematicPorts, selectedSchematicSheetId])
+  }, [
+    circuitJsonKey,
+    circuitJson,
+    showSchematicPorts,
+    selectedSchematicSheetId,
+  ])
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
@@ -459,23 +465,33 @@ export const SchematicViewer = ({
   const panPolicyRef = useRef({ toolMode, allowComponentEdit, allowCanvasPan })
   panPolicyRef.current = { toolMode, allowComponentEdit, allowCanvasPan }
 
-  const onSetSvgTransform = useCallback((transform: Parameters<typeof transformToString>[0]) => {
-    if (!svgDivRef.current) return
-    svgDivRef.current.style.transform = transformToString(transform)
-  }, [])
+  const onSetSvgTransform = useCallback(
+    (transform: Parameters<typeof transformToString>[0]) => {
+      if (!svgDivRef.current) return
+      svgDivRef.current.style.transform = transformToString(transform)
+    },
+    [],
+  )
 
   const shouldDrag = useCallback((e: MouseEvent | TouchEvent | WheelEvent) => {
     if (e.type === "wheel") return true
     // Hit-target checks only on mousedown; re-checking on move/up stops pan mid-drag
-    if (e.type === "mousemove" || e.type === "mouseup" || e.type === "mouseout") {
+    if (
+      e.type === "mousemove" ||
+      e.type === "mouseup" ||
+      e.type === "mouseout"
+    ) {
       return true
     }
 
     if (e instanceof MouseEvent && e.button !== 0) return true
     if (isSpacePanHeld() && e instanceof MouseEvent) return true
 
-    const { toolMode: mode, allowComponentEdit: allowEdit, allowCanvasPan: pan } =
-      panPolicyRef.current
+    const {
+      toolMode: mode,
+      allowComponentEdit: allowEdit,
+      allowCanvasPan: pan,
+    } = panPolicyRef.current
 
     if (!pan && e.type !== "wheel") {
       return false
@@ -618,20 +634,24 @@ export const SchematicViewer = ({
     onEditEvent: onWireAdded,
   })
 
-  const { wireDrawingState: tracePreviewState, handlePortMouseDown: handleTracePortMouseDown } =
-    useTraceDrawing({
-      enabled:
-        toolMode === "draw_trace" && isInteractionEnabled && isProjectionReady,
-      circuitJson,
-      svgToScreenProjection,
-      realToSvgProjection,
-      containerRef,
-      onEditEvent: onWireAdded,
-    })
+  const {
+    wireDrawingState: tracePreviewState,
+    handlePortMouseDown: handleTracePortMouseDown,
+  } = useTraceDrawing({
+    enabled:
+      toolMode === "draw_trace" && isInteractionEnabled && isProjectionReady,
+    circuitJson,
+    svgToScreenProjection,
+    realToSvgProjection,
+    containerRef,
+    onEditEvent: onWireAdded,
+  })
 
   const { componentPlacementState } = useComponentPlacement({
     enabled:
-      toolMode === "draw_component" && isInteractionEnabled && isProjectionReady,
+      toolMode === "draw_component" &&
+      isInteractionEnabled &&
+      isProjectionReady,
     componentKind: placementComponentKind,
     svgToScreenProjection,
     realToSvgProjection,
@@ -1120,7 +1140,9 @@ export const SchematicViewer = ({
               svgDivRef={svgDivRef}
               containerRef={containerRef}
               showOutline={true}
-              interactive={toolMode === "draw_wire" || toolMode === "draw_trace"}
+              interactive={
+                toolMode === "draw_wire" || toolMode === "draw_trace"
+              }
               hitPaddingPx={toolMode === "draw_trace" ? 12 : 4}
               onPortMouseDown={portMouseDownHandler}
               circuitJsonKey={circuitJsonKey}

@@ -176,7 +176,8 @@ export const useHierSheetPlacement = ({
     (sheetName: string, targetSheetId: string) => {
       const box = stateRef.current.pendingBox
       const screenBox = stateRef.current.pendingScreenBox
-      if (!box || !screenBox || !sheetName.trim() || !targetSheetId.trim()) return
+      if (!box || !screenBox || !sheetName.trim() || !targetSheetId.trim())
+        return
 
       const sheetNamePos = localToReal(screenBox.x + 6, screenBox.y + 14)
       const fileNamePos = localToReal(
@@ -213,7 +214,9 @@ export const useHierSheetPlacement = ({
     window.addEventListener("keydown", handleKeyDown)
     return () => {
       window.removeEventListener("mousemove", handleMouseMove)
-      window.removeEventListener("mousedown", handleMouseDown, { capture: true })
+      window.removeEventListener("mousedown", handleMouseDown, {
+        capture: true,
+      })
       window.removeEventListener("keydown", handleKeyDown)
     }
   }, [enabled, handleMouseMove, handleMouseDown, handleKeyDown, reset])

@@ -2689,15 +2689,14 @@ function getSchematicPortCenter(circuitJson, container, schematicPortId, screenT
   );
   if (!el) return null;
   const rect = el.getBoundingClientRect();
-  return screenToReal(
-    rect.left + rect.width / 2,
-    rect.top + rect.height / 2
-  );
+  return screenToReal(rect.left + rect.width / 2, rect.top + rect.height / 2);
 }
 function getSchematicPortAtScreen(container, circuitJson, screenX, screenY, hitRadiusPx = SCHEMATIC_PORT_HIT_RADIUS_PX) {
   if (!container) return null;
   let closest = null;
-  for (const node of container.querySelectorAll("[data-schematic-port-id]")) {
+  for (const node of Array.from(
+    container.querySelectorAll("[data-schematic-port-id]")
+  )) {
     const rect = node.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
@@ -2729,7 +2728,11 @@ var useWireDrawing = ({
   const stateRef = useRef8(state);
   stateRef.current = state;
   const screenToReal = useCallback6(
-    createScreenToReal(svgToScreenProjection, realToSvgProjection, containerRef),
+    createScreenToReal(
+      svgToScreenProjection,
+      realToSvgProjection,
+      containerRef
+    ),
     [svgToScreenProjection, realToSvgProjection, containerRef]
   );
   const getPortCenter = useCallback6(
@@ -2952,7 +2955,8 @@ var useBusDrawing = ({
   );
   const handleMouseDown = useCallback7(
     (e) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return;
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return;
       const current = stateRef.current;
       const realPos = screenToReal(e.clientX, e.clientY);
       if (!current.isDrawing) {
@@ -3084,7 +3088,8 @@ var useBusEntryPlacement = ({
   );
   const handleMouseDown = useCallback8(
     (e) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return;
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return;
       const anchor = screenToReal(e.clientX, e.clientY);
       e.preventDefault();
       e.stopPropagation();
@@ -3178,7 +3183,7 @@ var useNoConnectPlacement = ({
       if (!container) return null;
       let closest = null;
       const portEls = container.querySelectorAll("[data-schematic-port-id]");
-      for (const node of portEls) {
+      for (const node of Array.from(portEls)) {
         const rect = node.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
@@ -3209,7 +3214,8 @@ var useNoConnectPlacement = ({
   );
   const handleMouseDown = useCallback9(
     (e) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return;
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return;
       e.preventDefault();
       e.stopPropagation();
       const portId = getPortAtScreen(e.clientX, e.clientY);
@@ -3297,7 +3303,7 @@ var useNetLabelPlacement = ({
         return { pos: screenToReal(screenX, screenY), portId: null };
       let closest = null;
       const portEls = container.querySelectorAll("[data-schematic-port-id]");
-      for (const node of portEls) {
+      for (const node of Array.from(portEls)) {
         const rect = node.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
@@ -3327,7 +3333,8 @@ var useNetLabelPlacement = ({
   );
   const handleMouseDown = useCallback10(
     (e) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return;
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return;
       if (stateRef.current.pendingPos) return;
       e.preventDefault();
       e.stopPropagation();
@@ -3432,7 +3439,7 @@ var useGlobalLabelPlacement = ({
         return { pos: screenToReal(screenX, screenY), portId: null };
       let closest = null;
       const portEls = container.querySelectorAll("[data-schematic-port-id]");
-      for (const node of portEls) {
+      for (const node of Array.from(portEls)) {
         const rect = node.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
@@ -3462,7 +3469,8 @@ var useGlobalLabelPlacement = ({
   );
   const handleMouseDown = useCallback11(
     (e) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return;
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return;
       if (stateRef.current.pendingPos) return;
       e.preventDefault();
       e.stopPropagation();
@@ -3656,7 +3664,8 @@ var useHierSheetPlacement = ({
     (sheetName, targetSheetId) => {
       const box = stateRef.current.pendingBox;
       const screenBox = stateRef.current.pendingScreenBox;
-      if (!box || !screenBox || !sheetName.trim() || !targetSheetId.trim()) return;
+      if (!box || !screenBox || !sheetName.trim() || !targetSheetId.trim())
+        return;
       const sheetNamePos = localToReal(screenBox.x + 6, screenBox.y + 14);
       const fileNamePos = localToReal(
         screenBox.x + 6,
@@ -3689,7 +3698,9 @@ var useHierSheetPlacement = ({
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mousedown", handleMouseDown, { capture: true });
+      window.removeEventListener("mousedown", handleMouseDown, {
+        capture: true
+      });
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [enabled, handleMouseMove, handleMouseDown, handleKeyDown, reset]);
@@ -4380,70 +4391,82 @@ var HierSheetPreview = ({
         onMouseDown: (e) => e.stopPropagation(),
         "data-schematic-ignore-mouse-capture": true,
         children: [
-          /* @__PURE__ */ jsxs12("label", { style: { fontSize: 10, color: NAME_COLOR, fontFamily: "monospace" }, children: [
-            "Sheet name",
-            /* @__PURE__ */ jsx19(
-              "input",
-              {
-                ref: nameInputRef,
-                type: "text",
-                value: sheetName,
-                placeholder: "e.g. MCU_Sub",
-                onChange: (e) => setSheetName(e.target.value),
-                style: {
-                  display: "block",
-                  marginTop: 3,
-                  width: "100%",
-                  background: "#0f0f1a",
-                  border: `1px solid ${NAME_COLOR}`,
-                  color: "#fff",
-                  padding: "4px 8px",
-                  borderRadius: 4,
-                  fontFamily: "monospace",
-                  fontSize: 12,
-                  outline: "none"
-                },
-                onKeyDown: (e) => {
-                  if (e.key === "Enter") {
-                    submit();
-                  } else if (e.key === "Escape") {
-                    onCancel();
+          /* @__PURE__ */ jsxs12(
+            "label",
+            {
+              style: { fontSize: 10, color: NAME_COLOR, fontFamily: "monospace" },
+              children: [
+                "Sheet name",
+                /* @__PURE__ */ jsx19(
+                  "input",
+                  {
+                    ref: nameInputRef,
+                    type: "text",
+                    value: sheetName,
+                    placeholder: "e.g. MCU_Sub",
+                    onChange: (e) => setSheetName(e.target.value),
+                    style: {
+                      display: "block",
+                      marginTop: 3,
+                      width: "100%",
+                      background: "#0f0f1a",
+                      border: `1px solid ${NAME_COLOR}`,
+                      color: "#fff",
+                      padding: "4px 8px",
+                      borderRadius: 4,
+                      fontFamily: "monospace",
+                      fontSize: 12,
+                      outline: "none"
+                    },
+                    onKeyDown: (e) => {
+                      if (e.key === "Enter") {
+                        submit();
+                      } else if (e.key === "Escape") {
+                        onCancel();
+                      }
+                      e.stopPropagation();
+                    }
                   }
-                  e.stopPropagation();
-                }
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxs12("label", { style: { fontSize: 10, color: FILE_COLOR, fontFamily: "monospace" }, children: [
-            "Target sheet (file name)",
-            /* @__PURE__ */ jsx19(
-              "select",
-              {
-                value: targetSheetId,
-                disabled: targets.length === 0,
-                onChange: (e) => setTargetSheetId(e.target.value),
-                style: {
-                  display: "block",
-                  marginTop: 3,
-                  width: "100%",
-                  background: "#0f0f1a",
-                  border: `1px solid ${FILE_COLOR}`,
-                  color: "#fff",
-                  padding: "4px 8px",
-                  borderRadius: 4,
-                  fontFamily: "monospace",
-                  fontSize: 12,
-                  outline: "none"
-                },
-                children: targets.length === 0 ? /* @__PURE__ */ jsx19("option", { value: "", children: "No other sheets" }) : targets.map((t) => /* @__PURE__ */ jsxs12("option", { value: t.id, children: [
-                  t.title,
-                  " (",
-                  t.id,
-                  ")"
-                ] }, t.id))
-              }
-            )
-          ] }),
+                )
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxs12(
+            "label",
+            {
+              style: { fontSize: 10, color: FILE_COLOR, fontFamily: "monospace" },
+              children: [
+                "Target sheet (file name)",
+                /* @__PURE__ */ jsx19(
+                  "select",
+                  {
+                    value: targetSheetId,
+                    disabled: targets.length === 0,
+                    onChange: (e) => setTargetSheetId(e.target.value),
+                    style: {
+                      display: "block",
+                      marginTop: 3,
+                      width: "100%",
+                      background: "#0f0f1a",
+                      border: `1px solid ${FILE_COLOR}`,
+                      color: "#fff",
+                      padding: "4px 8px",
+                      borderRadius: 4,
+                      fontFamily: "monospace",
+                      fontSize: 12,
+                      outline: "none"
+                    },
+                    children: targets.length === 0 ? /* @__PURE__ */ jsx19("option", { value: "", children: "No other sheets" }) : targets.map((t) => /* @__PURE__ */ jsxs12("option", { value: t.id, children: [
+                      t.title,
+                      " (",
+                      t.id,
+                      ")"
+                    ] }, t.id))
+                  }
+                )
+              ]
+            }
+          ),
           /* @__PURE__ */ jsxs12("div", { style: { display: "flex", gap: 6, justifyContent: "flex-end" }, children: [
             /* @__PURE__ */ jsx19(
               "button",
@@ -4530,7 +4553,7 @@ var usePowerPortPlacement = ({
         return { pos: screenToReal(screenX, screenY), portId: null };
       let closest = null;
       const portEls = container.querySelectorAll("[data-schematic-port-id]");
-      for (const node of portEls) {
+      for (const node of Array.from(portEls)) {
         const rect = node.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
@@ -4560,7 +4583,8 @@ var usePowerPortPlacement = ({
   );
   const handleMouseDown = useCallback13(
     (e) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return;
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return;
       if (stateRef.current.pendingPos) return;
       e.preventDefault();
       e.stopPropagation();
@@ -4654,9 +4678,37 @@ var PowerPortPreview = ({
   const PowerShape = ({ pos }) => {
     const sp = toScreen(pos);
     return /* @__PURE__ */ jsxs13("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.85, children: [
-      /* @__PURE__ */ jsx20("line", { x1: 0, y1: 0, x2: 0, y2: 18, stroke: POWER_COLOR, strokeWidth: 1.5 }),
-      /* @__PURE__ */ jsx20("polygon", { points: "0,-14 -8,2 8,2", fill: "none", stroke: POWER_COLOR, strokeWidth: 1.5 }),
-      /* @__PURE__ */ jsx20("text", { x: -10, y: -18, fontSize: 9, fill: POWER_COLOR, fontFamily: "monospace", children: "PWR" }),
+      /* @__PURE__ */ jsx20(
+        "line",
+        {
+          x1: 0,
+          y1: 0,
+          x2: 0,
+          y2: 18,
+          stroke: POWER_COLOR,
+          strokeWidth: 1.5
+        }
+      ),
+      /* @__PURE__ */ jsx20(
+        "polygon",
+        {
+          points: "0,-14 -8,2 8,2",
+          fill: "none",
+          stroke: POWER_COLOR,
+          strokeWidth: 1.5
+        }
+      ),
+      /* @__PURE__ */ jsx20(
+        "text",
+        {
+          x: -10,
+          y: -18,
+          fontSize: 9,
+          fill: POWER_COLOR,
+          fontFamily: "monospace",
+          children: "PWR"
+        }
+      ),
       /* @__PURE__ */ jsx20("circle", { cx: 0, cy: 0, r: 3, fill: POWER_COLOR, opacity: 0.6 })
     ] });
   };
@@ -4785,7 +4837,7 @@ var useGroundPortPlacement = ({
         return { pos: screenToReal(screenX, screenY), portId: null };
       let closest = null;
       const portEls = container.querySelectorAll("[data-schematic-port-id]");
-      for (const node of portEls) {
+      for (const node of Array.from(portEls)) {
         const rect = node.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
@@ -4815,7 +4867,8 @@ var useGroundPortPlacement = ({
   );
   const handleMouseDown = useCallback14(
     (e) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return;
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return;
       if (stateRef.current.pendingPos) return;
       e.preventDefault();
       e.stopPropagation();
@@ -4909,9 +4962,37 @@ var GroundPortPreview = ({
   const GroundShape = ({ pos }) => {
     const sp = toScreen(pos);
     return /* @__PURE__ */ jsxs14("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.85, children: [
-      /* @__PURE__ */ jsx21("line", { x1: 0, y1: 0, x2: 0, y2: 18, stroke: GND_COLOR, strokeWidth: 1.5 }),
-      /* @__PURE__ */ jsx21("polygon", { points: "0,32 -8,16 8,16", fill: "none", stroke: GND_COLOR, strokeWidth: 1.5 }),
-      /* @__PURE__ */ jsx21("text", { x: -10, y: 42, fontSize: 9, fill: GND_COLOR, fontFamily: "monospace", children: "GND" }),
+      /* @__PURE__ */ jsx21(
+        "line",
+        {
+          x1: 0,
+          y1: 0,
+          x2: 0,
+          y2: 18,
+          stroke: GND_COLOR,
+          strokeWidth: 1.5
+        }
+      ),
+      /* @__PURE__ */ jsx21(
+        "polygon",
+        {
+          points: "0,32 -8,16 8,16",
+          fill: "none",
+          stroke: GND_COLOR,
+          strokeWidth: 1.5
+        }
+      ),
+      /* @__PURE__ */ jsx21(
+        "text",
+        {
+          x: -10,
+          y: 42,
+          fontSize: 9,
+          fill: GND_COLOR,
+          fontFamily: "monospace",
+          children: "GND"
+        }
+      ),
       /* @__PURE__ */ jsx21("circle", { cx: 0, cy: 0, r: 3, fill: GND_COLOR, opacity: 0.6 })
     ] });
   };
@@ -5042,7 +5123,8 @@ var useTextNotePlacement = ({
   );
   const handleMouseDown = useCallback15(
     (e) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return;
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return;
       if (stateRef.current.pendingPos) return;
       e.preventDefault();
       e.stopPropagation();
@@ -5265,7 +5347,11 @@ var useTraceDrawing = ({
   const stateRef = useRef22(state);
   stateRef.current = state;
   const screenToReal = useCallback16(
-    createScreenToReal(svgToScreenProjection, realToSvgProjection, containerRef),
+    createScreenToReal(
+      svgToScreenProjection,
+      realToSvgProjection,
+      containerRef
+    ),
     [svgToScreenProjection, realToSvgProjection, containerRef]
   );
   const getPortCenter = useCallback16(
@@ -5415,7 +5501,9 @@ var useTraceDrawing = ({
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener("mousedown", handleMouseDown, { capture: true });
+      window.removeEventListener("mousedown", handleMouseDown, {
+        capture: true
+      });
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("keydown", handleKeyDown);
     };
@@ -5490,24 +5578,28 @@ var useComponentPlacement = ({
   );
   const handleMouseDown = useCallback17(
     (e) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return;
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return;
       e.preventDefault();
       e.stopPropagation();
       placeAt(screenToReal(e.clientX, e.clientY));
     },
     [enabled, screenToReal, placeAt]
   );
-  const handleKeyDown = useCallback17((e) => {
-    if (!enabled) return;
-    if (e.key === "r" || e.key === "R") {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      e.preventDefault();
-      setState((prev) => ({
-        ...prev,
-        rotation: (prev.rotation + 90) % 360
-      }));
-    }
-  }, [enabled]);
+  const handleKeyDown = useCallback17(
+    (e) => {
+      if (!enabled) return;
+      if (e.key === "r" || e.key === "R") {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        e.preventDefault();
+        setState((prev) => ({
+          ...prev,
+          rotation: (prev.rotation + 90) % 360
+        }));
+      }
+    },
+    [enabled]
+  );
   useEffect30(() => {
     if (!enabled) {
       setState({ previewPos: null, rotation: 0 });
@@ -5518,7 +5610,9 @@ var useComponentPlacement = ({
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mousedown", handleMouseDown, { capture: true });
+      window.removeEventListener("mousedown", handleMouseDown, {
+        capture: true
+      });
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [enabled, handleMouseMove, handleMouseDown, handleKeyDown]);
@@ -5691,7 +5785,8 @@ var SchematicViewer = ({
     const onKeyDown = (e) => {
       if (e.code !== "Space") return;
       const t = e.target;
-      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) return;
+      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement)
+        return;
       setSpacePanHeld(true);
     };
     const onKeyUp = (e) => {
@@ -5792,7 +5887,12 @@ var SchematicViewer = ({
       console.error("Failed to derive schematic port info", err);
       return [];
     }
-  }, [circuitJsonKey, circuitJson, showSchematicPorts, selectedSchematicSheetId]);
+  }, [
+    circuitJsonKey,
+    circuitJson,
+    showSchematicPorts,
+    selectedSchematicSheetId
+  ]);
   const handleTouchStart = (e) => {
     const touch = e.touches[0];
     touchStartRef.current = {
@@ -5824,10 +5924,13 @@ var SchematicViewer = ({
   }, [circuitJson]);
   const panPolicyRef = useRef24({ toolMode, allowComponentEdit, allowCanvasPan });
   panPolicyRef.current = { toolMode, allowComponentEdit, allowCanvasPan };
-  const onSetSvgTransform = useCallback18((transform) => {
-    if (!svgDivRef.current) return;
-    svgDivRef.current.style.transform = transformToString(transform);
-  }, []);
+  const onSetSvgTransform = useCallback18(
+    (transform) => {
+      if (!svgDivRef.current) return;
+      svgDivRef.current.style.transform = transformToString(transform);
+    },
+    []
+  );
   const shouldDrag = useCallback18((e) => {
     if (e.type === "wheel") return true;
     if (e.type === "mousemove" || e.type === "mouseup" || e.type === "mouseout") {
@@ -5835,7 +5938,11 @@ var SchematicViewer = ({
     }
     if (e instanceof MouseEvent && e.button !== 0) return true;
     if (isSpacePanHeld() && e instanceof MouseEvent) return true;
-    const { toolMode: mode, allowComponentEdit: allowEdit, allowCanvasPan: pan } = panPolicyRef.current;
+    const {
+      toolMode: mode,
+      allowComponentEdit: allowEdit,
+      allowCanvasPan: pan
+    } = panPolicyRef.current;
     if (!pan && e.type !== "wheel") {
       return false;
     }
@@ -5942,7 +6049,10 @@ var SchematicViewer = ({
     containerRef,
     onEditEvent: onWireAdded
   });
-  const { wireDrawingState: tracePreviewState, handlePortMouseDown: handleTracePortMouseDown } = useTraceDrawing({
+  const {
+    wireDrawingState: tracePreviewState,
+    handlePortMouseDown: handleTracePortMouseDown
+  } = useTraceDrawing({
     enabled: toolMode === "draw_trace" && isInteractionEnabled && isProjectionReady,
     circuitJson,
     svgToScreenProjection,

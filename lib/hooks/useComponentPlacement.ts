@@ -81,7 +81,8 @@ export const useComponentPlacement = ({
 
   const handleMouseDown = useCallback(
     (e: MouseEvent) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return
       e.preventDefault()
       e.stopPropagation()
       placeAt(screenToReal(e.clientX, e.clientY))
@@ -89,17 +90,20 @@ export const useComponentPlacement = ({
     [enabled, screenToReal, placeAt],
   )
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!enabled) return
-    if (e.key === "r" || e.key === "R") {
-      if (e.metaKey || e.ctrlKey || e.altKey) return
-      e.preventDefault()
-      setState((prev) => ({
-        ...prev,
-        rotation: (prev.rotation + 90) % 360,
-      }))
-    }
-  }, [enabled])
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!enabled) return
+      if (e.key === "r" || e.key === "R") {
+        if (e.metaKey || e.ctrlKey || e.altKey) return
+        e.preventDefault()
+        setState((prev) => ({
+          ...prev,
+          rotation: (prev.rotation + 90) % 360,
+        }))
+      }
+    },
+    [enabled],
+  )
 
   useEffect(() => {
     if (!enabled) {
@@ -111,7 +115,9 @@ export const useComponentPlacement = ({
     window.addEventListener("keydown", handleKeyDown)
     return () => {
       window.removeEventListener("mousemove", handleMouseMove)
-      window.removeEventListener("mousedown", handleMouseDown, { capture: true })
+      window.removeEventListener("mousedown", handleMouseDown, {
+        capture: true,
+      })
       window.removeEventListener("keydown", handleKeyDown)
     }
   }, [enabled, handleMouseMove, handleMouseDown, handleKeyDown])

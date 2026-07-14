@@ -51,9 +51,27 @@ export const PowerPortPreview = ({
     return (
       <g transform={`translate(${sp.x}, ${sp.y})`} opacity={0.85}>
         {/* KiCad-style power arrow pointing up; wire at bottom */}
-        <line x1={0} y1={0} x2={0} y2={18} stroke={POWER_COLOR} strokeWidth={1.5} />
-        <polygon points="0,-14 -8,2 8,2" fill="none" stroke={POWER_COLOR} strokeWidth={1.5} />
-        <text x={-10} y={-18} fontSize={9} fill={POWER_COLOR} fontFamily="monospace">
+        <line
+          x1={0}
+          y1={0}
+          x2={0}
+          y2={18}
+          stroke={POWER_COLOR}
+          strokeWidth={1.5}
+        />
+        <polygon
+          points="0,-14 -8,2 8,2"
+          fill="none"
+          stroke={POWER_COLOR}
+          strokeWidth={1.5}
+        />
+        <text
+          x={-10}
+          y={-18}
+          fontSize={9}
+          fill={POWER_COLOR}
+          fontFamily="monospace"
+        >
           PWR
         </text>
         <circle cx={0} cy={0} r={3} fill={POWER_COLOR} opacity={0.6} />

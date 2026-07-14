@@ -42,7 +42,11 @@ export const useWireDrawing = ({
   stateRef.current = state
 
   const screenToReal = useCallback(
-    createScreenToReal(svgToScreenProjection, realToSvgProjection, containerRef),
+    createScreenToReal(
+      svgToScreenProjection,
+      realToSvgProjection,
+      containerRef,
+    ),
     [svgToScreenProjection, realToSvgProjection, containerRef],
   )
 

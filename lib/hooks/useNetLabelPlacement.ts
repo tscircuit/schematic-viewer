@@ -67,7 +67,7 @@ export const useNetLabelPlacement = ({
       } | null = null
       const portEls = container.querySelectorAll("[data-schematic-port-id]")
 
-      for (const node of portEls) {
+      for (const node of Array.from(portEls)) {
         const rect = node.getBoundingClientRect()
         const cx = rect.left + rect.width / 2
         const cy = rect.top + rect.height / 2
@@ -100,7 +100,8 @@ export const useNetLabelPlacement = ({
 
   const handleMouseDown = useCallback(
     (e: MouseEvent) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return
       if (stateRef.current.pendingPos) return
       e.preventDefault()
       e.stopPropagation()

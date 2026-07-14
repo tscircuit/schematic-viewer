@@ -76,7 +76,8 @@ export const useBusDrawing = ({
 
   const handleMouseDown = useCallback(
     (e: MouseEvent) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return
       const current = stateRef.current
       const realPos = screenToReal(e.clientX, e.clientY)
 

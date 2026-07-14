@@ -51,9 +51,27 @@ export const GroundPortPreview = ({
     return (
       <g transform={`translate(${sp.x}, ${sp.y})`} opacity={0.85}>
         {/* KiCad-style ground arrow pointing down; wire at top */}
-        <line x1={0} y1={0} x2={0} y2={18} stroke={GND_COLOR} strokeWidth={1.5} />
-        <polygon points="0,32 -8,16 8,16" fill="none" stroke={GND_COLOR} strokeWidth={1.5} />
-        <text x={-10} y={42} fontSize={9} fill={GND_COLOR} fontFamily="monospace">
+        <line
+          x1={0}
+          y1={0}
+          x2={0}
+          y2={18}
+          stroke={GND_COLOR}
+          strokeWidth={1.5}
+        />
+        <polygon
+          points="0,32 -8,16 8,16"
+          fill="none"
+          stroke={GND_COLOR}
+          strokeWidth={1.5}
+        />
+        <text
+          x={-10}
+          y={42}
+          fontSize={9}
+          fill={GND_COLOR}
+          fontFamily="monospace"
+        >
           GND
         </text>
         <circle cx={0} cy={0} r={3} fill={GND_COLOR} opacity={0.6} />

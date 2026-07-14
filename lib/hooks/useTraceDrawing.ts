@@ -43,7 +43,11 @@ export const useTraceDrawing = ({
   stateRef.current = state
 
   const screenToReal = useCallback(
-    createScreenToReal(svgToScreenProjection, realToSvgProjection, containerRef),
+    createScreenToReal(
+      svgToScreenProjection,
+      realToSvgProjection,
+      containerRef,
+    ),
     [svgToScreenProjection, realToSvgProjection, containerRef],
   )
 
@@ -174,7 +178,11 @@ export const useTraceDrawing = ({
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!enabled || !stateRef.current.isDrawing || !stateRef.current.fromPortId) {
+      if (
+        !enabled ||
+        !stateRef.current.isDrawing ||
+        !stateRef.current.fromPortId
+      ) {
         return
       }
       const fromCenter = getPortCenter(stateRef.current.fromPortId)
@@ -214,7 +222,9 @@ export const useTraceDrawing = ({
     window.addEventListener("mousemove", handleMouseMove)
     window.addEventListener("keydown", handleKeyDown)
     return () => {
-      window.removeEventListener("mousedown", handleMouseDown, { capture: true })
+      window.removeEventListener("mousedown", handleMouseDown, {
+        capture: true,
+      })
       window.removeEventListener("mousemove", handleMouseMove)
       window.removeEventListener("keydown", handleKeyDown)
     }

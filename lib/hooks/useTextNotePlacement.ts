@@ -58,7 +58,8 @@ export const useTextNotePlacement = ({
 
   const handleMouseDown = useCallback(
     (e: MouseEvent) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) return
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return
       if (stateRef.current.pendingPos) return
       e.preventDefault()
       e.stopPropagation()

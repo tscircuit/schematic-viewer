@@ -1,6 +1,9 @@
 import { type Matrix, applyToPoint, compose } from "transformation-matrix"
 import { useEffect, useMemo, useRef, useState } from "react"
-import type { HierSheetPlacementState, ScreenBox } from "../hooks/useHierSheetPlacement"
+import type {
+  HierSheetPlacementState,
+  ScreenBox,
+} from "../hooks/useHierSheetPlacement"
 import { normalizeScreenBox } from "../hooks/useHierSheetPlacement"
 
 const SHEET_STROKE = "#0050d8"
@@ -177,8 +180,8 @@ export const HierSheetPreview = ({
       : null
 
   const committedScreenBox =
-    state.pendingScreenBox
-    ?? (state.pendingBox ? boxToScreen(state.pendingBox) : null)
+    state.pendingScreenBox ??
+    (state.pendingBox ? boxToScreen(state.pendingBox) : null)
 
   const dialogAnchor = committedScreenBox
 
@@ -238,7 +241,9 @@ export const HierSheetPreview = ({
           onMouseDown={(e) => e.stopPropagation()}
           data-schematic-ignore-mouse-capture
         >
-          <label style={{ fontSize: 10, color: NAME_COLOR, fontFamily: "monospace" }}>
+          <label
+            style={{ fontSize: 10, color: NAME_COLOR, fontFamily: "monospace" }}
+          >
             Sheet name
             <input
               ref={nameInputRef}
@@ -270,7 +275,9 @@ export const HierSheetPreview = ({
             />
           </label>
 
-          <label style={{ fontSize: 10, color: FILE_COLOR, fontFamily: "monospace" }}>
+          <label
+            style={{ fontSize: 10, color: FILE_COLOR, fontFamily: "monospace" }}
+          >
             Target sheet (file name)
             <select
               value={targetSheetId}
