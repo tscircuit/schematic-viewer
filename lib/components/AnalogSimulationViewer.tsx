@@ -8,6 +8,9 @@ import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { toString as transformToString } from "transformation-matrix"
 import type { CircuitJson } from "circuit-json"
 
+const DEFAULT_RENDER_WIDTH = 1200
+const DEFAULT_RENDER_ASPECT_RATIO = 1
+
 interface Props {
   circuitJson: CircuitJson
   containerStyle?: React.CSSProperties
@@ -32,7 +35,7 @@ export const AnalogSimulationViewer = ({
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
 
-  const { containerWidth, containerHeight } = useResizeHandling(
+  const { containerWidth } = useResizeHandling(
     containerRef as React.RefObject<HTMLElement>,
   )
 
@@ -50,8 +53,13 @@ export const AnalogSimulationViewer = ({
     },
   })
 
-  const effectiveWidth = width || containerWidth || 1000
-  const effectiveHeight = height || containerHeight || 600
+  const renderAspectRatio =
+    width && height ? width / height : DEFAULT_RENDER_ASPECT_RATIO
+  const effectiveWidth =
+    width ||
+    (height ? height * renderAspectRatio : containerWidth) ||
+    DEFAULT_RENDER_WIDTH
+  const effectiveHeight = height || effectiveWidth / renderAspectRatio
 
   // Set CircuitJSON from props
   useEffect(() => {
@@ -71,11 +79,18 @@ export const AnalogSimulationViewer = ({
   }, [circuitJson])
 
   // Find simulation graph IDs from circuit JSON
-  const simulationGraphIds = useMemo(() => {
+  const simulationVoltageGraphIds = useMemo(() => {
     if (!circuitJson) return []
     return circuitJson
       .filter((el) => el.type === "simulation_transient_voltage_graph")
       .map((el) => el.simulation_transient_voltage_graph_id)
+  }, [circuitJson])
+
+  const simulationCurrentGraphIds = useMemo(() => {
+    if (!circuitJson) return []
+    return circuitJson
+      .filter((el) => el.type === "simulation_transient_current_graph")
+      .map((el) => el.simulation_transient_current_graph_id)
   }, [circuitJson])
 
   // Generate SVG from CircuitJSON
@@ -92,7 +107,8 @@ export const AnalogSimulationViewer = ({
       return convertCircuitJsonToSchematicSimulationSvg({
         circuitJson,
         simulation_experiment_id: simulationExperimentId,
-        simulation_transient_voltage_graph_ids: simulationGraphIds,
+        simulation_transient_current_graph_ids: simulationCurrentGraphIds,
+        simulation_transient_voltage_graph_ids: simulationVoltageGraphIds,
         width: effectiveWidth,
         height: effectiveHeight,
         schematicOptions: { colorOverrides },
@@ -107,7 +123,8 @@ export const AnalogSimulationViewer = ({
     effectiveHeight,
     colorOverrides,
     simulationExperimentId,
-    simulationGraphIds,
+    simulationCurrentGraphIds,
+    simulationVoltageGraphIds,
   ])
 
   // Create/revoke object URL whenever the SVG changes

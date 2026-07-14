@@ -1,19 +1,18 @@
 import { zIndexMap } from "../utils/z-index-map"
 
-export const ViewMenuIcon = ({
-  onClick,
-  active,
-}: { onClick: () => void; active: boolean }) => {
-  const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault()
-    onClick()
-  }
+interface ViewMenuIconProps extends React.ComponentPropsWithRef<"button"> {
+  active?: boolean
+}
 
+export const ViewMenuIcon = ({
+  active = false,
+  ...props
+}: ViewMenuIconProps) => {
   return (
-    <div
-      onClick={handleInteraction}
-      onTouchEnd={handleInteraction}
+    <button
+      type="button"
       title={active ? "Hide view menu" : "Show view menu"}
+      {...props}
       style={{
         position: "absolute",
         top: "16px",
@@ -21,8 +20,10 @@ export const ViewMenuIcon = ({
         backgroundColor: active ? "#4CAF50" : "#fff",
         color: active ? "#fff" : "#000",
         padding: "8px",
+        border: "none",
         borderRadius: "4px",
         cursor: "pointer",
+        outline: "none",
         boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
         display: "flex",
         alignItems: "center",
@@ -42,6 +43,6 @@ export const ViewMenuIcon = ({
         <circle cx="12" cy="5" r="1" />
         <circle cx="12" cy="19" r="1" />
       </svg>
-    </div>
+    </button>
   )
 }

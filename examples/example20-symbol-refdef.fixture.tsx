@@ -85,6 +85,10 @@ export default () => {
     <SchematicViewer
       circuitJson={circuitJson}
       containerStyle={{ height: "100%" }}
+      showSchematicPorts
+      onSchematicPortClicked={({ schematicPortId }) => {
+        console.log("Port clicked:", schematicPortId)
+      }}
     />
   )
 }
