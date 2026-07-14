@@ -134,6 +134,10 @@ interface Props$1 {
     colorOverrides?: ColorOverrides;
     spiceSimulationEnabled?: boolean;
     disableGroups?: boolean;
+    /** Fade unrelated nets/chips when hovering a wire or net label. Default true. */
+    netHoverHighlightEnabled?: boolean;
+    css?: string;
+    className?: string;
     onSchematicComponentClicked?: (options: {
         schematicComponentId: string;
         event: MouseEvent;
@@ -143,6 +147,8 @@ interface Props$1 {
         schematicPortId: string;
         event: MouseEvent;
     }) => void;
+    /** Called when the active schematic sheet changes (multi-sheet circuits). */
+    onSchematicSheetChange?: (schematicSheetId: string) => void;
     toolMode?: "select" | "draw_wire" | "draw_bus" | "draw_bus_entry" | "draw_no_connect" | "draw_net_label" | "draw_global_label" | "draw_hier_sheet" | "draw_power_port" | "draw_ground_port" | "draw_text_note" | "draw_trace" | "draw_component";
     onWireAdded?: (event: EditSchematicWireAddEvent) => void;
     onBusAdded?: (event: EditSchematicBusAddEvent) => void;
@@ -157,11 +163,12 @@ interface Props$1 {
     onComponentAdded?: (event: EditSchematicComponentAddEvent) => void;
     placementComponentKind?: PlacementComponentKind;
     hierSheetTargets?: HierSheetTarget[];
+    /** Host sheet id used to exclude the current sheet from hier-sheet placement targets. */
     activeSheetId?: string;
     allowComponentEdit?: boolean;
     allowCanvasPan?: boolean;
 }
-declare const SchematicViewer: ({ circuitJson, containerStyle, editEvents: unappliedEditEvents, onEditEvent, defaultEditMode, debugGrid, editingEnabled, debug, clickToInteractEnabled, colorOverrides, spiceSimulationEnabled, disableGroups, onSchematicComponentClicked, showSchematicPorts, onSchematicPortClicked, toolMode, onWireAdded, onBusAdded, onBusEntryAdded, onNoConnectAdded, onNetLabelAdded, onGlobalLabelAdded, onHierSheetAdded, onPowerPortAdded, onGroundPortAdded, onTextNoteAdded, onComponentAdded, placementComponentKind, hierSheetTargets, activeSheetId, allowComponentEdit, allowCanvasPan, }: Props$1) => react.JSX.Element;
+declare const SchematicViewer: ({ circuitJson, containerStyle, editEvents: unappliedEditEvents, onEditEvent, defaultEditMode, debugGrid, editingEnabled, debug, clickToInteractEnabled, colorOverrides, spiceSimulationEnabled, disableGroups, netHoverHighlightEnabled, onSchematicComponentClicked, showSchematicPorts, onSchematicPortClicked, onSchematicSheetChange, css, className, toolMode, onWireAdded, onBusAdded, onBusEntryAdded, onNoConnectAdded, onNetLabelAdded, onGlobalLabelAdded, onHierSheetAdded, onPowerPortAdded, onGroundPortAdded, onTextNoteAdded, onComponentAdded, placementComponentKind, hierSheetTargets, activeSheetId, allowComponentEdit, allowCanvasPan, }: Props$1) => react.JSX.Element;
 
 interface BoundingBoxBounds {
     minX: number;

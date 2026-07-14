@@ -89,8 +89,8 @@ export const AnalogSimulationViewer = ({
   const simulationCurrentGraphIds = useMemo(() => {
     if (!circuitJson) return []
     return circuitJson
-      .filter((el) => el.type === "simulation_transient_current_graph")
-      .map((el) => el.simulation_transient_current_graph_id)
+      .filter((el) => (el as any).type === "simulation_transient_current_graph")
+      .map((el) => (el as any).simulation_transient_current_graph_id)
   }, [circuitJson])
 
   // Generate SVG from CircuitJSON
@@ -112,7 +112,7 @@ export const AnalogSimulationViewer = ({
         width: effectiveWidth,
         height: effectiveHeight,
         schematicOptions: { colorOverrides },
-      })
+      } as any)
     } catch (fallbackErr) {
       console.error("Failed to generate fallback schematic SVG:", fallbackErr)
       return ""

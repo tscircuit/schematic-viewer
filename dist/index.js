@@ -2,7 +2,7 @@
 import {
   convertCircuitJsonToSchematicSvg
 } from "circuit-to-svg";
-import { su as su6 } from "@tscircuit/soup-util";
+import { su as su7 } from "@tscircuit/soup-util";
 
 // lib/hooks/useChangeSchematicComponentLocationsInSvg.ts
 import "@tscircuit/soup-util";
@@ -461,6 +461,125 @@ function calculateGroupBounds(components, svg) {
   return bounds;
 }
 
+// lib/hooks/useSchematicNetHover.ts
+import { su as su4 } from "@tscircuit/soup-util";
+import { useEffect as useEffect4 } from "react";
+var FADED_CLASS = "sch-net-faded";
+var TRACE_SELECTOR = "g.trace[data-subcircuit-connectivity-map-key], g.trace-overlays[data-subcircuit-connectivity-map-key]";
+var NET_LABEL_SELECTOR = "[data-schematic-net-label-id]";
+var useSchematicNetHover = ({
+  svgDivRef,
+  circuitJson,
+  circuitJsonKey,
+  enabled
+}) => {
+  useEffect4(() => {
+    const svgDiv = svgDivRef.current;
+    if (!enabled || !svgDiv) return;
+    const { componentIdToKeys, netLabelIdToKey } = buildNetRegistry(circuitJson);
+    let netElements = [];
+    const triggerNetKeys = /* @__PURE__ */ new Map();
+    let hoveredNetKey = null;
+    const collectNetElements = () => {
+      for (const { el } of netElements) el.classList.remove(FADED_CLASS);
+      netElements = [];
+      triggerNetKeys.clear();
+      hoveredNetKey = null;
+      const svg = svgDiv.querySelector("svg");
+      if (!svg) return;
+      for (const el of Array.from(svg.querySelectorAll(TRACE_SELECTOR))) {
+        const key = el.getAttribute("data-subcircuit-connectivity-map-key");
+        const keys = /* @__PURE__ */ new Set();
+        if (key) {
+          keys.add(key);
+          triggerNetKeys.set(el, key);
+        }
+        netElements.push({ el, keys });
+      }
+      for (const el of Array.from(
+        svg.querySelectorAll("g[data-schematic-component-id]")
+      )) {
+        const id = el.getAttribute("data-schematic-component-id");
+        netElements.push({ el, keys: componentIdToKeys.get(id) ?? /* @__PURE__ */ new Set() });
+      }
+      for (const el of Array.from(svg.querySelectorAll(NET_LABEL_SELECTOR))) {
+        const key = netLabelIdToKey.get(
+          el.getAttribute("data-schematic-net-label-id")
+        );
+        const keys = /* @__PURE__ */ new Set();
+        if (key) {
+          keys.add(key);
+          triggerNetKeys.set(el, key);
+        }
+        netElements.push({ el, keys });
+      }
+    };
+    const highlightNet = (key) => {
+      if (key === hoveredNetKey) return;
+      hoveredNetKey = key;
+      for (const { el, keys } of netElements) {
+        el.classList.toggle(FADED_CLASS, key !== null && !keys.has(key));
+      }
+    };
+    const handleMouseOver = (e) => {
+      const target = e.target;
+      if (!(target instanceof Element)) {
+        highlightNet(null);
+        return;
+      }
+      const trigger = target.closest(`${TRACE_SELECTOR}, ${NET_LABEL_SELECTOR}`);
+      if (!trigger) {
+        highlightNet(null);
+        return;
+      }
+      highlightNet(triggerNetKeys.get(trigger) ?? null);
+    };
+    const handleMouseLeave = () => highlightNet(null);
+    collectNetElements();
+    svgDiv.addEventListener("mouseover", handleMouseOver);
+    svgDiv.addEventListener("mouseleave", handleMouseLeave);
+    const observer = new MutationObserver(collectNetElements);
+    observer.observe(svgDiv, { childList: true });
+    return () => {
+      observer.disconnect();
+      svgDiv.removeEventListener("mouseover", handleMouseOver);
+      svgDiv.removeEventListener("mouseleave", handleMouseLeave);
+      for (const { el } of netElements) el.classList.remove(FADED_CLASS);
+    };
+  }, [svgDivRef, circuitJsonKey, enabled]);
+};
+function buildNetRegistry(circuitJson) {
+  const cju = su4(circuitJson);
+  const srcCompToSchComp = /* @__PURE__ */ new Map();
+  for (const c of cju.schematic_component.list()) {
+    if (c.source_component_id) {
+      srcCompToSchComp.set(c.source_component_id, c.schematic_component_id);
+    }
+  }
+  const componentIdToKeys = /* @__PURE__ */ new Map();
+  for (const sourceTrace of cju.source_trace.list()) {
+    const key = sourceTrace.subcircuit_connectivity_map_key;
+    if (!key) continue;
+    for (const portId of sourceTrace.connected_source_port_ids ?? []) {
+      const schCompId = srcCompToSchComp.get(
+        cju.source_port.get(portId)?.source_component_id ?? ""
+      );
+      if (!schCompId) continue;
+      if (!componentIdToKeys.has(schCompId)) {
+        componentIdToKeys.set(schCompId, /* @__PURE__ */ new Set());
+      }
+      componentIdToKeys.get(schCompId).add(key);
+    }
+  }
+  const netLabelIdToKey = /* @__PURE__ */ new Map();
+  for (const label of cju.schematic_net_label.list()) {
+    if (!label.source_net_id) continue;
+    const key = cju.source_net.get(label.source_net_id)?.subcircuit_connectivity_map_key ?? label.source_net_id;
+    netLabelIdToKey.set(label.schematic_net_label_id, key);
+  }
+  return { componentIdToKeys, netLabelIdToKey };
+}
+
 // lib/utils/debug.ts
 import Debug from "debug";
 var debug = Debug("schematic-viewer");
@@ -470,7 +589,7 @@ var enableDebug = () => {
 var debug_default = debug;
 
 // lib/components/SchematicViewer.tsx
-import { useCallback as useCallback18, useEffect as useEffect30, useMemo as useMemo6, useRef as useRef24, useState as useState20 } from "react";
+import { useCallback as useCallback18, useEffect as useEffect31, useMemo as useMemo6, useRef as useRef24, useState as useState21 } from "react";
 import {
   fromString,
   identity,
@@ -479,11 +598,11 @@ import {
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform";
 
 // lib/hooks/use-resize-handling.ts
-import { useEffect as useEffect4, useState } from "react";
+import { useEffect as useEffect5, useState } from "react";
 var useResizeHandling = (containerRef) => {
   const [containerWidth, setContainerWidth] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
-  useEffect4(() => {
+  useEffect5(() => {
     if (!containerRef.current) return;
     const updateDimensions = () => {
       const rect = containerRef.current?.getBoundingClientRect();
@@ -503,8 +622,8 @@ var useResizeHandling = (containerRef) => {
 };
 
 // lib/hooks/useComponentDragging.ts
-import { su as su4 } from "@tscircuit/soup-util";
-import { useCallback, useEffect as useEffect5, useRef as useRef3, useState as useState2 } from "react";
+import { su as su5 } from "@tscircuit/soup-util";
+import { useCallback, useEffect as useEffect6, useRef as useRef3, useState as useState2 } from "react";
 import { compose as compose2 } from "transformation-matrix";
 var debug2 = debug_default.extend("useComponentDragging");
 var useComponentDragging = ({
@@ -527,7 +646,7 @@ var useComponentDragging = ({
   const componentPositionsRef = useRef3(
     /* @__PURE__ */ new Map()
   );
-  useEffect5(() => {
+  useEffect6(() => {
     editEvents.forEach((event) => {
       if ("edit_event_type" in event && event.edit_event_type === "edit_schematic_component_location" && !event.in_progress) {
         componentPositionsRef.current.set(event.schematic_component_id, {
@@ -548,7 +667,7 @@ var useComponentDragging = ({
       );
       if (!schematic_component_id) return false;
       if (cancelDrag) cancelDrag();
-      const schematic_component = su4(circuitJson).schematic_component.get(
+      const schematic_component = su5(circuitJson).schematic_component.get(
         schematic_component_id
       );
       if (!schematic_component) return false;
@@ -664,7 +783,7 @@ var useComponentDragging = ({
   }, [onEditEvent]);
   const handleMouseUp = useCallback(() => endDrag(), [endDrag]);
   const handleTouchEnd = useCallback(() => endDrag(), [endDrag]);
-  useEffect5(() => {
+  useEffect6(() => {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
     window.addEventListener("touchmove", handleTouchMove, { passive: false });
@@ -794,65 +913,15 @@ var GridIcon = ({
   );
 };
 
-// lib/components/ViewMenuIcon.tsx
-import { jsx as jsx3, jsxs as jsxs2 } from "react/jsx-runtime";
-var ViewMenuIcon = ({
-  onClick,
-  active
-}) => {
-  const handleInteraction = (e) => {
-    e.preventDefault();
-    onClick();
-  };
-  return /* @__PURE__ */ jsx3(
-    "div",
-    {
-      onClick: handleInteraction,
-      onTouchEnd: handleInteraction,
-      title: active ? "Hide view menu" : "Show view menu",
-      style: {
-        position: "absolute",
-        top: "16px",
-        right: "16px",
-        backgroundColor: active ? "#4CAF50" : "#fff",
-        color: active ? "#fff" : "#000",
-        padding: "8px",
-        borderRadius: "4px",
-        cursor: "pointer",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-        display: "flex",
-        alignItems: "center",
-        gap: "4px",
-        zIndex: zIndexMap.viewMenuIcon
-      },
-      children: /* @__PURE__ */ jsxs2(
-        "svg",
-        {
-          width: "16",
-          height: "16",
-          viewBox: "0 0 24 24",
-          fill: "none",
-          stroke: "currentColor",
-          strokeWidth: "2",
-          children: [
-            /* @__PURE__ */ jsx3("circle", { cx: "12", cy: "12", r: "1" }),
-            /* @__PURE__ */ jsx3("circle", { cx: "12", cy: "5", r: "1" }),
-            /* @__PURE__ */ jsx3("circle", { cx: "12", cy: "19", r: "1" })
-          ]
-        }
-      )
-    }
-  );
-};
-
 // lib/components/ViewMenu.tsx
 import { useMemo } from "react";
-import { su as su5 } from "@tscircuit/soup-util";
+import { su as su6 } from "@tscircuit/soup-util";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
 // package.json
 var package_default = {
   name: "@tscircuit/schematic-viewer",
-  version: "2.0.58",
+  version: "2.0.69",
   main: "dist/index.js",
   type: "module",
   scripts: {
@@ -882,17 +951,18 @@ var package_default = {
     "react-dom": "^19.1.0",
     "react-reconciler": "^0.31.0",
     semver: "^7.7.2",
-    tscircuit: "^0.0.1528",
+    tscircuit: "^0.0.2012",
     tsup: "^8.3.5",
     vite: "^6.0.3"
   },
   peerDependencies: {
     typescript: "^5.0.0",
-    tscircuit: "*"
+    tscircuit: "*",
+    "circuit-json-to-spice": "*"
   },
   dependencies: {
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
     "chart.js": "^4.5.0",
-    "circuit-json-to-spice": "^0.0.30",
     debug: "^4.4.0",
     "performance-now": "^2.1.0",
     "react-chartjs-2": "^5.3.0",
@@ -900,13 +970,123 @@ var package_default = {
   }
 };
 
+// lib/components/ViewMenuIcon.tsx
+import { jsx as jsx3, jsxs as jsxs2 } from "react/jsx-runtime";
+var ViewMenuIcon = ({
+  active = false,
+  ...props
+}) => {
+  return /* @__PURE__ */ jsx3(
+    "button",
+    {
+      type: "button",
+      title: active ? "Hide view menu" : "Show view menu",
+      ...props,
+      style: {
+        position: "absolute",
+        top: "16px",
+        right: "16px",
+        backgroundColor: active ? "#4CAF50" : "#fff",
+        color: active ? "#fff" : "#000",
+        padding: "8px",
+        border: "none",
+        borderRadius: "4px",
+        cursor: "pointer",
+        outline: "none",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        display: "flex",
+        alignItems: "center",
+        gap: "4px",
+        zIndex: zIndexMap.viewMenuIcon
+      },
+      children: /* @__PURE__ */ jsxs2(
+        "svg",
+        {
+          width: "16",
+          height: "16",
+          viewBox: "0 0 24 24",
+          fill: "none",
+          stroke: "currentColor",
+          strokeWidth: "2",
+          children: [
+            /* @__PURE__ */ jsx3("circle", { cx: "12", cy: "12", r: "1" }),
+            /* @__PURE__ */ jsx3("circle", { cx: "12", cy: "5", r: "1" }),
+            /* @__PURE__ */ jsx3("circle", { cx: "12", cy: "19", r: "1" })
+          ]
+        }
+      )
+    }
+  );
+};
+
 // lib/components/ViewMenu.tsx
-import { Fragment, jsx as jsx4, jsxs as jsxs3 } from "react/jsx-runtime";
+import { jsx as jsx4, jsxs as jsxs3 } from "react/jsx-runtime";
+var FONT_FAMILY = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+var contentStyles = {
+  backgroundColor: "#ffffff",
+  color: "#111111",
+  borderRadius: 8,
+  boxShadow: "0 6px 24px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)",
+  border: "1px solid #e5e7eb",
+  padding: 4,
+  minWidth: 224,
+  fontSize: 13,
+  fontFamily: FONT_FAMILY,
+  outline: "none",
+  zIndex: zIndexMap.viewMenu
+};
+var itemStyles = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "7px 10px 7px 8px",
+  borderRadius: 6,
+  cursor: "pointer",
+  outline: "none",
+  userSelect: "none",
+  color: "#111111",
+  fontSize: 13,
+  fontFamily: FONT_FAMILY
+};
+var iconSlotStyles = {
+  width: 16,
+  height: 16,
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#111111"
+};
+var separatorStyles = {
+  height: 1,
+  backgroundColor: "#ececec",
+  margin: "4px 0"
+};
+var HIGHLIGHT_CSS = `
+.sv-vm-item[data-highlighted]:not([data-disabled]),
+.sv-vm-item:hover:not([data-disabled]) { background-color: #f1f3f5; }
+.sv-vm-item[data-disabled] { opacity: 0.45; cursor: not-allowed; }
+`;
+var CheckIcon = () => /* @__PURE__ */ jsx4(
+  "svg",
+  {
+    width: "14",
+    height: "14",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.5",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": "true",
+    children: /* @__PURE__ */ jsx4("path", { d: "M20 6 9 17l-5-5" })
+  }
+);
 var ViewMenu = ({
   circuitJson,
   circuitJsonKey,
-  isVisible,
-  onClose,
+  open,
+  onOpenChange,
   showGroups,
   onToggleGroups,
   showGrid,
@@ -915,13 +1095,13 @@ var ViewMenu = ({
   const hasGroups = useMemo(() => {
     if (!circuitJson || circuitJson.length === 0) return false;
     try {
-      const sourceGroups = su5(circuitJson).source_group?.list() || [];
+      const sourceGroups = su6(circuitJson).source_group?.list() || [];
       if (sourceGroups.length > 0) return true;
-      const schematicComponents = su5(circuitJson).schematic_component?.list() || [];
+      const schematicComponents = su6(circuitJson).schematic_component?.list() || [];
       if (schematicComponents.length > 1) {
         const componentTypes = /* @__PURE__ */ new Set();
         for (const comp of schematicComponents) {
-          const sourceComp = su5(circuitJson).source_component.get(
+          const sourceComp = su6(circuitJson).source_component.get(
             comp.source_component_id
           );
           if (sourceComp?.ftype) {
@@ -936,166 +1116,58 @@ var ViewMenu = ({
       return false;
     }
   }, [circuitJsonKey]);
-  if (!isVisible) return null;
-  return /* @__PURE__ */ jsxs3(Fragment, { children: [
-    /* @__PURE__ */ jsx4(
-      "div",
+  return /* @__PURE__ */ jsxs3(DropdownMenu.Root, { open, onOpenChange, modal: false, children: [
+    /* @__PURE__ */ jsx4(DropdownMenu.Trigger, { asChild: true, children: /* @__PURE__ */ jsx4(ViewMenuIcon, { active: open }) }),
+    /* @__PURE__ */ jsx4(DropdownMenu.Portal, { children: /* @__PURE__ */ jsxs3(
+      DropdownMenu.Content,
       {
-        onClick: onClose,
-        onTouchEnd: (e) => {
-          e.preventDefault();
-          onClose();
-        },
-        style: {
-          position: "absolute",
-          inset: 0,
-          backgroundColor: "transparent",
-          zIndex: zIndexMap.viewMenuBackdrop
-        }
-      }
-    ),
-    /* @__PURE__ */ jsxs3(
-      "div",
-      {
-        style: {
-          position: "absolute",
-          top: "56px",
-          right: "16px",
-          backgroundColor: "#ffffff",
-          color: "#000000",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          minWidth: "200px",
-          zIndex: zIndexMap.viewMenu
-        },
+        style: contentStyles,
+        side: "bottom",
+        align: "end",
+        sideOffset: 8,
+        collisionPadding: 10,
         children: [
+          /* @__PURE__ */ jsx4("style", { children: HIGHLIGHT_CSS }),
           /* @__PURE__ */ jsxs3(
-            "div",
+            DropdownMenu.Item,
             {
-              onClick: () => {
-                if (hasGroups) {
-                  onToggleGroups(!showGroups);
-                }
-              },
-              onTouchEnd: (e) => {
-                e.preventDefault();
-                if (hasGroups) {
-                  onToggleGroups(!showGroups);
-                }
-              },
-              style: {
-                padding: "8px 12px",
-                cursor: hasGroups ? "pointer" : "not-allowed",
-                opacity: hasGroups ? 1 : 0.5,
-                fontSize: "13px",
-                color: "#000000",
-                fontFamily: "sans-serif",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px"
-              },
-              onMouseEnter: (e) => {
-                if (hasGroups) {
-                  e.currentTarget.style.backgroundColor = "#f0f0f0";
-                }
-              },
-              onMouseLeave: (e) => {
-                if (hasGroups) {
-                  e.currentTarget.style.backgroundColor = "transparent";
-                }
+              className: "sv-vm-item",
+              style: itemStyles,
+              disabled: !hasGroups,
+              title: hasGroups ? void 0 : "No groups found in this schematic",
+              onSelect: (e) => e.preventDefault(),
+              onPointerUp: () => {
+                if (hasGroups) onToggleGroups(!showGroups);
               },
               children: [
-                /* @__PURE__ */ jsx4(
-                  "div",
-                  {
-                    style: {
-                      width: "16px",
-                      height: "16px",
-                      border: "2px solid #000",
-                      borderRadius: "2px",
-                      backgroundColor: "transparent",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "10px",
-                      fontWeight: "bold"
-                    },
-                    children: showGroups && "\u2713"
-                  }
-                ),
-                "View Schematic Groups"
+                /* @__PURE__ */ jsx4("span", { style: iconSlotStyles, children: showGroups && /* @__PURE__ */ jsx4(CheckIcon, {}) }),
+                /* @__PURE__ */ jsx4("span", { children: "View Schematic Groups" })
               ]
             }
           ),
-          !hasGroups && /* @__PURE__ */ jsx4(
-            "div",
-            {
-              style: {
-                padding: "8px 12px",
-                fontSize: "11px",
-                color: "#666",
-                fontStyle: "italic"
-              },
-              children: "No groups found in this schematic"
-            }
-          ),
           /* @__PURE__ */ jsxs3(
-            "div",
+            DropdownMenu.Item,
             {
-              onClick: () => onToggleGrid(!showGrid),
-              onTouchEnd: (e) => {
-                e.preventDefault();
-                onToggleGrid(!showGrid);
-              },
-              style: {
-                padding: "8px 12px",
-                cursor: "pointer",
-                fontSize: "13px",
-                color: "#000000",
-                fontFamily: "sans-serif",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px"
-              },
-              onMouseEnter: (e) => {
-                e.currentTarget.style.backgroundColor = "#f0f0f0";
-              },
-              onMouseLeave: (e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-              },
+              className: "sv-vm-item",
+              style: itemStyles,
+              onSelect: (e) => e.preventDefault(),
+              onPointerUp: () => onToggleGrid(!showGrid),
               children: [
-                /* @__PURE__ */ jsx4(
-                  "div",
-                  {
-                    style: {
-                      width: "16px",
-                      height: "16px",
-                      border: "2px solid #000",
-                      borderRadius: "2px",
-                      backgroundColor: "transparent",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "10px",
-                      fontWeight: "bold"
-                    },
-                    children: showGrid && "\u2713"
-                  }
-                ),
-                "Show Grid"
+                /* @__PURE__ */ jsx4("span", { style: iconSlotStyles, children: showGrid && /* @__PURE__ */ jsx4(CheckIcon, {}) }),
+                /* @__PURE__ */ jsx4("span", { children: "Show Grid" })
               ]
             }
           ),
+          /* @__PURE__ */ jsx4(DropdownMenu.Separator, { style: separatorStyles }),
           /* @__PURE__ */ jsxs3(
             "div",
             {
               style: {
                 padding: "4px 8px",
-                fontSize: "12px",
-                color: "#999",
-                borderTop: "1px solid #eee",
-                textAlign: "center"
+                fontSize: 12,
+                color: "#9ca3af",
+                textAlign: "center",
+                fontFamily: FONT_FAMILY
               },
               children: [
                 "v",
@@ -1105,7 +1177,7 @@ var ViewMenu = ({
           )
         ]
       }
-    )
+    ) })
   ] });
 };
 
@@ -1359,7 +1431,7 @@ var SpicePlot = ({
 };
 
 // lib/components/SpiceSimulationOverlay.tsx
-import { useEffect as useEffect6, useState as useState3 } from "react";
+import { useEffect as useEffect7, useState as useState3 } from "react";
 import { jsx as jsx8, jsxs as jsxs5 } from "react/jsx-runtime";
 var SpiceSimulationOverlay = ({
   spiceString,
@@ -1378,7 +1450,7 @@ var SpiceSimulationOverlay = ({
   const [durationDraft, setDurationDraft] = useState3(
     String(simOptions.duration)
   );
-  useEffect6(() => {
+  useEffect7(() => {
     setStartTimeDraft(String(simOptions.startTime));
     setDurationDraft(String(simOptions.duration));
   }, [simOptions.startTime, simOptions.duration]);
@@ -1625,7 +1697,7 @@ var SpiceSimulationOverlay = ({
 };
 
 // lib/hooks/useSpiceSimulation.ts
-import { useState as useState4, useEffect as useEffect7 } from "react";
+import { useState as useState4, useEffect as useEffect8 } from "react";
 
 // lib/workers/spice-simulation.worker.blob.js
 var b64 = "dmFyIGU9bnVsbCxzPWFzeW5jKCk9Pihhd2FpdCBpbXBvcnQoImh0dHBzOi8vY2RuLmpzZGVsaXZyLm5ldC9ucG0vZWVjaXJjdWl0LWVuZ2luZUAxLjUuMi8rZXNtIikpLlNpbXVsYXRpb24sYz1hc3luYygpPT57aWYoZSYmZS5pc0luaXRpYWxpemVkKCkpcmV0dXJuO2xldCBpPWF3YWl0IHMoKTtlPW5ldyBpLGF3YWl0IGUuc3RhcnQoKX07c2VsZi5vbm1lc3NhZ2U9YXN5bmMgaT0+e3RyeXtpZihhd2FpdCBjKCksIWUpdGhyb3cgbmV3IEVycm9yKCJTaW11bGF0aW9uIG5vdCBpbml0aWFsaXplZCIpO2xldCB0PWkuZGF0YS5zcGljZVN0cmluZyxhPXQubWF0Y2goL3dyZGF0YVxzKyhcUyspXHMrKC4qKS9pKTtpZihhKXtsZXQgbz1gLnByb2JlICR7YVsyXS50cmltKCkuc3BsaXQoL1xzKy8pLmpvaW4oIiAiKX1gO3Q9dC5yZXBsYWNlKC93cmRhdGEuKi9pLG8pfWVsc2UgaWYoIXQubWF0Y2goL1wucHJvYmUvaSkpdGhyb3cgdC5tYXRjaCgvcGxvdFxzKyguKikvaSk/bmV3IEVycm9yKCJUaGUgJ3Bsb3QnIGNvbW1hbmQgaXMgbm90IHN1cHBvcnRlZCBmb3IgZGF0YSBleHRyYWN0aW9uLiBQbGVhc2UgdXNlICd3cmRhdGEgPGZpbGVuYW1lPiA8dmFyMT4gLi4uJyBvciAnLnByb2JlIDx2YXIxPiAuLi4nIGluc3RlYWQuIik6bmV3IEVycm9yKCJObyAnLnByb2JlJyBvciAnd3JkYXRhJyBjb21tYW5kIGZvdW5kIGluIFNQSUNFIGZpbGUuIFVzZSAnd3JkYXRhIDxmaWxlbmFtZT4gPHZhcjE+IC4uLicgdG8gc3BlY2lmeSBvdXRwdXQuIik7ZS5zZXROZXRMaXN0KHQpO2xldCBuPWF3YWl0IGUucnVuU2ltKCk7c2VsZi5wb3N0TWVzc2FnZSh7dHlwZToicmVzdWx0IixyZXN1bHQ6bn0pfWNhdGNoKHQpe3NlbGYucG9zdE1lc3NhZ2Uoe3R5cGU6ImVycm9yIixlcnJvcjp0Lm1lc3NhZ2V9KX19Owo=";
@@ -1680,7 +1752,7 @@ var useSpiceSimulation = (spiceString) => {
   const [nodes, setNodes] = useState4([]);
   const [isLoading, setIsLoading] = useState4(true);
   const [error, setError] = useState4(null);
-  useEffect7(() => {
+  useEffect8(() => {
     if (!spiceString) {
       setIsLoading(false);
       setPlotData([]);
@@ -1818,6 +1890,10 @@ var getSpiceFromCircuitJson = (circuitJson, options) => {
 
 // lib/hooks/useLocalStorage.ts
 import { useCallback as useCallback2 } from "react";
+var STORAGE_KEYS = {
+  IS_SHOWING_SCHEMATIC_GROUPS: "schematic_viewer_show_groups",
+  SELECTED_SCHEMATIC_SHEET: "schematic_viewer_selected_sheet"
+};
 var getStoredBoolean = (key, defaultValue) => {
   if (typeof window === "undefined") return defaultValue;
   try {
@@ -1834,6 +1910,21 @@ var setStoredBoolean = (key, value) => {
   } catch {
   }
 };
+var getStoredString = (key) => {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+var setStoredString = (key, value) => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+  }
+};
 var spacePanHeld = false;
 var isSpacePanHeld = () => spacePanHeld;
 var setSpacePanHeld = (held) => {
@@ -1845,11 +1936,11 @@ import {
   createContext,
   useCallback as useCallback3,
   useContext,
-  useEffect as useEffect8,
+  useEffect as useEffect9,
   useMemo as useMemo3,
   useRef as useRef4
 } from "react";
-import { Fragment as Fragment2, jsx as jsx9 } from "react/jsx-runtime";
+import { Fragment, jsx as jsx9 } from "react/jsx-runtime";
 var MouseTrackerContext = createContext(null);
 var DRAG_THRESHOLD_PX = 5;
 var boundsAreEqual = (a, b) => {
@@ -1860,7 +1951,7 @@ var boundsAreEqual = (a, b) => {
 var MouseTracker = ({ children }) => {
   const existingContext = useContext(MouseTrackerContext);
   if (existingContext) {
-    return /* @__PURE__ */ jsx9(Fragment2, { children });
+    return /* @__PURE__ */ jsx9(Fragment, { children });
   }
   const storeRef = useRef4({
     pointer: null,
@@ -1929,7 +2020,7 @@ var MouseTracker = ({ children }) => {
   const isHovering = useCallback3((id) => {
     return storeRef.current.hoveringIds.has(id);
   }, []);
-  useEffect8(() => {
+  useEffect9(() => {
     const handlePointerPosition = (event) => {
       const { clientX, clientY } = event;
       const pointer = storeRef.current.pointer;
@@ -2017,12 +2108,12 @@ var MouseTracker = ({ children }) => {
 };
 
 // lib/components/SchematicComponentMouseTarget.tsx
-import { useCallback as useCallback4, useEffect as useEffect10, useRef as useRef6, useState as useState5 } from "react";
+import { useCallback as useCallback4, useEffect as useEffect11, useRef as useRef6, useState as useState5 } from "react";
 
 // lib/hooks/useMouseEventsOverBoundingBox.ts
 import {
   useContext as useContext2,
-  useEffect as useEffect9,
+  useEffect as useEffect10,
   useId,
   useMemo as useMemo4,
   useRef as useRef5,
@@ -2044,7 +2135,7 @@ var useMouseEventsOverBoundingBox = (options) => {
     },
     []
   );
-  useEffect9(() => {
+  useEffect10(() => {
     context.registerBoundingBox(id, {
       bounds: latestOptionsRef.current.bounds,
       onClick: latestOptionsRef.current.onClick ? handleClick : void 0
@@ -2053,7 +2144,7 @@ var useMouseEventsOverBoundingBox = (options) => {
       context.unregisterBoundingBox(id);
     };
   }, [context, handleClick, id]);
-  useEffect9(() => {
+  useEffect10(() => {
     context.updateBoundingBox(id, {
       bounds: latestOptionsRef.current.bounds,
       onClick: latestOptionsRef.current.onClick ? handleClick : void 0
@@ -2133,10 +2224,10 @@ var SchematicComponentMouseTarget = ({
     if (frameRef.current !== null) return;
     frameRef.current = window.requestAnimationFrame(measure);
   }, [measure]);
-  useEffect10(() => {
+  useEffect11(() => {
     scheduleMeasure();
   }, [scheduleMeasure, circuitJsonKey]);
-  useEffect10(() => {
+  useEffect11(() => {
     scheduleMeasure();
     const svgDiv = svgDivRef.current;
     const container = containerRef.current;
@@ -2181,7 +2272,7 @@ var SchematicComponentMouseTarget = ({
     bounds,
     onClick: onComponentClick ? handleClick : void 0
   });
-  useEffect10(() => {
+  useEffect11(() => {
     if (onHoverChange) {
       onHoverChange(componentId, hovering);
     }
@@ -2208,8 +2299,8 @@ var SchematicComponentMouseTarget = ({
 };
 
 // lib/components/SchematicPortMouseTarget.tsx
-import { useCallback as useCallback5, useEffect as useEffect11, useRef as useRef7, useState as useState6 } from "react";
-import { Fragment as Fragment3, jsx as jsx11, jsxs as jsxs6 } from "react/jsx-runtime";
+import { useCallback as useCallback5, useEffect as useEffect12, useRef as useRef7, useState as useState6 } from "react";
+import { Fragment as Fragment2, jsx as jsx11, jsxs as jsxs6 } from "react/jsx-runtime";
 var areMeasurementsEqual2 = (a, b) => {
   if (!a && !b) return true;
   if (!a || !b) return false;
@@ -2270,10 +2361,10 @@ var SchematicPortMouseTarget = ({
     if (frameRef.current !== null) return;
     frameRef.current = window.requestAnimationFrame(measure);
   }, [measure]);
-  useEffect11(() => {
+  useEffect12(() => {
     scheduleMeasure();
   }, [scheduleMeasure, circuitJsonKey]);
-  useEffect11(() => {
+  useEffect12(() => {
     scheduleMeasure();
     const svgDiv = svgDivRef.current;
     const container = containerRef.current;
@@ -2318,7 +2409,7 @@ var SchematicPortMouseTarget = ({
     bounds,
     onClick: onPortClick ? handleClick : void 0
   });
-  useEffect11(() => {
+  useEffect12(() => {
     if (onHoverChange) {
       onHoverChange(portId, hovering);
     }
@@ -2327,7 +2418,7 @@ var SchematicPortMouseTarget = ({
     return null;
   }
   const rect = measurement.rect;
-  return /* @__PURE__ */ jsxs6(Fragment3, { children: [
+  return /* @__PURE__ */ jsxs6(Fragment2, { children: [
     /* @__PURE__ */ jsx11(
       "div",
       {
@@ -2376,8 +2467,175 @@ var SchematicPortMouseTarget = ({
   ] });
 };
 
+// lib/components/SchematicSheetSelector.tsx
+import { useState as useState7 } from "react";
+import * as DropdownMenu2 from "@radix-ui/react-dropdown-menu";
+import { Fragment as Fragment3, jsx as jsx12, jsxs as jsxs7 } from "react/jsx-runtime";
+var FONT_FAMILY2 = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+var contentStyles2 = {
+  backgroundColor: "#ffffff",
+  color: "#111111",
+  borderRadius: 8,
+  boxShadow: "0 6px 24px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)",
+  border: "1px solid #e5e7eb",
+  padding: 4,
+  minWidth: 200,
+  maxWidth: 320,
+  maxHeight: 320,
+  overflowY: "auto",
+  fontSize: 13,
+  fontFamily: FONT_FAMILY2,
+  outline: "none",
+  zIndex: zIndexMap.viewMenu
+};
+var itemStyles2 = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "7px 10px 7px 8px",
+  borderRadius: 6,
+  cursor: "pointer",
+  outline: "none",
+  userSelect: "none",
+  color: "#111111",
+  fontSize: 13,
+  fontFamily: FONT_FAMILY2
+};
+var iconSlotStyles2 = {
+  width: 16,
+  height: 16,
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#111111"
+};
+var ellipsisStyles = {
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap"
+};
+var MENU_CSS = `
+.sv-sheet-item[data-highlighted], .sv-sheet-item:hover { background-color: #f1f3f5; }
+.sv-sheet-chevron { transition: transform 0.2s ease; }
+[data-state="open"] > .sv-sheet-chevron { transform: rotate(180deg); }
+`;
+var CheckIcon2 = () => /* @__PURE__ */ jsx12(
+  "svg",
+  {
+    width: "14",
+    height: "14",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.5",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": "true",
+    children: /* @__PURE__ */ jsx12("path", { d: "M20 6 9 17l-5-5" })
+  }
+);
+var ChevronDownIcon = ({ className }) => /* @__PURE__ */ jsx12(
+  "svg",
+  {
+    className,
+    width: "14",
+    height: "14",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: { opacity: 0.6, flexShrink: 0 },
+    "aria-hidden": "true",
+    children: /* @__PURE__ */ jsx12("path", { d: "m6 9 6 6 6-6" })
+  }
+);
+var SchematicSheetSelector = ({
+  sheets,
+  selectedSheetId,
+  onSelectSheet
+}) => {
+  const [open, setOpen] = useState7(false);
+  if (sheets.length <= 1) return null;
+  const selectedSheet = sheets.find(
+    (s) => s.schematic_sheet_id === selectedSheetId
+  );
+  const selectedLabel = selectedSheet?.name ?? "Select sheet";
+  return /* @__PURE__ */ jsxs7(Fragment3, { children: [
+    /* @__PURE__ */ jsx12("style", { children: MENU_CSS }),
+    /* @__PURE__ */ jsxs7(DropdownMenu2.Root, { open, onOpenChange: setOpen, modal: false, children: [
+      /* @__PURE__ */ jsx12(DropdownMenu2.Trigger, { asChild: true, children: /* @__PURE__ */ jsxs7(
+        "button",
+        {
+          type: "button",
+          title: selectedLabel,
+          onPointerDown: (e) => e.stopPropagation(),
+          style: {
+            position: "absolute",
+            top: "16px",
+            left: "16px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            maxWidth: "220px",
+            padding: "8px 12px",
+            backgroundColor: "#ffffff",
+            color: "#000000",
+            border: "none",
+            outline: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            fontSize: "13px",
+            fontFamily: FONT_FAMILY2,
+            zIndex: zIndexMap.viewMenuIcon
+          },
+          children: [
+            /* @__PURE__ */ jsx12("span", { style: { color: "#888888", flexShrink: 0 }, children: "Sheet:" }),
+            /* @__PURE__ */ jsx12("span", { style: { ...ellipsisStyles, minWidth: 0 }, children: selectedLabel }),
+            /* @__PURE__ */ jsx12(ChevronDownIcon, { className: "sv-sheet-chevron" })
+          ]
+        }
+      ) }),
+      /* @__PURE__ */ jsx12(DropdownMenu2.Portal, { children: /* @__PURE__ */ jsx12(
+        DropdownMenu2.Content,
+        {
+          style: contentStyles2,
+          side: "bottom",
+          align: "start",
+          sideOffset: 8,
+          collisionPadding: 10,
+          children: sheets.map((sheet) => {
+            const selected = sheet.schematic_sheet_id === selectedSheetId;
+            return /* @__PURE__ */ jsxs7(
+              DropdownMenu2.Item,
+              {
+                className: "sv-sheet-item",
+                style: itemStyles2,
+                title: sheet.name,
+                onSelect: (e) => e.preventDefault(),
+                onPointerUp: () => {
+                  onSelectSheet(sheet.schematic_sheet_id);
+                  setOpen(false);
+                },
+                children: [
+                  /* @__PURE__ */ jsx12("span", { style: iconSlotStyles2, children: selected && /* @__PURE__ */ jsx12(CheckIcon2, {}) }),
+                  /* @__PURE__ */ jsx12("span", { style: { ...ellipsisStyles, minWidth: 0 }, children: sheet.name })
+                ]
+              },
+              sheet.schematic_sheet_id
+            );
+          })
+        }
+      ) })
+    ] })
+  ] });
+};
+
 // lib/hooks/useWireDrawing.ts
-import { useCallback as useCallback6, useEffect as useEffect12, useRef as useRef8, useState as useState7 } from "react";
+import { useCallback as useCallback6, useEffect as useEffect13, useRef as useRef8, useState as useState8 } from "react";
 import "transformation-matrix";
 
 // lib/utils/isMouseCaptureIgnoredTarget.ts
@@ -2462,7 +2720,7 @@ var useWireDrawing = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState7({
+  const [state, setState] = useState8({
     isDrawing: false,
     fromPortId: null,
     previewEnd: null,
@@ -2611,7 +2869,7 @@ var useWireDrawing = ({
       });
     }
   }, []);
-  useEffect12(() => {
+  useEffect13(() => {
     if (!enabled) {
       setState({
         isDrawing: false,
@@ -2636,7 +2894,7 @@ var useWireDrawing = ({
 };
 
 // lib/hooks/useBusDrawing.ts
-import { useCallback as useCallback7, useEffect as useEffect13, useRef as useRef9, useState as useState8 } from "react";
+import { useCallback as useCallback7, useEffect as useEffect14, useRef as useRef9, useState as useState9 } from "react";
 import { compose as compose4 } from "transformation-matrix";
 var useBusDrawing = ({
   enabled,
@@ -2645,7 +2903,7 @@ var useBusDrawing = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState8({
+  const [state, setState] = useState9({
     isDrawing: false,
     previewEnd: null,
     waypoints: []
@@ -2753,7 +3011,7 @@ var useBusDrawing = ({
     },
     [finishBus]
   );
-  useEffect13(() => {
+  useEffect14(() => {
     if (!enabled) {
       setState({ isDrawing: false, previewEnd: null, waypoints: [] });
       return;
@@ -2783,7 +3041,7 @@ var useBusDrawing = ({
 };
 
 // lib/hooks/useBusEntryPlacement.ts
-import { useCallback as useCallback8, useEffect as useEffect14, useState as useState9 } from "react";
+import { useCallback as useCallback8, useEffect as useEffect15, useState as useState10 } from "react";
 import { compose as compose5 } from "transformation-matrix";
 var BUS_ENTRY_STUB_LEN = 2.5;
 var useBusEntryPlacement = ({
@@ -2793,7 +3051,7 @@ var useBusEntryPlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [previewState, setPreviewState] = useState9({
+  const [previewState, setPreviewState] = useState10({
     anchor: null
   });
   const screenToReal = useCallback8(
@@ -2841,7 +3099,7 @@ var useBusEntryPlacement = ({
     },
     [enabled, screenToReal]
   );
-  useEffect14(() => {
+  useEffect15(() => {
     if (!enabled) {
       setPreviewState({ anchor: null });
       return;
@@ -2859,7 +3117,7 @@ var useBusEntryPlacement = ({
 };
 
 // lib/hooks/useNoConnectPlacement.ts
-import { useCallback as useCallback9, useEffect as useEffect15, useState as useState10 } from "react";
+import { useCallback as useCallback9, useEffect as useEffect16, useState as useState11 } from "react";
 import { compose as compose6 } from "transformation-matrix";
 var NO_CONNECT_HALF = 0.4;
 var PORT_HIT_RADIUS_PX = 36;
@@ -2871,7 +3129,7 @@ var useNoConnectPlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [previewState, setPreviewState] = useState10({
+  const [previewState, setPreviewState] = useState11({
     center: null
   });
   const screenToReal = useCallback9(
@@ -2981,7 +3239,7 @@ var useNoConnectPlacement = ({
     },
     [enabled, getPortAtScreen, getPortCenter, screenToReal]
   );
-  useEffect15(() => {
+  useEffect16(() => {
     if (!enabled) {
       setPreviewState({ center: null });
       return;
@@ -2999,7 +3257,7 @@ var useNoConnectPlacement = ({
 };
 
 // lib/hooks/useNetLabelPlacement.ts
-import { useCallback as useCallback10, useEffect as useEffect16, useRef as useRef10, useState as useState11 } from "react";
+import { useCallback as useCallback10, useEffect as useEffect17, useRef as useRef10, useState as useState12 } from "react";
 import { compose as compose7 } from "transformation-matrix";
 var PORT_SNAP_RADIUS_PX = 32;
 var useNetLabelPlacement = ({
@@ -3010,7 +3268,7 @@ var useNetLabelPlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState11({
+  const [state, setState] = useState12({
     previewPos: null,
     pendingPos: null,
     pendingPortId: null
@@ -3114,7 +3372,7 @@ var useNetLabelPlacement = ({
   const cancelPlacement = useCallback10(() => {
     setState({ previewPos: null, pendingPos: null, pendingPortId: null });
   }, []);
-  useEffect16(() => {
+  useEffect17(() => {
     if (!enabled) {
       setState({ previewPos: null, pendingPos: null, pendingPortId: null });
       return;
@@ -3134,7 +3392,7 @@ var useNetLabelPlacement = ({
 };
 
 // lib/hooks/useGlobalLabelPlacement.ts
-import { useCallback as useCallback11, useEffect as useEffect17, useRef as useRef11, useState as useState12 } from "react";
+import { useCallback as useCallback11, useEffect as useEffect18, useRef as useRef11, useState as useState13 } from "react";
 import { compose as compose8 } from "transformation-matrix";
 var PORT_SNAP_RADIUS_PX2 = 32;
 var useGlobalLabelPlacement = ({
@@ -3145,7 +3403,7 @@ var useGlobalLabelPlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState12({
+  const [state, setState] = useState13({
     previewPos: null,
     pendingPos: null,
     pendingPortId: null
@@ -3249,7 +3507,7 @@ var useGlobalLabelPlacement = ({
   const cancelPlacement = useCallback11(() => {
     setState({ previewPos: null, pendingPos: null, pendingPortId: null });
   }, []);
-  useEffect17(() => {
+  useEffect18(() => {
     if (!enabled) {
       setState({ previewPos: null, pendingPos: null, pendingPortId: null });
       return;
@@ -3269,7 +3527,7 @@ var useGlobalLabelPlacement = ({
 };
 
 // lib/hooks/useHierSheetPlacement.ts
-import { useCallback as useCallback12, useEffect as useEffect18, useRef as useRef12, useState as useState13 } from "react";
+import { useCallback as useCallback12, useEffect as useEffect19, useRef as useRef12, useState as useState14 } from "react";
 import {
   applyToPoint as applyToPoint2,
   compose as compose9,
@@ -3313,7 +3571,7 @@ var useHierSheetPlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState13({
+  const [state, setState] = useState14({
     isDrawing: false,
     anchorLocal: null,
     previewLocal: null,
@@ -3421,7 +3679,7 @@ var useHierSheetPlacement = ({
     [onEditEvent, reset, localToReal]
   );
   const cancelPlacement = useCallback12(() => reset(), [reset]);
-  useEffect18(() => {
+  useEffect19(() => {
     if (!enabled) {
       reset();
       return;
@@ -3440,7 +3698,7 @@ var useHierSheetPlacement = ({
 
 // lib/components/WirePreview.tsx
 import { applyToPoint as applyToPoint3, compose as compose10 } from "transformation-matrix";
-import { jsx as jsx12, jsxs as jsxs7 } from "react/jsx-runtime";
+import { jsx as jsx13, jsxs as jsxs8 } from "react/jsx-runtime";
 var WirePreview = ({
   state,
   realToSvgProjection,
@@ -3457,7 +3715,7 @@ var WirePreview = ({
   const toScreen = (pt) => applyToPoint3(realToScreen, pt);
   const points = [...state.waypoints.map(toScreen), toScreen(state.previewEnd)];
   const d = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  return /* @__PURE__ */ jsxs7(
+  return /* @__PURE__ */ jsxs8(
     "svg",
     {
       style: {
@@ -3469,7 +3727,7 @@ var WirePreview = ({
         zIndex: 200
       },
       children: [
-        /* @__PURE__ */ jsx12(
+        /* @__PURE__ */ jsx13(
           "path",
           {
             d,
@@ -3481,7 +3739,7 @@ var WirePreview = ({
             strokeLinejoin: "round"
           }
         ),
-        /* @__PURE__ */ jsx12(
+        /* @__PURE__ */ jsx13(
           "circle",
           {
             cx: points[0].x,
@@ -3491,7 +3749,7 @@ var WirePreview = ({
             opacity: 0.8
           }
         ),
-        /* @__PURE__ */ jsx12(
+        /* @__PURE__ */ jsx13(
           "circle",
           {
             cx: points[points.length - 1].x,
@@ -3510,7 +3768,7 @@ var WirePreview = ({
 
 // lib/components/BusPreview.tsx
 import { applyToPoint as applyToPoint4, compose as compose11 } from "transformation-matrix";
-import { jsx as jsx13 } from "react/jsx-runtime";
+import { jsx as jsx14 } from "react/jsx-runtime";
 var BusPreview = ({
   state,
   realToSvgProjection,
@@ -3527,7 +3785,7 @@ var BusPreview = ({
   const toScreen = (pt) => applyToPoint4(realToScreen, pt);
   const points = [...state.waypoints.map(toScreen), toScreen(state.previewEnd)];
   const d = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  return /* @__PURE__ */ jsx13(
+  return /* @__PURE__ */ jsx14(
     "svg",
     {
       style: {
@@ -3538,7 +3796,7 @@ var BusPreview = ({
         pointerEvents: "none",
         zIndex: 200
       },
-      children: /* @__PURE__ */ jsx13(
+      children: /* @__PURE__ */ jsx14(
         "path",
         {
           d,
@@ -3556,7 +3814,7 @@ var BusPreview = ({
 
 // lib/components/BusEntryPreview.tsx
 import { applyToPoint as applyToPoint5, compose as compose12 } from "transformation-matrix";
-import { jsx as jsx14 } from "react/jsx-runtime";
+import { jsx as jsx15 } from "react/jsx-runtime";
 var BusEntryPreview = ({
   state,
   realToSvgProjection,
@@ -3572,7 +3830,7 @@ var BusEntryPreview = ({
     x: state.anchor.x + BUS_ENTRY_STUB_LEN,
     y: state.anchor.y + BUS_ENTRY_STUB_LEN
   });
-  return /* @__PURE__ */ jsx14(
+  return /* @__PURE__ */ jsx15(
     "svg",
     {
       style: {
@@ -3583,7 +3841,7 @@ var BusEntryPreview = ({
         pointerEvents: "none",
         zIndex: 200
       },
-      children: /* @__PURE__ */ jsx14(
+      children: /* @__PURE__ */ jsx15(
         "line",
         {
           x1: p1.x,
@@ -3602,7 +3860,7 @@ var BusEntryPreview = ({
 
 // lib/components/NoConnectPreview.tsx
 import { applyToPoint as applyToPoint6, compose as compose13 } from "transformation-matrix";
-import { jsx as jsx15, jsxs as jsxs8 } from "react/jsx-runtime";
+import { jsx as jsx16, jsxs as jsxs9 } from "react/jsx-runtime";
 var NoConnectPreview = ({
   state,
   realToSvgProjection,
@@ -3619,7 +3877,7 @@ var NoConnectPreview = ({
   const a2 = toScreen({ x: x + d, y: y + d });
   const b1 = toScreen({ x: x + d, y: y - d });
   const b2 = toScreen({ x: x - d, y: y + d });
-  return /* @__PURE__ */ jsxs8(
+  return /* @__PURE__ */ jsxs9(
     "svg",
     {
       style: {
@@ -3631,7 +3889,7 @@ var NoConnectPreview = ({
         zIndex: 200
       },
       children: [
-        /* @__PURE__ */ jsx15(
+        /* @__PURE__ */ jsx16(
           "line",
           {
             x1: a1.x,
@@ -3644,7 +3902,7 @@ var NoConnectPreview = ({
             strokeLinecap: "round"
           }
         ),
-        /* @__PURE__ */ jsx15(
+        /* @__PURE__ */ jsx16(
           "line",
           {
             x1: b1.x,
@@ -3664,8 +3922,8 @@ var NoConnectPreview = ({
 
 // lib/components/NetLabelPreview.tsx
 import { applyToPoint as applyToPoint7, compose as compose14 } from "transformation-matrix";
-import { useRef as useRef13, useEffect as useEffect19 } from "react";
-import { Fragment as Fragment4, jsx as jsx16, jsxs as jsxs9 } from "react/jsx-runtime";
+import { useRef as useRef13, useEffect as useEffect20 } from "react";
+import { Fragment as Fragment4, jsx as jsx17, jsxs as jsxs10 } from "react/jsx-runtime";
 var NetLabelPreview = ({
   state,
   realToSvgProjection,
@@ -3675,7 +3933,7 @@ var NetLabelPreview = ({
   onCancel
 }) => {
   const inputRef = useRef13(null);
-  useEffect19(() => {
+  useEffect20(() => {
     if (state.pendingPos && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.value = "";
@@ -3689,8 +3947,8 @@ var NetLabelPreview = ({
   const toScreen = (pt) => applyToPoint7(realToScreen, pt);
   const LabelShape = ({ pos }) => {
     const sp = toScreen(pos);
-    return /* @__PURE__ */ jsxs9("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.8, children: [
-      /* @__PURE__ */ jsx16(
+    return /* @__PURE__ */ jsxs10("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.8, children: [
+      /* @__PURE__ */ jsx17(
         "polygon",
         {
           points: "0,-10 60,-10 70,0 60,10 0,10",
@@ -3700,148 +3958,11 @@ var NetLabelPreview = ({
           strokeDasharray: "4 2"
         }
       ),
-      /* @__PURE__ */ jsx16("text", { x: 5, y: 4, fontSize: 10, fill: "#00b4d8", fontFamily: "monospace", children: "NET" }),
-      /* @__PURE__ */ jsx16("circle", { cx: 0, cy: 0, r: 3, fill: "#00b4d8", opacity: 0.6 })
+      /* @__PURE__ */ jsx17("text", { x: 5, y: 4, fontSize: 10, fill: "#00b4d8", fontFamily: "monospace", children: "NET" }),
+      /* @__PURE__ */ jsx17("circle", { cx: 0, cy: 0, r: 3, fill: "#00b4d8", opacity: 0.6 })
     ] });
   };
-  return /* @__PURE__ */ jsxs9(Fragment4, { children: [
-    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx16(
-      "svg",
-      {
-        style: {
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          pointerEvents: "none",
-          zIndex: 50
-        },
-        children: /* @__PURE__ */ jsx16(LabelShape, { pos: state.previewPos })
-      }
-    ),
-    state.pendingPos && (() => {
-      const sp = toScreen(state.pendingPos);
-      return /* @__PURE__ */ jsxs9(
-        "div",
-        {
-          style: {
-            position: "absolute",
-            left: sp.x + 4,
-            top: sp.y - 10,
-            zIndex: 60,
-            display: "flex",
-            alignItems: "center",
-            gap: 4
-          },
-          children: [
-            /* @__PURE__ */ jsx16(
-              "input",
-              {
-                ref: inputRef,
-                type: "text",
-                placeholder: "Net name\u2026",
-                style: {
-                  background: "#1a1a2e",
-                  border: "1.5px solid #00b4d8",
-                  color: "#fff",
-                  padding: "3px 8px",
-                  borderRadius: 4,
-                  fontFamily: "monospace",
-                  fontSize: 12,
-                  outline: "none",
-                  width: 120
-                },
-                onKeyDown: (e) => {
-                  if (e.key === "Enter") {
-                    onConfirm(e.target.value);
-                  } else if (e.key === "Escape") {
-                    onCancel();
-                  }
-                  e.stopPropagation();
-                }
-              }
-            ),
-            /* @__PURE__ */ jsx16(
-              "button",
-              {
-                type: "button",
-                style: {
-                  background: "#00b4d8",
-                  border: "none",
-                  color: "#000",
-                  padding: "3px 8px",
-                  borderRadius: 4,
-                  fontFamily: "monospace",
-                  fontSize: 11,
-                  cursor: "pointer"
-                },
-                onClick: () => {
-                  if (inputRef.current) onConfirm(inputRef.current.value);
-                },
-                children: "\u2713"
-              }
-            )
-          ]
-        }
-      );
-    })()
-  ] });
-};
-
-// lib/components/GlobalLabelPreview.tsx
-import { applyToPoint as applyToPoint8, compose as compose15 } from "transformation-matrix";
-import { useRef as useRef14, useEffect as useEffect20 } from "react";
-import { Fragment as Fragment5, jsx as jsx17, jsxs as jsxs10 } from "react/jsx-runtime";
-var GLOBAL_COLOR = "#c1271c";
-var GlobalLabelPreview = ({
-  state,
-  realToSvgProjection,
-  svgToScreenProjection,
-  containerRef,
-  onConfirm,
-  onCancel
-}) => {
-  const inputRef = useRef14(null);
-  useEffect20(() => {
-    if (state.pendingPos && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.value = "";
-    }
-  }, [state.pendingPos]);
-  const container = containerRef.current;
-  if (!container) return null;
-  if (!realToSvgProjection?.a || isNaN(realToSvgProjection.a) || !svgToScreenProjection?.a || isNaN(svgToScreenProjection.a))
-    return null;
-  const realToScreen = compose15(svgToScreenProjection, realToSvgProjection);
-  const toScreen = (pt) => applyToPoint8(realToScreen, pt);
-  const LabelShape = ({ pos }) => {
-    const sp = toScreen(pos);
-    return /* @__PURE__ */ jsxs10("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.85, children: [
-      /* @__PURE__ */ jsx17(
-        "polygon",
-        {
-          points: "0,-10 60,-10 70,0 60,10 0,10",
-          fill: "none",
-          stroke: GLOBAL_COLOR,
-          strokeWidth: 1.5,
-          strokeDasharray: "4 2"
-        }
-      ),
-      /* @__PURE__ */ jsx17(
-        "text",
-        {
-          x: 5,
-          y: 4,
-          fontSize: 10,
-          fill: GLOBAL_COLOR,
-          fontFamily: "monospace",
-          children: "GLOBAL"
-        }
-      ),
-      /* @__PURE__ */ jsx17("circle", { cx: 0, cy: 0, r: 3, fill: GLOBAL_COLOR, opacity: 0.6 })
-    ] });
-  };
-  return /* @__PURE__ */ jsxs10(Fragment5, { children: [
+  return /* @__PURE__ */ jsxs10(Fragment4, { children: [
     state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx17(
       "svg",
       {
@@ -3876,6 +3997,143 @@ var GlobalLabelPreview = ({
               {
                 ref: inputRef,
                 type: "text",
+                placeholder: "Net name\u2026",
+                style: {
+                  background: "#1a1a2e",
+                  border: "1.5px solid #00b4d8",
+                  color: "#fff",
+                  padding: "3px 8px",
+                  borderRadius: 4,
+                  fontFamily: "monospace",
+                  fontSize: 12,
+                  outline: "none",
+                  width: 120
+                },
+                onKeyDown: (e) => {
+                  if (e.key === "Enter") {
+                    onConfirm(e.target.value);
+                  } else if (e.key === "Escape") {
+                    onCancel();
+                  }
+                  e.stopPropagation();
+                }
+              }
+            ),
+            /* @__PURE__ */ jsx17(
+              "button",
+              {
+                type: "button",
+                style: {
+                  background: "#00b4d8",
+                  border: "none",
+                  color: "#000",
+                  padding: "3px 8px",
+                  borderRadius: 4,
+                  fontFamily: "monospace",
+                  fontSize: 11,
+                  cursor: "pointer"
+                },
+                onClick: () => {
+                  if (inputRef.current) onConfirm(inputRef.current.value);
+                },
+                children: "\u2713"
+              }
+            )
+          ]
+        }
+      );
+    })()
+  ] });
+};
+
+// lib/components/GlobalLabelPreview.tsx
+import { applyToPoint as applyToPoint8, compose as compose15 } from "transformation-matrix";
+import { useRef as useRef14, useEffect as useEffect21 } from "react";
+import { Fragment as Fragment5, jsx as jsx18, jsxs as jsxs11 } from "react/jsx-runtime";
+var GLOBAL_COLOR = "#c1271c";
+var GlobalLabelPreview = ({
+  state,
+  realToSvgProjection,
+  svgToScreenProjection,
+  containerRef,
+  onConfirm,
+  onCancel
+}) => {
+  const inputRef = useRef14(null);
+  useEffect21(() => {
+    if (state.pendingPos && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.value = "";
+    }
+  }, [state.pendingPos]);
+  const container = containerRef.current;
+  if (!container) return null;
+  if (!realToSvgProjection?.a || isNaN(realToSvgProjection.a) || !svgToScreenProjection?.a || isNaN(svgToScreenProjection.a))
+    return null;
+  const realToScreen = compose15(svgToScreenProjection, realToSvgProjection);
+  const toScreen = (pt) => applyToPoint8(realToScreen, pt);
+  const LabelShape = ({ pos }) => {
+    const sp = toScreen(pos);
+    return /* @__PURE__ */ jsxs11("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.85, children: [
+      /* @__PURE__ */ jsx18(
+        "polygon",
+        {
+          points: "0,-10 60,-10 70,0 60,10 0,10",
+          fill: "none",
+          stroke: GLOBAL_COLOR,
+          strokeWidth: 1.5,
+          strokeDasharray: "4 2"
+        }
+      ),
+      /* @__PURE__ */ jsx18(
+        "text",
+        {
+          x: 5,
+          y: 4,
+          fontSize: 10,
+          fill: GLOBAL_COLOR,
+          fontFamily: "monospace",
+          children: "GLOBAL"
+        }
+      ),
+      /* @__PURE__ */ jsx18("circle", { cx: 0, cy: 0, r: 3, fill: GLOBAL_COLOR, opacity: 0.6 })
+    ] });
+  };
+  return /* @__PURE__ */ jsxs11(Fragment5, { children: [
+    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx18(
+      "svg",
+      {
+        style: {
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
+          zIndex: 50
+        },
+        children: /* @__PURE__ */ jsx18(LabelShape, { pos: state.previewPos })
+      }
+    ),
+    state.pendingPos && (() => {
+      const sp = toScreen(state.pendingPos);
+      return /* @__PURE__ */ jsxs11(
+        "div",
+        {
+          style: {
+            position: "absolute",
+            left: sp.x + 4,
+            top: sp.y - 10,
+            zIndex: 60,
+            display: "flex",
+            alignItems: "center",
+            gap: 4
+          },
+          children: [
+            /* @__PURE__ */ jsx18(
+              "input",
+              {
+                ref: inputRef,
+                type: "text",
                 placeholder: "Global net name\u2026",
                 style: {
                   background: "#1a1a2e",
@@ -3898,7 +4156,7 @@ var GlobalLabelPreview = ({
                 }
               }
             ),
-            /* @__PURE__ */ jsx17(
+            /* @__PURE__ */ jsx18(
               "button",
               {
                 type: "button",
@@ -3927,8 +4185,8 @@ var GlobalLabelPreview = ({
 
 // lib/components/HierSheetPreview.tsx
 import { applyToPoint as applyToPoint9, compose as compose16 } from "transformation-matrix";
-import { useEffect as useEffect21, useMemo as useMemo5, useRef as useRef15, useState as useState14 } from "react";
-import { Fragment as Fragment6, jsx as jsx18, jsxs as jsxs11 } from "react/jsx-runtime";
+import { useEffect as useEffect22, useMemo as useMemo5, useRef as useRef15, useState as useState15 } from "react";
+import { Fragment as Fragment6, jsx as jsx19, jsxs as jsxs12 } from "react/jsx-runtime";
 var SHEET_STROKE = "#0050d8";
 var SHEET_FILL = "rgba(234, 242, 255, 0.35)";
 var NAME_COLOR = "#006464";
@@ -3940,8 +4198,8 @@ var SheetSymbolShape = ({
   const { x, y, width, height } = screenBox;
   const pinLen = Math.min(10, width * 0.08);
   const midY = y + height / 2;
-  return /* @__PURE__ */ jsxs11("g", { opacity: dashed ? 0.85 : 1, children: [
-    /* @__PURE__ */ jsx18(
+  return /* @__PURE__ */ jsxs12("g", { opacity: dashed ? 0.85 : 1, children: [
+    /* @__PURE__ */ jsx19(
       "rect",
       {
         x,
@@ -3954,7 +4212,7 @@ var SheetSymbolShape = ({
         strokeDasharray: dashed ? "6 3" : void 0
       }
     ),
-    /* @__PURE__ */ jsx18(
+    /* @__PURE__ */ jsx19(
       "line",
       {
         x1: x - pinLen,
@@ -3965,7 +4223,7 @@ var SheetSymbolShape = ({
         strokeWidth: 1.4
       }
     ),
-    /* @__PURE__ */ jsx18(
+    /* @__PURE__ */ jsx19(
       "line",
       {
         x1: x - pinLen,
@@ -3976,7 +4234,7 @@ var SheetSymbolShape = ({
         strokeWidth: 1.4
       }
     ),
-    /* @__PURE__ */ jsx18(
+    /* @__PURE__ */ jsx19(
       "line",
       {
         x1: x + width,
@@ -3987,7 +4245,7 @@ var SheetSymbolShape = ({
         strokeWidth: 1.4
       }
     ),
-    /* @__PURE__ */ jsx18(
+    /* @__PURE__ */ jsx19(
       "text",
       {
         x: x + 6,
@@ -3999,7 +4257,7 @@ var SheetSymbolShape = ({
         children: "Sheet name"
       }
     ),
-    /* @__PURE__ */ jsx18(
+    /* @__PURE__ */ jsx19(
       "text",
       {
         x: x + 6,
@@ -4025,15 +4283,15 @@ var HierSheetPreview = ({
   onConfirm,
   onCancel
 }) => {
-  const [sheetName, setSheetName] = useState14("");
-  const [targetSheetId, setTargetSheetId] = useState14("");
+  const [sheetName, setSheetName] = useState15("");
+  const [targetSheetId, setTargetSheetId] = useState15("");
   const initializedKeyRef = useRef15(null);
   const nameInputRef = useRef15(null);
   const targets = useMemo5(
     () => sheetTargets.filter((t) => t.id !== activeSheetId),
     [sheetTargets, activeSheetId]
   );
-  useEffect21(() => {
+  useEffect22(() => {
     if (!state.pendingBox) {
       initializedKeyRef.current = null;
       setSheetName("");
@@ -4073,8 +4331,8 @@ var HierSheetPreview = ({
     if (!sheetName.trim() || !targetSheetId.trim()) return;
     onConfirm(sheetName, targetSheetId);
   };
-  return /* @__PURE__ */ jsxs11(Fragment6, { children: [
-    previewScreenBox && /* @__PURE__ */ jsx18(
+  return /* @__PURE__ */ jsxs12(Fragment6, { children: [
+    previewScreenBox && /* @__PURE__ */ jsx19(
       "svg",
       {
         style: {
@@ -4085,10 +4343,10 @@ var HierSheetPreview = ({
           pointerEvents: "none",
           zIndex: 50
         },
-        children: /* @__PURE__ */ jsx18(SheetSymbolShape, { screenBox: previewScreenBox })
+        children: /* @__PURE__ */ jsx19(SheetSymbolShape, { screenBox: previewScreenBox })
       }
     ),
-    state.pendingBox && committedScreenBox && /* @__PURE__ */ jsx18(
+    state.pendingBox && committedScreenBox && /* @__PURE__ */ jsx19(
       "svg",
       {
         style: {
@@ -4099,10 +4357,10 @@ var HierSheetPreview = ({
           pointerEvents: "none",
           zIndex: 51
         },
-        children: /* @__PURE__ */ jsx18(SheetSymbolShape, { screenBox: committedScreenBox, dashed: false })
+        children: /* @__PURE__ */ jsx19(SheetSymbolShape, { screenBox: committedScreenBox, dashed: false })
       }
     ),
-    state.pendingBox && dialogAnchor && /* @__PURE__ */ jsxs11(
+    state.pendingBox && dialogAnchor && /* @__PURE__ */ jsxs12(
       "div",
       {
         style: {
@@ -4122,9 +4380,9 @@ var HierSheetPreview = ({
         onMouseDown: (e) => e.stopPropagation(),
         "data-schematic-ignore-mouse-capture": true,
         children: [
-          /* @__PURE__ */ jsxs11("label", { style: { fontSize: 10, color: NAME_COLOR, fontFamily: "monospace" }, children: [
+          /* @__PURE__ */ jsxs12("label", { style: { fontSize: 10, color: NAME_COLOR, fontFamily: "monospace" }, children: [
             "Sheet name",
-            /* @__PURE__ */ jsx18(
+            /* @__PURE__ */ jsx19(
               "input",
               {
                 ref: nameInputRef,
@@ -4156,9 +4414,9 @@ var HierSheetPreview = ({
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs11("label", { style: { fontSize: 10, color: FILE_COLOR, fontFamily: "monospace" }, children: [
+          /* @__PURE__ */ jsxs12("label", { style: { fontSize: 10, color: FILE_COLOR, fontFamily: "monospace" }, children: [
             "Target sheet (file name)",
-            /* @__PURE__ */ jsx18(
+            /* @__PURE__ */ jsx19(
               "select",
               {
                 value: targetSheetId,
@@ -4177,7 +4435,7 @@ var HierSheetPreview = ({
                   fontSize: 12,
                   outline: "none"
                 },
-                children: targets.length === 0 ? /* @__PURE__ */ jsx18("option", { value: "", children: "No other sheets" }) : targets.map((t) => /* @__PURE__ */ jsxs11("option", { value: t.id, children: [
+                children: targets.length === 0 ? /* @__PURE__ */ jsx19("option", { value: "", children: "No other sheets" }) : targets.map((t) => /* @__PURE__ */ jsxs12("option", { value: t.id, children: [
                   t.title,
                   " (",
                   t.id,
@@ -4186,8 +4444,8 @@ var HierSheetPreview = ({
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs11("div", { style: { display: "flex", gap: 6, justifyContent: "flex-end" }, children: [
-            /* @__PURE__ */ jsx18(
+          /* @__PURE__ */ jsxs12("div", { style: { display: "flex", gap: 6, justifyContent: "flex-end" }, children: [
+            /* @__PURE__ */ jsx19(
               "button",
               {
                 type: "button",
@@ -4204,7 +4462,7 @@ var HierSheetPreview = ({
                 children: "Cancel"
               }
             ),
-            /* @__PURE__ */ jsx18(
+            /* @__PURE__ */ jsx19(
               "button",
               {
                 type: "button",
@@ -4232,7 +4490,7 @@ var HierSheetPreview = ({
 };
 
 // lib/hooks/usePowerPortPlacement.ts
-import { useCallback as useCallback13, useEffect as useEffect22, useRef as useRef16, useState as useState15 } from "react";
+import { useCallback as useCallback13, useEffect as useEffect23, useRef as useRef16, useState as useState16 } from "react";
 import { compose as compose17 } from "transformation-matrix";
 var PORT_SNAP_RADIUS_PX3 = 32;
 var usePowerPortPlacement = ({
@@ -4243,7 +4501,7 @@ var usePowerPortPlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState15({
+  const [state, setState] = useState16({
     previewPos: null,
     pendingPos: null,
     pendingPortId: null
@@ -4347,7 +4605,7 @@ var usePowerPortPlacement = ({
   const cancelPlacement = useCallback13(() => {
     setState({ previewPos: null, pendingPos: null, pendingPortId: null });
   }, []);
-  useEffect22(() => {
+  useEffect23(() => {
     if (!enabled) {
       setState({ previewPos: null, pendingPos: null, pendingPortId: null });
       return;
@@ -4368,8 +4626,8 @@ var usePowerPortPlacement = ({
 
 // lib/components/PowerPortPreview.tsx
 import { applyToPoint as applyToPoint10, compose as compose18 } from "transformation-matrix";
-import { useRef as useRef17, useEffect as useEffect23 } from "react";
-import { Fragment as Fragment7, jsx as jsx19, jsxs as jsxs12 } from "react/jsx-runtime";
+import { useRef as useRef17, useEffect as useEffect24 } from "react";
+import { Fragment as Fragment7, jsx as jsx20, jsxs as jsxs13 } from "react/jsx-runtime";
 var POWER_COLOR = "#c1271c";
 var PowerPortPreview = ({
   state,
@@ -4380,7 +4638,7 @@ var PowerPortPreview = ({
   onCancel
 }) => {
   const inputRef = useRef17(null);
-  useEffect23(() => {
+  useEffect24(() => {
     if (state.pendingPos && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.value = "VCC";
@@ -4395,15 +4653,15 @@ var PowerPortPreview = ({
   const toScreen = (pt) => applyToPoint10(realToScreen, pt);
   const PowerShape = ({ pos }) => {
     const sp = toScreen(pos);
-    return /* @__PURE__ */ jsxs12("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.85, children: [
-      /* @__PURE__ */ jsx19("line", { x1: 0, y1: 0, x2: 0, y2: 18, stroke: POWER_COLOR, strokeWidth: 1.5 }),
-      /* @__PURE__ */ jsx19("polygon", { points: "0,-14 -8,2 8,2", fill: "none", stroke: POWER_COLOR, strokeWidth: 1.5 }),
-      /* @__PURE__ */ jsx19("text", { x: -10, y: -18, fontSize: 9, fill: POWER_COLOR, fontFamily: "monospace", children: "PWR" }),
-      /* @__PURE__ */ jsx19("circle", { cx: 0, cy: 0, r: 3, fill: POWER_COLOR, opacity: 0.6 })
+    return /* @__PURE__ */ jsxs13("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.85, children: [
+      /* @__PURE__ */ jsx20("line", { x1: 0, y1: 0, x2: 0, y2: 18, stroke: POWER_COLOR, strokeWidth: 1.5 }),
+      /* @__PURE__ */ jsx20("polygon", { points: "0,-14 -8,2 8,2", fill: "none", stroke: POWER_COLOR, strokeWidth: 1.5 }),
+      /* @__PURE__ */ jsx20("text", { x: -10, y: -18, fontSize: 9, fill: POWER_COLOR, fontFamily: "monospace", children: "PWR" }),
+      /* @__PURE__ */ jsx20("circle", { cx: 0, cy: 0, r: 3, fill: POWER_COLOR, opacity: 0.6 })
     ] });
   };
-  return /* @__PURE__ */ jsxs12(Fragment7, { children: [
-    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx19(
+  return /* @__PURE__ */ jsxs13(Fragment7, { children: [
+    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx20(
       "svg",
       {
         style: {
@@ -4414,12 +4672,12 @@ var PowerPortPreview = ({
           pointerEvents: "none",
           zIndex: 50
         },
-        children: /* @__PURE__ */ jsx19(PowerShape, { pos: state.previewPos })
+        children: /* @__PURE__ */ jsx20(PowerShape, { pos: state.previewPos })
       }
     ),
     state.pendingPos && (() => {
       const sp = toScreen(state.pendingPos);
-      return /* @__PURE__ */ jsxs12(
+      return /* @__PURE__ */ jsxs13(
         "div",
         {
           style: {
@@ -4432,7 +4690,7 @@ var PowerPortPreview = ({
             gap: 4
           },
           children: [
-            /* @__PURE__ */ jsx19(
+            /* @__PURE__ */ jsx20(
               "input",
               {
                 ref: inputRef,
@@ -4459,7 +4717,7 @@ var PowerPortPreview = ({
                 }
               }
             ),
-            /* @__PURE__ */ jsx19(
+            /* @__PURE__ */ jsx20(
               "button",
               {
                 type: "button",
@@ -4487,7 +4745,7 @@ var PowerPortPreview = ({
 };
 
 // lib/hooks/useGroundPortPlacement.ts
-import { useCallback as useCallback14, useEffect as useEffect24, useRef as useRef18, useState as useState16 } from "react";
+import { useCallback as useCallback14, useEffect as useEffect25, useRef as useRef18, useState as useState17 } from "react";
 import { compose as compose19 } from "transformation-matrix";
 var PORT_SNAP_RADIUS_PX4 = 32;
 var useGroundPortPlacement = ({
@@ -4498,7 +4756,7 @@ var useGroundPortPlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState16({
+  const [state, setState] = useState17({
     previewPos: null,
     pendingPos: null,
     pendingPortId: null
@@ -4602,7 +4860,7 @@ var useGroundPortPlacement = ({
   const cancelPlacement = useCallback14(() => {
     setState({ previewPos: null, pendingPos: null, pendingPortId: null });
   }, []);
-  useEffect24(() => {
+  useEffect25(() => {
     if (!enabled) {
       setState({ previewPos: null, pendingPos: null, pendingPortId: null });
       return;
@@ -4623,8 +4881,8 @@ var useGroundPortPlacement = ({
 
 // lib/components/GroundPortPreview.tsx
 import { applyToPoint as applyToPoint11, compose as compose20 } from "transformation-matrix";
-import { useRef as useRef19, useEffect as useEffect25 } from "react";
-import { Fragment as Fragment8, jsx as jsx20, jsxs as jsxs13 } from "react/jsx-runtime";
+import { useRef as useRef19, useEffect as useEffect26 } from "react";
+import { Fragment as Fragment8, jsx as jsx21, jsxs as jsxs14 } from "react/jsx-runtime";
 var GND_COLOR = "#5c5c5c";
 var GroundPortPreview = ({
   state,
@@ -4635,7 +4893,7 @@ var GroundPortPreview = ({
   onCancel
 }) => {
   const inputRef = useRef19(null);
-  useEffect25(() => {
+  useEffect26(() => {
     if (state.pendingPos && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.value = "GND";
@@ -4650,15 +4908,15 @@ var GroundPortPreview = ({
   const toScreen = (pt) => applyToPoint11(realToScreen, pt);
   const GroundShape = ({ pos }) => {
     const sp = toScreen(pos);
-    return /* @__PURE__ */ jsxs13("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.85, children: [
-      /* @__PURE__ */ jsx20("line", { x1: 0, y1: 0, x2: 0, y2: 18, stroke: GND_COLOR, strokeWidth: 1.5 }),
-      /* @__PURE__ */ jsx20("polygon", { points: "0,32 -8,16 8,16", fill: "none", stroke: GND_COLOR, strokeWidth: 1.5 }),
-      /* @__PURE__ */ jsx20("text", { x: -10, y: 42, fontSize: 9, fill: GND_COLOR, fontFamily: "monospace", children: "GND" }),
-      /* @__PURE__ */ jsx20("circle", { cx: 0, cy: 0, r: 3, fill: GND_COLOR, opacity: 0.6 })
+    return /* @__PURE__ */ jsxs14("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.85, children: [
+      /* @__PURE__ */ jsx21("line", { x1: 0, y1: 0, x2: 0, y2: 18, stroke: GND_COLOR, strokeWidth: 1.5 }),
+      /* @__PURE__ */ jsx21("polygon", { points: "0,32 -8,16 8,16", fill: "none", stroke: GND_COLOR, strokeWidth: 1.5 }),
+      /* @__PURE__ */ jsx21("text", { x: -10, y: 42, fontSize: 9, fill: GND_COLOR, fontFamily: "monospace", children: "GND" }),
+      /* @__PURE__ */ jsx21("circle", { cx: 0, cy: 0, r: 3, fill: GND_COLOR, opacity: 0.6 })
     ] });
   };
-  return /* @__PURE__ */ jsxs13(Fragment8, { children: [
-    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx20(
+  return /* @__PURE__ */ jsxs14(Fragment8, { children: [
+    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx21(
       "svg",
       {
         style: {
@@ -4669,12 +4927,12 @@ var GroundPortPreview = ({
           pointerEvents: "none",
           zIndex: 50
         },
-        children: /* @__PURE__ */ jsx20(GroundShape, { pos: state.previewPos })
+        children: /* @__PURE__ */ jsx21(GroundShape, { pos: state.previewPos })
       }
     ),
     state.pendingPos && (() => {
       const sp = toScreen(state.pendingPos);
-      return /* @__PURE__ */ jsxs13(
+      return /* @__PURE__ */ jsxs14(
         "div",
         {
           style: {
@@ -4687,7 +4945,7 @@ var GroundPortPreview = ({
             gap: 4
           },
           children: [
-            /* @__PURE__ */ jsx20(
+            /* @__PURE__ */ jsx21(
               "input",
               {
                 ref: inputRef,
@@ -4714,7 +4972,7 @@ var GroundPortPreview = ({
                 }
               }
             ),
-            /* @__PURE__ */ jsx20(
+            /* @__PURE__ */ jsx21(
               "button",
               {
                 type: "button",
@@ -4742,7 +5000,7 @@ var GroundPortPreview = ({
 };
 
 // lib/hooks/useTextNotePlacement.ts
-import { useCallback as useCallback15, useEffect as useEffect26, useRef as useRef20, useState as useState17 } from "react";
+import { useCallback as useCallback15, useEffect as useEffect27, useRef as useRef20, useState as useState18 } from "react";
 import { compose as compose21 } from "transformation-matrix";
 var useTextNotePlacement = ({
   enabled,
@@ -4751,7 +5009,7 @@ var useTextNotePlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState17({
+  const [state, setState] = useState18({
     previewPos: null,
     pendingPos: null
   });
@@ -4824,7 +5082,7 @@ var useTextNotePlacement = ({
   const cancelPlacement = useCallback15(() => {
     setState({ previewPos: null, pendingPos: null });
   }, []);
-  useEffect26(() => {
+  useEffect27(() => {
     if (!enabled) {
       setState({ previewPos: null, pendingPos: null });
       return;
@@ -4845,8 +5103,8 @@ var useTextNotePlacement = ({
 
 // lib/components/TextNotePreview.tsx
 import { applyToPoint as applyToPoint12, compose as compose22 } from "transformation-matrix";
-import { useRef as useRef21, useEffect as useEffect27 } from "react";
-import { Fragment as Fragment9, jsx as jsx21, jsxs as jsxs14 } from "react/jsx-runtime";
+import { useRef as useRef21, useEffect as useEffect28 } from "react";
+import { Fragment as Fragment9, jsx as jsx22, jsxs as jsxs15 } from "react/jsx-runtime";
 var NOTE_COLOR = "#1a1612";
 var TextNotePreview = ({
   state,
@@ -4857,7 +5115,7 @@ var TextNotePreview = ({
   onCancel
 }) => {
   const inputRef = useRef21(null);
-  useEffect27(() => {
+  useEffect28(() => {
     if (state.pendingPos && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.value = "";
@@ -4872,8 +5130,8 @@ var TextNotePreview = ({
   const toScreen = (pt) => applyToPoint12(realToScreen, pt);
   const NoteShape = ({ pos }) => {
     const sp = toScreen(pos);
-    return /* @__PURE__ */ jsxs14("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.75, children: [
-      /* @__PURE__ */ jsx21(
+    return /* @__PURE__ */ jsxs15("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.75, children: [
+      /* @__PURE__ */ jsx22(
         "text",
         {
           x: 0,
@@ -4885,11 +5143,11 @@ var TextNotePreview = ({
           children: "Text"
         }
       ),
-      /* @__PURE__ */ jsx21("circle", { cx: 0, cy: 0, r: 3, fill: NOTE_COLOR, opacity: 0.4 })
+      /* @__PURE__ */ jsx22("circle", { cx: 0, cy: 0, r: 3, fill: NOTE_COLOR, opacity: 0.4 })
     ] });
   };
-  return /* @__PURE__ */ jsxs14(Fragment9, { children: [
-    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx21(
+  return /* @__PURE__ */ jsxs15(Fragment9, { children: [
+    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx22(
       "svg",
       {
         style: {
@@ -4900,12 +5158,12 @@ var TextNotePreview = ({
           pointerEvents: "none",
           zIndex: 50
         },
-        children: /* @__PURE__ */ jsx21(NoteShape, { pos: state.previewPos })
+        children: /* @__PURE__ */ jsx22(NoteShape, { pos: state.previewPos })
       }
     ),
     state.pendingPos && (() => {
       const sp = toScreen(state.pendingPos);
-      return /* @__PURE__ */ jsxs14(
+      return /* @__PURE__ */ jsxs15(
         "div",
         {
           style: {
@@ -4918,7 +5176,7 @@ var TextNotePreview = ({
             gap: 4
           },
           children: [
-            /* @__PURE__ */ jsx21(
+            /* @__PURE__ */ jsx22(
               "input",
               {
                 ref: inputRef,
@@ -4945,7 +5203,7 @@ var TextNotePreview = ({
                 }
               }
             ),
-            /* @__PURE__ */ jsx21(
+            /* @__PURE__ */ jsx22(
               "button",
               {
                 type: "button",
@@ -4973,7 +5231,7 @@ var TextNotePreview = ({
 };
 
 // lib/hooks/useTraceDrawing.ts
-import { useCallback as useCallback16, useEffect as useEffect28, useRef as useRef22, useState as useState18 } from "react";
+import { useCallback as useCallback16, useEffect as useEffect29, useRef as useRef22, useState as useState19 } from "react";
 import "transformation-matrix";
 
 // lib/utils/computeTraceRoute.ts
@@ -4998,7 +5256,7 @@ var useTraceDrawing = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState18({
+  const [state, setState] = useState19({
     isDrawing: false,
     fromPortId: null,
     previewEnd: null,
@@ -5143,7 +5401,7 @@ var useTraceDrawing = ({
       });
     }
   }, []);
-  useEffect28(() => {
+  useEffect29(() => {
     if (!enabled) {
       setState({
         isDrawing: false,
@@ -5172,7 +5430,7 @@ var useTraceDrawing = ({
 };
 
 // lib/hooks/useComponentPlacement.ts
-import { useCallback as useCallback17, useEffect as useEffect29, useRef as useRef23, useState as useState19 } from "react";
+import { useCallback as useCallback17, useEffect as useEffect30, useRef as useRef23, useState as useState20 } from "react";
 import { compose as compose23 } from "transformation-matrix";
 var useComponentPlacement = ({
   enabled,
@@ -5182,7 +5440,7 @@ var useComponentPlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState19({
+  const [state, setState] = useState20({
     previewPos: null,
     rotation: 0
   });
@@ -5250,7 +5508,7 @@ var useComponentPlacement = ({
       }));
     }
   }, [enabled]);
-  useEffect29(() => {
+  useEffect30(() => {
     if (!enabled) {
       setState({ previewPos: null, rotation: 0 });
       return;
@@ -5268,7 +5526,7 @@ var useComponentPlacement = ({
 };
 
 // lib/components/ComponentPlacementPreview.tsx
-import { jsx as jsx22 } from "react/jsx-runtime";
+import { jsx as jsx23 } from "react/jsx-runtime";
 var KIND_LABEL = {
   resistor: "R",
   capacitor: "C",
@@ -5293,7 +5551,7 @@ function ComponentPlacementPreview({
   const sx = state.previewPos.x * realToScreen.a + realToScreen.e;
   const sy = state.previewPos.y * realToScreen.d + realToScreen.f;
   const label = KIND_LABEL[componentKind] ?? "?";
-  return /* @__PURE__ */ jsx22(
+  return /* @__PURE__ */ jsx23(
     "div",
     {
       className: "pointer-events-none absolute z-20",
@@ -5302,7 +5560,7 @@ function ComponentPlacementPreview({
         top: sy,
         transform: `translate(-50%, -50%) rotate(${state.rotation}deg)`
       },
-      children: /* @__PURE__ */ jsx22(
+      children: /* @__PURE__ */ jsx23(
         "div",
         {
           className: "rounded border border-dashed px-2 py-1 font-mono text-[11px]",
@@ -5319,7 +5577,7 @@ function ComponentPlacementPreview({
 }
 
 // lib/components/SchematicViewer.tsx
-import { jsx as jsx23, jsxs as jsxs15 } from "react/jsx-runtime";
+import { jsx as jsx24, jsxs as jsxs16 } from "react/jsx-runtime";
 var SchematicViewer = ({
   circuitJson,
   containerStyle,
@@ -5333,9 +5591,13 @@ var SchematicViewer = ({
   colorOverrides,
   spiceSimulationEnabled = false,
   disableGroups = false,
+  netHoverHighlightEnabled = true,
   onSchematicComponentClicked,
   showSchematicPorts = false,
   onSchematicPortClicked,
+  onSchematicSheetChange,
+  css,
+  className,
   toolMode = "select",
   onWireAdded,
   onBusAdded,
@@ -5357,8 +5619,8 @@ var SchematicViewer = ({
   if (debug3) {
     enableDebug();
   }
-  const [showSpiceOverlay, setShowSpiceOverlay] = useState20(false);
-  const [spiceSimOptions, setSpiceSimOptions] = useState20({
+  const [showSpiceOverlay, setShowSpiceOverlay] = useState21(false);
+  const [spiceSimOptions, setSpiceSimOptions] = useState21({
     showVoltage: true,
     showCurrent: false,
     startTime: 0,
@@ -5372,6 +5634,40 @@ var SchematicViewer = ({
   const circuitJsonKey = useMemo6(
     () => getCircuitHash(circuitJson),
     [circuitJson]
+  );
+  const schematicSheets = useMemo6(() => {
+    try {
+      return circuitJson.filter((elm) => elm?.type === "schematic_sheet").slice().sort((a, b) => (a.sheet_index ?? 0) - (b.sheet_index ?? 0));
+    } catch (err) {
+      console.error("Failed to derive schematic sheets", err);
+      return [];
+    }
+  }, [circuitJsonKey]);
+  const hasMultipleSheets = schematicSheets.length > 1;
+  const defaultSheetId = schematicSheets[0]?.schematic_sheet_id;
+  const [selectedSheetId, setSelectedSheetId] = useState21(
+    () => {
+      const stored = getStoredString(STORAGE_KEYS.SELECTED_SCHEMATIC_SHEET);
+      if (stored && schematicSheets.some((s) => s.schematic_sheet_id === stored)) {
+        return stored;
+      }
+      return defaultSheetId;
+    }
+  );
+  useEffect31(() => {
+    const stillExists = selectedSheetId !== void 0 && schematicSheets.some((s) => s.schematic_sheet_id === selectedSheetId);
+    if (!stillExists) {
+      setSelectedSheetId(defaultSheetId);
+    }
+  }, [circuitJsonKey]);
+  const selectedSchematicSheetId = hasMultipleSheets ? selectedSheetId ?? defaultSheetId : void 0;
+  const handleSelectSheet = useCallback18(
+    (sheetId) => {
+      setSelectedSheetId(sheetId);
+      setStoredString(STORAGE_KEYS.SELECTED_SCHEMATIC_SHEET, sheetId);
+      onSchematicSheetChange?.(sheetId);
+    },
+    [onSchematicSheetChange]
   );
   const spiceString = useMemo6(() => {
     if (!spiceSimulationEnabled) return null;
@@ -5387,11 +5683,11 @@ var SchematicViewer = ({
     spiceSimOptions.startTime,
     spiceSimOptions.duration
   ]);
-  const [hasSpiceSimRun, setHasSpiceSimRun] = useState20(false);
-  useEffect30(() => {
+  const [hasSpiceSimRun, setHasSpiceSimRun] = useState21(false);
+  useEffect31(() => {
     setHasSpiceSimRun(false);
   }, [circuitJsonKey]);
-  useEffect30(() => {
+  useEffect31(() => {
     const onKeyDown = (e) => {
       if (e.code !== "Space") return;
       const t = e.target;
@@ -5415,9 +5711,9 @@ var SchematicViewer = ({
     isLoading: isSpiceSimLoading,
     error: spiceSimError
   } = useSpiceSimulation(hasSpiceSimRun ? spiceString : null);
-  const [editModeEnabled, setEditModeEnabled] = useState20(defaultEditMode);
+  const [editModeEnabled, setEditModeEnabled] = useState21(defaultEditMode);
   const effectiveEditMode = toolMode === "select" && editModeEnabled;
-  useEffect30(() => {
+  useEffect31(() => {
     if (toolMode === "draw_wire" || toolMode === "draw_bus" || toolMode === "draw_bus_entry" || toolMode === "draw_no_connect" || toolMode === "draw_net_label" || toolMode === "draw_global_label" || toolMode === "draw_hier_sheet" || toolMode === "draw_power_port" || toolMode === "draw_ground_port" || toolMode === "draw_text_note") {
       setEditModeEnabled(false);
     } else if (toolMode === "select" && defaultEditMode) {
@@ -5426,18 +5722,18 @@ var SchematicViewer = ({
       setEditModeEnabled(false);
     }
   }, [toolMode, defaultEditMode]);
-  const [snapToGrid, setSnapToGrid] = useState20(true);
-  const [showGridInternal, setShowGridInternal] = useState20(false);
+  const [snapToGrid, setSnapToGrid] = useState21(true);
+  const [showGridInternal, setShowGridInternal] = useState21(false);
   const showGrid = debugGrid || showGridInternal;
-  const [isInteractionEnabled, setIsInteractionEnabled] = useState20(
+  const [isInteractionEnabled, setIsInteractionEnabled] = useState21(
     !clickToInteractEnabled
   );
-  const [showViewMenu, setShowViewMenu] = useState20(false);
-  const [showSchematicGroups, setShowSchematicGroups] = useState20(() => {
+  const [showViewMenu, setShowViewMenu] = useState21(false);
+  const [showSchematicGroups, setShowSchematicGroups] = useState21(() => {
     if (disableGroups) return false;
     return getStoredBoolean("schematic_viewer_show_groups", false);
   });
-  const [isHoveringClickableComponent, setIsHoveringClickableComponent] = useState20(false);
+  const [isHoveringClickableComponent, setIsHoveringClickableComponent] = useState21(false);
   const hoveringComponentsRef = useRef24(/* @__PURE__ */ new Set());
   const handleComponentHoverChange = useCallback18(
     (componentId, isHovering) => {
@@ -5450,7 +5746,7 @@ var SchematicViewer = ({
     },
     []
   );
-  const [isHoveringClickablePort, setIsHoveringClickablePort] = useState20(false);
+  const [isHoveringClickablePort, setIsHoveringClickablePort] = useState21(false);
   const hoveringPortsRef = useRef24(/* @__PURE__ */ new Set());
   const handlePortHoverChange = useCallback18(
     (portId, isHovering) => {
@@ -5467,19 +5763,24 @@ var SchematicViewer = ({
   const touchStartRef = useRef24(null);
   const schematicComponentIds = useMemo6(() => {
     try {
-      return su6(circuitJson).schematic_component?.list()?.map((component) => component.schematic_component_id) ?? [];
+      const components = su7(circuitJson).schematic_component?.list() ?? [];
+      return components.filter(
+        (component) => !selectedSchematicSheetId || component.schematic_sheet_id === selectedSchematicSheetId
+      ).map((component) => component.schematic_component_id);
     } catch (err) {
       console.error("Failed to derive schematic component ids", err);
       return [];
     }
-  }, [circuitJsonKey, circuitJson]);
+  }, [circuitJsonKey, circuitJson, selectedSchematicSheetId]);
   const schematicPortsInfo = useMemo6(() => {
     if (!showSchematicPorts) return [];
     try {
-      const ports = su6(circuitJson).schematic_port?.list() ?? [];
+      const ports = (su7(circuitJson).schematic_port?.list() ?? []).filter(
+        (port) => !selectedSchematicSheetId || port.schematic_sheet_id === selectedSchematicSheetId
+      );
       return ports.map((port) => {
-        const sourcePort = su6(circuitJson).source_port.get(port.source_port_id);
-        const sourceComponent = sourcePort?.source_component_id ? su6(circuitJson).source_component.get(sourcePort.source_component_id) : null;
+        const sourcePort = su7(circuitJson).source_port.get(port.source_port_id);
+        const sourceComponent = sourcePort?.source_component_id ? su7(circuitJson).source_component.get(sourcePort.source_component_id) : null;
         const componentName = sourceComponent?.name ?? "?";
         const pinLabel = port.display_pin_label ?? sourcePort?.pin_number ?? sourcePort?.name ?? "?";
         return {
@@ -5491,7 +5792,7 @@ var SchematicViewer = ({
       console.error("Failed to derive schematic port info", err);
       return [];
     }
-  }, [circuitJsonKey, circuitJson, showSchematicPorts]);
+  }, [circuitJsonKey, circuitJson, showSchematicPorts, selectedSchematicSheetId]);
   const handleTouchStart = (e) => {
     const touch = e.touches[0];
     touchStartRef.current = {
@@ -5511,9 +5812,9 @@ var SchematicViewer = ({
     }
     touchStartRef.current = null;
   };
-  const [internalEditEvents, setInternalEditEvents] = useState20([]);
+  const [internalEditEvents, setInternalEditEvents] = useState21([]);
   const circuitJsonRef = useRef24(circuitJson);
-  useEffect30(() => {
+  useEffect31(() => {
     const circuitHash = getCircuitHash(circuitJson);
     const circuitHashRef = getCircuitHash(circuitJsonRef.current);
     if (circuitHash !== circuitHashRef) {
@@ -5562,16 +5863,34 @@ var SchematicViewer = ({
   const { containerWidth, containerHeight } = useResizeHandling(containerRef);
   const svgString = useMemo6(() => {
     if (!containerWidth || !containerHeight) return "";
-    return convertCircuitJsonToSchematicSvg(circuitJson, {
-      width: containerWidth,
-      height: containerHeight || 720,
-      grid: !showGrid ? void 0 : {
-        cellSize: 1,
-        labelCells: true
-      },
-      colorOverrides
-    });
-  }, [circuitJsonKey, circuitJson, containerWidth, containerHeight, showGrid, colorOverrides]);
+    return convertCircuitJsonToSchematicSvg(
+      circuitJson,
+      {
+        width: containerWidth,
+        height: containerHeight || 720,
+        drawPorts: showSchematicPorts,
+        schematicSheetId: selectedSchematicSheetId,
+        grid: !showGrid ? void 0 : {
+          cellSize: 1,
+          labelCells: true
+        },
+        colorOverrides,
+        css,
+        className
+      }
+    );
+  }, [
+    circuitJsonKey,
+    circuitJson,
+    containerWidth,
+    containerHeight,
+    showGrid,
+    colorOverrides,
+    css,
+    className,
+    showSchematicPorts,
+    selectedSchematicSheetId
+  ]);
   const containerBackgroundColor = useMemo6(() => {
     const match = svgString.match(
       /<svg[^>]*style="[^"]*background-color:\s*([^;\"]+)/i
@@ -5745,15 +6064,21 @@ var SchematicViewer = ({
   useSchematicGroupsOverlay({
     svgDivRef,
     circuitJson,
-    circuitJsonKey,
+    circuitJsonKey: `${circuitJsonKey}_${selectedSchematicSheetId ?? ""}`,
     showGroups: showSchematicGroups && !disableGroups
   });
+  useSchematicNetHover({
+    svgDivRef,
+    circuitJson,
+    circuitJsonKey: `${circuitJsonKey}_${selectedSchematicSheetId ?? ""}`,
+    enabled: netHoverHighlightEnabled
+  });
   const handleComponentTouchStartRef = useRef24(handleComponentTouchStart);
-  useEffect30(() => {
+  useEffect31(() => {
     handleComponentTouchStartRef.current = handleComponentTouchStart;
   }, [handleComponentTouchStart]);
   const svgDiv = useMemo6(
-    () => /* @__PURE__ */ jsx23(
+    () => /* @__PURE__ */ jsx24(
       "div",
       {
         ref: svgDivRef,
@@ -5778,10 +6103,12 @@ var SchematicViewer = ({
       showSpiceOverlay
     ]
   );
-  return /* @__PURE__ */ jsxs15(MouseTracker, { children: [
-    onSchematicComponentClicked && /* @__PURE__ */ jsx23("style", { children: `.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }` }),
-    onSchematicPortClicked && /* @__PURE__ */ jsx23("style", { children: `[data-schematic-port-id]:hover { cursor: pointer !important; }` }),
-    /* @__PURE__ */ jsxs15(
+  return /* @__PURE__ */ jsxs16(MouseTracker, { children: [
+    netHoverHighlightEnabled && /* @__PURE__ */ jsx24("style", { children: `.sch-net-faded { opacity: 0.35; }
+            svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id]) { transition: opacity 0.12s ease-in-out; }` }),
+    onSchematicComponentClicked && /* @__PURE__ */ jsx24("style", { children: `.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }` }),
+    onSchematicPortClicked && /* @__PURE__ */ jsx24("style", { children: `[data-schematic-port-id]:hover { cursor: pointer !important; }` }),
+    /* @__PURE__ */ jsxs16(
       "div",
       {
         ref: containerRef,
@@ -5824,7 +6151,7 @@ var SchematicViewer = ({
           handleTouchEnd(e);
         },
         children: [
-          !isInteractionEnabled && clickToInteractEnabled && /* @__PURE__ */ jsx23(
+          !isInteractionEnabled && clickToInteractEnabled && /* @__PURE__ */ jsx24(
             "div",
             {
               onClick: (e) => {
@@ -5843,7 +6170,7 @@ var SchematicViewer = ({
                 pointerEvents: "all",
                 touchAction: "pan-x pan-y pinch-zoom"
               },
-              children: /* @__PURE__ */ jsx23(
+              children: /* @__PURE__ */ jsx24(
                 "div",
                 {
                   style: {
@@ -5860,34 +6187,27 @@ var SchematicViewer = ({
               )
             }
           ),
-          /* @__PURE__ */ jsx23(
-            ViewMenuIcon,
-            {
-              active: showViewMenu,
-              onClick: () => setShowViewMenu(!showViewMenu)
-            }
-          ),
-          editingEnabled && /* @__PURE__ */ jsx23(
+          editingEnabled && /* @__PURE__ */ jsx24(
             EditIcon,
             {
               active: editModeEnabled,
               onClick: () => setEditModeEnabled(!editModeEnabled)
             }
           ),
-          editingEnabled && editModeEnabled && /* @__PURE__ */ jsx23(
+          editingEnabled && editModeEnabled && /* @__PURE__ */ jsx24(
             GridIcon,
             {
               active: snapToGrid,
               onClick: () => setSnapToGrid(!snapToGrid)
             }
           ),
-          /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
             ViewMenu,
             {
               circuitJson,
               circuitJsonKey,
-              isVisible: showViewMenu,
-              onClose: () => setShowViewMenu(false),
+              open: showViewMenu,
+              onOpenChange: setShowViewMenu,
               showGroups: showSchematicGroups,
               onToggleGroups: (value) => {
                 if (!disableGroups) {
@@ -5899,8 +6219,16 @@ var SchematicViewer = ({
               onToggleGrid: setShowGridInternal
             }
           ),
-          spiceSimulationEnabled && /* @__PURE__ */ jsx23(SpiceSimulationIcon, { onClick: () => setShowSpiceOverlay(true) }),
-          showSpiceOverlay && /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
+            SchematicSheetSelector,
+            {
+              sheets: schematicSheets,
+              selectedSheetId: selectedSchematicSheetId,
+              onSelectSheet: handleSelectSheet
+            }
+          ),
+          spiceSimulationEnabled && /* @__PURE__ */ jsx24(SpiceSimulationIcon, { onClick: () => setShowSpiceOverlay(true) }),
+          showSpiceOverlay && /* @__PURE__ */ jsx24(
             SpiceSimulationOverlay,
             {
               spiceString,
@@ -5917,7 +6245,7 @@ var SchematicViewer = ({
               hasRun: hasSpiceSimRun
             }
           ),
-          onSchematicComponentClicked && schematicComponentIds.map((componentId) => /* @__PURE__ */ jsx23(
+          onSchematicComponentClicked && schematicComponentIds.map((componentId) => /* @__PURE__ */ jsx24(
             SchematicComponentMouseTarget,
             {
               componentId,
@@ -5936,7 +6264,7 @@ var SchematicViewer = ({
             componentId
           )),
           svgDiv,
-          /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
             WirePreview,
             {
               state: activeWirePreviewState,
@@ -5945,7 +6273,7 @@ var SchematicViewer = ({
               containerRef
             }
           ),
-          /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
             ComponentPlacementPreview,
             {
               state: componentPlacementState,
@@ -5955,7 +6283,7 @@ var SchematicViewer = ({
               componentKind: placementComponentKind
             }
           ),
-          /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
             BusPreview,
             {
               state: busDrawingState,
@@ -5964,7 +6292,7 @@ var SchematicViewer = ({
               containerRef
             }
           ),
-          /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
             BusEntryPreview,
             {
               state: busEntryPreviewState,
@@ -5973,7 +6301,7 @@ var SchematicViewer = ({
               containerRef
             }
           ),
-          /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
             NoConnectPreview,
             {
               state: noConnectPreviewState,
@@ -5982,7 +6310,7 @@ var SchematicViewer = ({
               containerRef
             }
           ),
-          /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
             NetLabelPreview,
             {
               state: netLabelState,
@@ -5993,7 +6321,7 @@ var SchematicViewer = ({
               onCancel: cancelPlacement
             }
           ),
-          /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
             GlobalLabelPreview,
             {
               state: globalLabelState,
@@ -6004,7 +6332,7 @@ var SchematicViewer = ({
               onCancel: cancelGlobalPlacement
             }
           ),
-          /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
             PowerPortPreview,
             {
               state: powerPortState,
@@ -6015,7 +6343,7 @@ var SchematicViewer = ({
               onCancel: cancelPowerPlacement
             }
           ),
-          /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
             GroundPortPreview,
             {
               state: groundPortState,
@@ -6026,7 +6354,7 @@ var SchematicViewer = ({
               onCancel: cancelGroundPlacement
             }
           ),
-          /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
             TextNotePreview,
             {
               state: textNoteState,
@@ -6037,7 +6365,7 @@ var SchematicViewer = ({
               onCancel: cancelTextNotePlacement
             }
           ),
-          /* @__PURE__ */ jsx23(
+          /* @__PURE__ */ jsx24(
             HierSheetPreview,
             {
               state: hierSheetState,
@@ -6050,7 +6378,7 @@ var SchematicViewer = ({
               onCancel: cancelHierSheetPlacement
             }
           ),
-          showSchematicPorts && schematicPortsInfo.map(({ portId, label }) => /* @__PURE__ */ jsx23(
+          showSchematicPorts && schematicPortsInfo.map(({ portId, label }) => /* @__PURE__ */ jsx24(
             SchematicPortMouseTarget,
             {
               portId,
@@ -6082,10 +6410,12 @@ var SchematicViewer = ({
 import {
   convertCircuitJsonToSchematicSimulationSvg
 } from "circuit-to-svg";
-import { useEffect as useEffect31, useState as useState21, useMemo as useMemo7, useRef as useRef25 } from "react";
+import { useEffect as useEffect32, useState as useState22, useMemo as useMemo7, useRef as useRef25 } from "react";
 import { useMouseMatrixTransform as useMouseMatrixTransform2 } from "use-mouse-matrix-transform";
 import { toString as transformToString2 } from "transformation-matrix";
-import { jsx as jsx24, jsxs as jsxs16 } from "react/jsx-runtime";
+import { jsx as jsx25, jsxs as jsxs17 } from "react/jsx-runtime";
+var DEFAULT_RENDER_WIDTH = 1200;
+var DEFAULT_RENDER_ASPECT_RATIO = 1;
 var AnalogSimulationViewer = ({
   circuitJson: inputCircuitJson,
   containerStyle,
@@ -6094,16 +6424,16 @@ var AnalogSimulationViewer = ({
   height,
   className
 }) => {
-  const [circuitJson, setCircuitJson] = useState21(null);
-  const [isLoading, setIsLoading] = useState21(true);
-  const [error, setError] = useState21(null);
-  const [svgObjectUrl, setSvgObjectUrl] = useState21(null);
+  const [circuitJson, setCircuitJson] = useState22(null);
+  const [isLoading, setIsLoading] = useState22(true);
+  const [error, setError] = useState22(null);
+  const [svgObjectUrl, setSvgObjectUrl] = useState22(null);
   const containerRef = useRef25(null);
   const imgRef = useRef25(null);
-  const { containerWidth, containerHeight } = useResizeHandling(
+  const { containerWidth } = useResizeHandling(
     containerRef
   );
-  const [isDragging, setIsDragging] = useState21(false);
+  const [isDragging, setIsDragging] = useState22(false);
   const {
     ref: transformRef,
     cancelDrag: _cancelDrag,
@@ -6115,9 +6445,10 @@ var AnalogSimulationViewer = ({
       }
     }
   });
-  const effectiveWidth = width || containerWidth || 1e3;
-  const effectiveHeight = height || containerHeight || 600;
-  useEffect31(() => {
+  const renderAspectRatio = width && height ? width / height : DEFAULT_RENDER_ASPECT_RATIO;
+  const effectiveWidth = width || (height ? height * renderAspectRatio : containerWidth) || DEFAULT_RENDER_WIDTH;
+  const effectiveHeight = height || effectiveWidth / renderAspectRatio;
+  useEffect32(() => {
     setIsLoading(true);
     setError(null);
     setCircuitJson(inputCircuitJson);
@@ -6130,9 +6461,13 @@ var AnalogSimulationViewer = ({
     );
     return simulationElement?.simulation_experiment_id || null;
   }, [circuitJson]);
-  const simulationGraphIds = useMemo7(() => {
+  const simulationVoltageGraphIds = useMemo7(() => {
     if (!circuitJson) return [];
     return circuitJson.filter((el) => el.type === "simulation_transient_voltage_graph").map((el) => el.simulation_transient_voltage_graph_id);
+  }, [circuitJson]);
+  const simulationCurrentGraphIds = useMemo7(() => {
+    if (!circuitJson) return [];
+    return circuitJson.filter((el) => el.type === "simulation_transient_current_graph").map((el) => el.simulation_transient_current_graph_id);
   }, [circuitJson]);
   const simulationSvg = useMemo7(() => {
     if (!circuitJson || !effectiveWidth || !effectiveHeight || !simulationExperimentId)
@@ -6141,7 +6476,8 @@ var AnalogSimulationViewer = ({
       return convertCircuitJsonToSchematicSimulationSvg({
         circuitJson,
         simulation_experiment_id: simulationExperimentId,
-        simulation_transient_voltage_graph_ids: simulationGraphIds,
+        simulation_transient_current_graph_ids: simulationCurrentGraphIds,
+        simulation_transient_voltage_graph_ids: simulationVoltageGraphIds,
         width: effectiveWidth,
         height: effectiveHeight,
         schematicOptions: { colorOverrides }
@@ -6156,9 +6492,10 @@ var AnalogSimulationViewer = ({
     effectiveHeight,
     colorOverrides,
     simulationExperimentId,
-    simulationGraphIds
+    simulationCurrentGraphIds,
+    simulationVoltageGraphIds
   ]);
-  useEffect31(() => {
+  useEffect32(() => {
     if (!simulationSvg) {
       setSvgObjectUrl(null);
       return;
@@ -6188,7 +6525,7 @@ var AnalogSimulationViewer = ({
   const handleTouchStart = (_e) => {
     setIsDragging(true);
   };
-  useEffect31(() => {
+  useEffect32(() => {
     const handleMouseUp = () => {
       setIsDragging(false);
     };
@@ -6203,7 +6540,7 @@ var AnalogSimulationViewer = ({
     };
   }, []);
   if (isLoading) {
-    return /* @__PURE__ */ jsx24(
+    return /* @__PURE__ */ jsx25(
       "div",
       {
         style: {
@@ -6223,7 +6560,7 @@ var AnalogSimulationViewer = ({
     );
   }
   if (error) {
-    return /* @__PURE__ */ jsx24(
+    return /* @__PURE__ */ jsx25(
       "div",
       {
         style: {
@@ -6238,15 +6575,15 @@ var AnalogSimulationViewer = ({
           ...containerStyle
         },
         className,
-        children: /* @__PURE__ */ jsxs16("div", { style: { textAlign: "center", padding: "20px" }, children: [
-          /* @__PURE__ */ jsx24("div", { style: { fontWeight: "bold", marginBottom: "8px" }, children: "Circuit Conversion Error" }),
-          /* @__PURE__ */ jsx24("div", { style: { fontSize: "14px" }, children: error })
+        children: /* @__PURE__ */ jsxs17("div", { style: { textAlign: "center", padding: "20px" }, children: [
+          /* @__PURE__ */ jsx25("div", { style: { fontWeight: "bold", marginBottom: "8px" }, children: "Circuit Conversion Error" }),
+          /* @__PURE__ */ jsx25("div", { style: { fontSize: "14px" }, children: error })
         ] })
       }
     );
   }
   if (!simulationSvg) {
-    return /* @__PURE__ */ jsxs16(
+    return /* @__PURE__ */ jsxs17(
       "div",
       {
         style: {
@@ -6262,11 +6599,11 @@ var AnalogSimulationViewer = ({
         },
         className,
         children: [
-          /* @__PURE__ */ jsx24("div", { style: { fontSize: "16px", color: "#475569", fontWeight: 500 }, children: "No Simulation Found" }),
-          /* @__PURE__ */ jsxs16("div", { style: { fontSize: "14px", color: "#64748b" }, children: [
+          /* @__PURE__ */ jsx25("div", { style: { fontSize: "16px", color: "#475569", fontWeight: 500 }, children: "No Simulation Found" }),
+          /* @__PURE__ */ jsxs17("div", { style: { fontSize: "14px", color: "#64748b" }, children: [
             "Use",
             " ",
-            /* @__PURE__ */ jsx24(
+            /* @__PURE__ */ jsx25(
               "code",
               {
                 style: {
@@ -6286,7 +6623,7 @@ var AnalogSimulationViewer = ({
       }
     );
   }
-  return /* @__PURE__ */ jsx24(
+  return /* @__PURE__ */ jsx25(
     "div",
     {
       ref: (node) => {
@@ -6304,7 +6641,7 @@ var AnalogSimulationViewer = ({
       className,
       onMouseDown: handleMouseDown,
       onTouchStart: handleTouchStart,
-      children: svgObjectUrl ? /* @__PURE__ */ jsx24(
+      children: svgObjectUrl ? /* @__PURE__ */ jsx25(
         "img",
         {
           ref: imgRef,
@@ -6318,7 +6655,7 @@ var AnalogSimulationViewer = ({
             objectFit: "contain"
           }
         }
-      ) : /* @__PURE__ */ jsx24(
+      ) : /* @__PURE__ */ jsx25(
         "div",
         {
           style: {
