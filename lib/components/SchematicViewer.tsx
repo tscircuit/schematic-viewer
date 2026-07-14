@@ -134,7 +134,7 @@ interface Props {
   onComponentAdded?: (event: EditSchematicComponentAddEvent) => void
   placementComponentKind?: PlacementComponentKind
   hierSheetTargets?: HierSheetTarget[]
-  /** Host sheet id used to exclude the current sheet from hier-sheet placement targets. */
+  /** Host sheet id excluded from hier-sheet placement targets. */
   activeSheetId?: string
   allowComponentEdit?: boolean
   allowCanvasPan?: boolean

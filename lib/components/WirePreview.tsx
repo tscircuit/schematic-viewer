@@ -28,10 +28,6 @@ export const WirePreview = ({
   )
     return null
 
-  // svgToScreenProjection is applied as a CSS transform on the SVG div, which
-  // sits at the container origin — so the composed projection already yields
-  // container-relative pixels. The preview <svg> is also inset:0 in the same
-  // container, so no extra offset subtraction is needed.
   const realToScreen = compose(svgToScreenProjection, realToSvgProjection)
 
   const toScreen = (pt: { x: number; y: number }) =>

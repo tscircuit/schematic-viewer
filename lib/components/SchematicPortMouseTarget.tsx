@@ -79,7 +79,7 @@ export const SchematicPortMouseTarget = ({
     const elementRect = element.getBoundingClientRect()
     const containerRect = container.getBoundingClientRect()
 
-    // Padding around the rendered port for easier hit testing.
+    // Add some padding around the port for easier interaction.
     const padding = hitPaddingPx
 
     const nextMeasurement: Measurement = {

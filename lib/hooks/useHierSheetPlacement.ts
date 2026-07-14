@@ -25,7 +25,6 @@ export interface HierSheetPlacementState {
   pendingScreenBox: ScreenBox | null
 }
 
-/** Screen-pixel box from any two corners. */
 export function normalizeScreenBox(
   a: { x: number; y: number },
   b: { x: number; y: number },
@@ -39,7 +38,6 @@ export function normalizeScreenBox(
   return { x, y, width, height }
 }
 
-/** Map a screen rectangle to the real-axis-aligned bounds of its four corners. */
 export function realBoxFromScreenBox(
   screenBox: ScreenBox,
   localToReal: (x: number, y: number) => { x: number; y: number },

@@ -1,7 +1,3 @@
-/**
- * Host UI (toolbars, placement dialogs) should mark roots with
- * `data-schematic-ignore-mouse-capture` so draw-tool listeners skip them.
- */
 export function isMouseCaptureIgnoredTarget(
   target: EventTarget | null,
 ): boolean {
