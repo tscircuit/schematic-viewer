@@ -7,6 +7,7 @@ import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { toString as transformToString } from "transformation-matrix"
 import type { CircuitJson } from "circuit-json"
+import { AnalogSimulationSelector } from "./AnalogSimulationSelector"
 
 const DEFAULT_RENDER_WIDTH = 1200
 const DEFAULT_RENDER_ASPECT_RATIO = 1
@@ -18,6 +19,8 @@ interface Props {
   width?: number
   height?: number
   className?: string
+  /** Called when the active simulation changes. */
+  onSimulationChange?: (simulationExperimentId: string) => void
 }
 
 export const AnalogSimulationViewer = ({
@@ -27,6 +30,7 @@ export const AnalogSimulationViewer = ({
   width,
   height,
   className,
+  onSimulationChange,
 }: Props) => {
   const [circuitJson, setCircuitJson] = useState<CircuitJson | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -69,29 +73,54 @@ export const AnalogSimulationViewer = ({
     setIsLoading(false)
   }, [inputCircuitJson])
 
-  // Find simulation experiment ID from circuit JSON
-  const simulationExperimentId = useMemo(() => {
-    if (!circuitJson) return null
-    const simulationElement = circuitJson.find(
-      (el) => el.type === "simulation_experiment",
+  const simulationExperiments = useMemo(() => {
+    if (!circuitJson) return []
+    return circuitJson.filter(
+      (element) => element.type === "simulation_experiment",
     )
-    return simulationElement?.simulation_experiment_id || null
   }, [circuitJson])
+  const [selectedSimulationExperimentId, setSelectedSimulationExperimentId] =
+    useState<string | null>(null)
+  const simulationExperimentId =
+    (selectedSimulationExperimentId &&
+    simulationExperiments.some(
+      (simulation) =>
+        simulation.simulation_experiment_id === selectedSimulationExperimentId,
+    )
+      ? selectedSimulationExperimentId
+      : simulationExperiments[0]?.simulation_experiment_id) ?? null
+
+  useEffect(() => {
+    if (simulationExperimentId !== selectedSimulationExperimentId) {
+      setSelectedSimulationExperimentId(simulationExperimentId)
+    }
+  }, [simulationExperimentId, selectedSimulationExperimentId])
+
+  const handleSelectSimulation = (nextSimulationExperimentId: string) => {
+    setSelectedSimulationExperimentId(nextSimulationExperimentId)
+    onSimulationChange?.(nextSimulationExperimentId)
+  }
 
   // Find simulation graph IDs from circuit JSON
   const simulationVoltageGraphIds = useMemo(() => {
     if (!circuitJson) return []
-    return circuitJson
-      .filter((el) => el.type === "simulation_transient_voltage_graph")
-      .map((el) => el.simulation_transient_voltage_graph_id)
-  }, [circuitJson])
+    return circuitJson.flatMap((element) =>
+      element.type === "simulation_transient_voltage_graph" &&
+      element.simulation_experiment_id === simulationExperimentId
+        ? [element.simulation_transient_voltage_graph_id]
+        : [],
+    )
+  }, [circuitJson, simulationExperimentId])
 
   const simulationCurrentGraphIds = useMemo(() => {
     if (!circuitJson) return []
-    return circuitJson
-      .filter((el) => el.type === "simulation_transient_current_graph")
-      .map((el) => el.simulation_transient_current_graph_id)
-  }, [circuitJson])
+    return circuitJson.flatMap((element) =>
+      element.type === "simulation_transient_current_graph" &&
+      element.simulation_experiment_id === simulationExperimentId
+        ? [element.simulation_transient_current_graph_id]
+        : [],
+    )
+  }, [circuitJson, simulationExperimentId])
 
   // Generate SVG from CircuitJSON
   const simulationSvg = useMemo(() => {
@@ -284,6 +313,11 @@ export const AnalogSimulationViewer = ({
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
+      <AnalogSimulationSelector
+        simulations={simulationExperiments}
+        selectedSimulationExperimentId={simulationExperimentId}
+        onSelectSimulation={handleSelectSimulation}
+      />
       {svgObjectUrl ? (
         <img
           ref={imgRef}
