@@ -1,4 +1,5 @@
 import {
+  convertCircuitJsonToSchematicSimulationSvg,
   convertCircuitJsonToSimulationGraphSvg,
   type ColorOverrides,
 } from "circuit-to-svg"
@@ -19,6 +20,8 @@ interface Props {
   width?: number
   height?: number
   className?: string
+  /** Whether to include the schematic alongside the simulation graph. Defaults to true. */
+  showSchematic?: boolean
   /** Called when the active simulation changes. */
   onSimulationChange?: (simulationExperimentId: string) => void
 }
@@ -26,9 +29,11 @@ interface Props {
 export const AnalogSimulationViewer = ({
   circuitJson: inputCircuitJson,
   containerStyle,
+  colorOverrides,
   width,
   height,
   className,
+  showSchematic = true,
   onSimulationChange,
 }: Props) => {
   const [circuitJson, setCircuitJson] = useState<CircuitJson | null>(null)
@@ -121,7 +126,7 @@ export const AnalogSimulationViewer = ({
     )
   }, [circuitJson, simulationExperimentId])
 
-  // Generate the standalone simulation graph SVG from CircuitJSON
+  // Generate the simulation SVG from CircuitJSON
   const simulationSvg = useMemo(() => {
     if (
       !circuitJson ||
@@ -132,22 +137,31 @@ export const AnalogSimulationViewer = ({
       return ""
 
     try {
-      return convertCircuitJsonToSimulationGraphSvg({
+      const simulationOptions = {
         circuitJson,
         simulation_experiment_id: simulationExperimentId,
         simulation_transient_current_graph_ids: simulationCurrentGraphIds,
         simulation_transient_voltage_graph_ids: simulationVoltageGraphIds,
         width: effectiveWidth,
         height: effectiveHeight,
-      })
+      }
+
+      return showSchematic
+        ? convertCircuitJsonToSchematicSimulationSvg({
+            ...simulationOptions,
+            schematicOptions: { colorOverrides },
+          })
+        : convertCircuitJsonToSimulationGraphSvg(simulationOptions)
     } catch (error) {
-      console.error("Failed to generate simulation graph SVG:", error)
+      console.error("Failed to generate simulation SVG:", error)
       return ""
     }
   }, [
     circuitJson,
     effectiveWidth,
     effectiveHeight,
+    colorOverrides,
+    showSchematic,
     simulationExperimentId,
     simulationCurrentGraphIds,
     simulationVoltageGraphIds,
