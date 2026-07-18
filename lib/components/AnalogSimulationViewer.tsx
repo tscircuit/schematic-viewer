@@ -1,5 +1,5 @@
 import {
-  convertCircuitJsonToSchematicSimulationSvg,
+  convertCircuitJsonToSimulationGraphSvg,
   type ColorOverrides,
 } from "circuit-to-svg"
 import { useEffect, useState, useMemo, useRef } from "react"
@@ -26,7 +26,6 @@ interface Props {
 export const AnalogSimulationViewer = ({
   circuitJson: inputCircuitJson,
   containerStyle,
-  colorOverrides,
   width,
   height,
   className,
@@ -122,7 +121,7 @@ export const AnalogSimulationViewer = ({
     )
   }, [circuitJson, simulationExperimentId])
 
-  // Generate SVG from CircuitJSON
+  // Generate the standalone simulation graph SVG from CircuitJSON
   const simulationSvg = useMemo(() => {
     if (
       !circuitJson ||
@@ -133,24 +132,22 @@ export const AnalogSimulationViewer = ({
       return ""
 
     try {
-      return convertCircuitJsonToSchematicSimulationSvg({
+      return convertCircuitJsonToSimulationGraphSvg({
         circuitJson,
         simulation_experiment_id: simulationExperimentId,
         simulation_transient_current_graph_ids: simulationCurrentGraphIds,
         simulation_transient_voltage_graph_ids: simulationVoltageGraphIds,
         width: effectiveWidth,
         height: effectiveHeight,
-        schematicOptions: { colorOverrides },
       })
-    } catch (fallbackErr) {
-      console.error("Failed to generate fallback schematic SVG:", fallbackErr)
+    } catch (error) {
+      console.error("Failed to generate simulation graph SVG:", error)
       return ""
     }
   }, [
     circuitJson,
     effectiveWidth,
     effectiveHeight,
-    colorOverrides,
     simulationExperimentId,
     simulationCurrentGraphIds,
     simulationVoltageGraphIds,
