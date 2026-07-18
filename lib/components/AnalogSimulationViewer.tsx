@@ -1,5 +1,6 @@
 import {
   convertCircuitJsonToSchematicSimulationSvg,
+  convertCircuitJsonToSimulationGraphSvg,
   type ColorOverrides,
 } from "circuit-to-svg"
 import { useEffect, useState, useMemo, useRef } from "react"
@@ -19,6 +20,8 @@ interface Props {
   width?: number
   height?: number
   className?: string
+  /** Whether to hide the schematic and render only the simulation graph. Defaults to false. */
+  hideSchematic?: boolean
   /** Called when the active simulation changes. */
   onSimulationChange?: (simulationExperimentId: string) => void
 }
@@ -30,6 +33,7 @@ export const AnalogSimulationViewer = ({
   width,
   height,
   className,
+  hideSchematic = false,
   onSimulationChange,
 }: Props) => {
   const [circuitJson, setCircuitJson] = useState<CircuitJson | null>(null)
@@ -122,7 +126,7 @@ export const AnalogSimulationViewer = ({
     )
   }, [circuitJson, simulationExperimentId])
 
-  // Generate SVG from CircuitJSON
+  // Generate the simulation SVG from CircuitJSON
   const simulationSvg = useMemo(() => {
     if (
       !circuitJson ||
@@ -133,17 +137,23 @@ export const AnalogSimulationViewer = ({
       return ""
 
     try {
-      return convertCircuitJsonToSchematicSimulationSvg({
+      const simulationOptions = {
         circuitJson,
         simulation_experiment_id: simulationExperimentId,
         simulation_transient_current_graph_ids: simulationCurrentGraphIds,
         simulation_transient_voltage_graph_ids: simulationVoltageGraphIds,
         width: effectiveWidth,
         height: effectiveHeight,
-        schematicOptions: { colorOverrides },
-      })
-    } catch (fallbackErr) {
-      console.error("Failed to generate fallback schematic SVG:", fallbackErr)
+      }
+
+      return hideSchematic
+        ? convertCircuitJsonToSimulationGraphSvg(simulationOptions)
+        : convertCircuitJsonToSchematicSimulationSvg({
+            ...simulationOptions,
+            schematicOptions: { colorOverrides },
+          })
+    } catch (error) {
+      console.error("Failed to generate simulation SVG:", error)
       return ""
     }
   }, [
@@ -151,6 +161,7 @@ export const AnalogSimulationViewer = ({
     effectiveWidth,
     effectiveHeight,
     colorOverrides,
+    hideSchematic,
     simulationExperimentId,
     simulationCurrentGraphIds,
     simulationVoltageGraphIds,
