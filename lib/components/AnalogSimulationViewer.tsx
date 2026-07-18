@@ -11,7 +11,8 @@ import type { CircuitJson } from "circuit-json"
 import { AnalogSimulationSelector } from "./AnalogSimulationSelector"
 
 const DEFAULT_RENDER_WIDTH = 1200
-const DEFAULT_RENDER_ASPECT_RATIO = 1
+const DEFAULT_COMBINED_RENDER_ASPECT_RATIO = 1
+const DEFAULT_GRAPH_ONLY_RENDER_ASPECT_RATIO = 2
 
 interface Props {
   circuitJson: CircuitJson
@@ -61,8 +62,11 @@ export const AnalogSimulationViewer = ({
     },
   })
 
+  const defaultRenderAspectRatio = hideSchematic
+    ? DEFAULT_GRAPH_ONLY_RENDER_ASPECT_RATIO
+    : DEFAULT_COMBINED_RENDER_ASPECT_RATIO
   const renderAspectRatio =
-    width && height ? width / height : DEFAULT_RENDER_ASPECT_RATIO
+    width && height ? width / height : defaultRenderAspectRatio
   const effectiveWidth =
     width ||
     (height ? height * renderAspectRatio : containerWidth) ||
