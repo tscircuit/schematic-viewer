@@ -20,8 +20,8 @@ interface Props {
   width?: number
   height?: number
   className?: string
-  /** Whether to include the schematic alongside the simulation graph. Defaults to true. */
-  showSchematic?: boolean
+  /** Whether to hide the schematic and render only the simulation graph. Defaults to false. */
+  hideSchematic?: boolean
   /** Called when the active simulation changes. */
   onSimulationChange?: (simulationExperimentId: string) => void
 }
@@ -33,7 +33,7 @@ export const AnalogSimulationViewer = ({
   width,
   height,
   className,
-  showSchematic = true,
+  hideSchematic = false,
   onSimulationChange,
 }: Props) => {
   const [circuitJson, setCircuitJson] = useState<CircuitJson | null>(null)
@@ -146,12 +146,12 @@ export const AnalogSimulationViewer = ({
         height: effectiveHeight,
       }
 
-      return showSchematic
-        ? convertCircuitJsonToSchematicSimulationSvg({
+      return hideSchematic
+        ? convertCircuitJsonToSimulationGraphSvg(simulationOptions)
+        : convertCircuitJsonToSchematicSimulationSvg({
             ...simulationOptions,
             schematicOptions: { colorOverrides },
           })
-        : convertCircuitJsonToSimulationGraphSvg(simulationOptions)
     } catch (error) {
       console.error("Failed to generate simulation SVG:", error)
       return ""
@@ -161,7 +161,7 @@ export const AnalogSimulationViewer = ({
     effectiveWidth,
     effectiveHeight,
     colorOverrides,
-    showSchematic,
+    hideSchematic,
     simulationExperimentId,
     simulationCurrentGraphIds,
     simulationVoltageGraphIds,
