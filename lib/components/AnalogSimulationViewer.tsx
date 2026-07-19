@@ -9,6 +9,7 @@ import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { toString as transformToString } from "transformation-matrix"
 import type { CircuitJson } from "circuit-json"
 import { AnalogSimulationSelector } from "./AnalogSimulationSelector"
+import { getAnalogSimulationBackgroundColor } from "../utils/get-analog-simulation-background-color"
 
 const DEFAULT_RENDER_WIDTH = 1200
 const DEFAULT_COMBINED_RENDER_ASPECT_RATIO = 1
@@ -192,12 +193,8 @@ export const AnalogSimulationViewer = ({
   }, [simulationSvg])
 
   const containerBackgroundColor = useMemo(() => {
-    if (!simulationSvg) return "transparent"
-    const match = simulationSvg.match(
-      /<svg[^>]*style="[^"]*background-color:\s*([^;\"]+)/i,
-    )
-    return match?.[1] ?? "transparent"
-  }, [simulationSvg])
+    return getAnalogSimulationBackgroundColor(simulationSvg, colorOverrides)
+  }, [simulationSvg, colorOverrides])
 
   const handleMouseDown = (_e: React.MouseEvent) => {
     setIsDragging(true)
