@@ -1,11 +1,4 @@
-import { colorMap, type ColorOverrides } from "circuit-to-svg"
-
-const getCssDeclarationValue = (declarations: string, property: string) => {
-  const match = declarations.match(
-    new RegExp(`(?:^|;)\\s*${property}\\s*:\\s*([^;]+)`, "i"),
-  )
-  return match?.[1]?.trim()
-}
+import { type ColorOverrides, colorMap } from "circuit-to-svg"
 
 const getRootSvgBackgroundColor = (simulationSvg: string) => {
   const rootStyleMatch = simulationSvg.match(
@@ -13,16 +6,14 @@ const getRootSvgBackgroundColor = (simulationSvg: string) => {
   )
   const rootStyle = rootStyleMatch?.[1] ?? rootStyleMatch?.[2]
   return rootStyle
-    ? getCssDeclarationValue(rootStyle, "background-color")
-    : undefined
+    ?.match(/(?:^|;)\s*background-color\s*:\s*([^;]+)/i)?.[1]
+    ?.trim()
 }
 
-const getGraphBackgroundColor = (simulationSvg: string) => {
-  const backgroundRule = simulationSvg.match(/\.background\s*\{([^}]*)\}/i)?.[1]
-  return backgroundRule
-    ? getCssDeclarationValue(backgroundRule, "fill")
-    : undefined
-}
+const getGraphBackgroundColor = (simulationSvg: string) =>
+  simulationSvg
+    .match(/\.background\s*\{[^}]*\bfill\s*:\s*([^;}]+)/i)?.[1]
+    ?.trim()
 
 export const getAnalogSimulationBackgroundColor = (
   simulationSvg: string,
