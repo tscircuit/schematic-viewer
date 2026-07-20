@@ -1,13 +1,14 @@
+import type { CircuitJson } from "circuit-json"
 import {
+  type ColorOverrides,
   convertCircuitJsonToSchematicSimulationSvg,
   convertCircuitJsonToSimulationGraphSvg,
-  type ColorOverrides,
 } from "circuit-to-svg"
-import { useEffect, useState, useMemo, useRef } from "react"
-import { useResizeHandling } from "../hooks/use-resize-handling"
-import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { toString as transformToString } from "transformation-matrix"
-import type { CircuitJson } from "circuit-json"
+import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
+import { useResizeHandling } from "../hooks/use-resize-handling"
+import { getAnalogSimulationBackgroundColor } from "../utils/get-analog-simulation-background-color"
 import { AnalogSimulationSelector } from "./AnalogSimulationSelector"
 
 const DEFAULT_RENDER_WIDTH = 1200
@@ -192,12 +193,8 @@ export const AnalogSimulationViewer = ({
   }, [simulationSvg])
 
   const containerBackgroundColor = useMemo(() => {
-    if (!simulationSvg) return "transparent"
-    const match = simulationSvg.match(
-      /<svg[^>]*style="[^"]*background-color:\s*([^;\"]+)/i,
-    )
-    return match?.[1] ?? "transparent"
-  }, [simulationSvg])
+    return getAnalogSimulationBackgroundColor(simulationSvg, colorOverrides)
+  }, [simulationSvg, colorOverrides])
 
   const handleMouseDown = (_e: React.MouseEvent) => {
     setIsDragging(true)
