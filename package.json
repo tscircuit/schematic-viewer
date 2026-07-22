@@ -38,8 +38,8 @@
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
-    "circuit-json": "github:tscircuit/circuit-json#72b4fd2b88decced344cdf8c28d6d36a73696b1b",
-    "circuit-to-svg": "github:tscircuit/circuit-to-svg#08d08478b429f6587ef46adff7d79bd31a6e06f8",
+    "circuit-json": "github:tscircuit/circuit-json#6804b9a31f4944cec30250004f7dda8539e720ed",
+    "circuit-to-svg": "github:tscircuit/circuit-to-svg#8bc9c506b341090b9574743a634c1ac50fd481ba",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
     "use-mouse-matrix-transform": "^1.2.2"

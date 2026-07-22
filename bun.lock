@@ -5,8 +5,8 @@
       "name": "@tscircuit/schematic-viewer",
       "dependencies": {
         "@radix-ui/react-dropdown-menu": "^2.1.16",
-        "circuit-json": "github:tscircuit/circuit-json#72b4fd2b88decced344cdf8c28d6d36a73696b1b",
-        "circuit-to-svg": "github:tscircuit/circuit-to-svg#08d08478b429f6587ef46adff7d79bd31a6e06f8",
+        "circuit-json": "github:tscircuit/circuit-json#6804b9a31f4944cec30250004f7dda8539e720ed",
+        "circuit-to-svg": "github:tscircuit/circuit-to-svg#8bc9c506b341090b9574743a634c1ac50fd481ba",
         "debug": "^4.4.0",
         "performance-now": "^2.1.0",
         "use-mouse-matrix-transform": "^1.2.2",
@@ -514,7 +514,7 @@
 
     "chownr": ["chownr@1.1.4", "", {}, "sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg=="],
 
-    "circuit-json": ["circuit-json@github:tscircuit/circuit-json#72b4fd2", { "peerDependencies": { "format-si-unit": "*" } }, "tscircuit-circuit-json-72b4fd2"],
+    "circuit-json": ["circuit-json@github:tscircuit/circuit-json#6804b9a", { "dependencies": { "tsup": "^8.3.0", "typescript": "^5.7.2", "zod": "3" }, "peerDependencies": { "format-si-unit": "*" } }, "tscircuit-circuit-json-6804b9a"],
 
     "circuit-json-to-bpc": ["circuit-json-to-bpc@0.0.13", "", { "peerDependencies": { "bpc-graph": "*", "circuit-json": "*", "typescript": "^5" } }, "sha512-3wSMtPa6tJkiBQN4tsm7f0Mb7Wp90X2c8dNbULoDVE4mGGoFqP1DXqBlyvvZZl+4SjqznzQQ0EioLe2SCQTOcg=="],
 
@@ -526,7 +526,7 @@
 
     "circuit-json-to-spice": ["circuit-json-to-spice@0.0.43", "", { "dependencies": { "circuit-json-to-connectivity-map": "^0.0.22" }, "peerDependencies": { "@tscircuit/circuit-json-util": "*", "circuit-json": "*", "typescript": "^5.0.0" } }, "sha512-lYXOplosjiYhpWe8IUJ8s9E9G0OH4c+Ygn60lnpco1TEjwD+byUTp3dCk6qDw5VNG5QUdGUD1pe95HoFMzL/TA=="],
 
-    "circuit-to-svg": ["circuit-to-svg@github:tscircuit/circuit-to-svg#08d0847", { "dependencies": { "@types/node": "^22.5.5", "bun-types": "^1.1.40", "calculate-elbow": "0.0.12", "debug": "^4.4.3", "svg-path-commander": "^2.1.11", "svgson": "^5.3.1", "transformation-matrix": "^2.16.1" }, "peerDependencies": { "@tscircuit/alphabet": "*" } }, "tscircuit-circuit-to-svg-08d0847"],
+    "circuit-to-svg": ["circuit-to-svg@github:tscircuit/circuit-to-svg#8bc9c50", { "dependencies": { "@types/node": "^22.5.5", "bun-types": "^1.1.40", "calculate-elbow": "0.0.12", "debug": "^4.4.3", "svg-path-commander": "^2.1.11", "svgson": "^5.3.1", "transformation-matrix": "^2.16.1" }, "peerDependencies": { "@tscircuit/alphabet": "*" } }, "tscircuit-circuit-to-svg-8bc9c50"],
 
     "cliui": ["cliui@8.0.1", "", { "dependencies": { "string-width": "^4.2.0", "strip-ansi": "^6.0.1", "wrap-ansi": "^7.0.0" } }, "sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ=="],
 
