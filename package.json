@@ -39,7 +39,7 @@
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "circuit-json": "github:tscircuit/circuit-json#6804b9a31f4944cec30250004f7dda8539e720ed",
-    "circuit-to-svg": "github:tscircuit/circuit-to-svg#435ff7a79ce965194098336e709dbc4bd813d631",
+    "circuit-to-svg": "github:tscircuit/circuit-to-svg#8fc8eb5d18807353cd3b67103081d48d0d87bb26",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
     "use-mouse-matrix-transform": "^1.2.2"
