@@ -6,7 +6,6 @@
   "scripts": {
     "start": "cosmos",
     "build": "tsup-node ./lib/index.ts --dts --format esm --sourcemap",
-    "prepare": "bun ./scripts/prepare-git-dependency.ts",
     "build:site": "cosmos-export",
     "vercel-build": "bun run build:site",
     "format": "biome format --write .",
@@ -38,11 +37,10 @@
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
-    "circuit-json": "github:tscircuit/circuit-json#6804b9a31f4944cec30250004f7dda8539e720ed",
-    "circuit-to-svg": "github:tscircuit/circuit-to-svg#3ac42774aabf1da74d7dc93c2cf12b632294451d",
+    "circuit-json": "github:tscircuit/circuit-json#3d2b4b96bd8aa8a310ce52631bae7cc16b37a096",
+    "circuit-to-svg": "github:tscircuit/circuit-to-svg#d16ffdf7339e25c5332a33b9986f8775d6b048e5",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
     "use-mouse-matrix-transform": "^1.2.2"
-  },
-  "trustedDependencies": ["circuit-json", "circuit-to-svg", "esbuild"]
+  }
 }
