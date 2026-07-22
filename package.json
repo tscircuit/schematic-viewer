@@ -6,6 +6,7 @@
   "scripts": {
     "start": "cosmos",
     "build": "tsup-node ./lib/index.ts --dts --format esm --sourcemap",
+    "prepare": "bun ./scripts/prepare-git-dependency.ts",
     "build:site": "cosmos-export",
     "vercel-build": "bun run build:site",
     "format": "biome format --write .",
