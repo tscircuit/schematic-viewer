@@ -1,4 +1,4 @@
-import { cpSync, mkdtempSync, rmSync, symlinkSync } from "node:fs"
+import { cpSync, existsSync, mkdtempSync, rmSync, symlinkSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 
@@ -10,11 +10,30 @@ const circuitToSvgPackagePath = Bun.resolveSync(
   "circuit-to-svg/package.json",
   packageDirectory,
 )
-const dependenciesDirectory = path.dirname(
-  path.dirname(circuitToSvgPackagePath),
-)
+const circuitToSvgPackageDirectory = path.dirname(circuitToSvgPackagePath)
+const dependenciesDirectory = path.dirname(circuitToSvgPackageDirectory)
 
 try {
+  if (!existsSync(path.join(circuitToSvgPackageDirectory, "dist/index.d.ts"))) {
+    const circuitToSvgBuildResult = Bun.spawnSync({
+      cmd: [
+        "bun",
+        path.join(
+          circuitToSvgPackageDirectory,
+          "scripts/prepare-git-dependency.ts",
+        ),
+      ],
+      cwd: circuitToSvgPackageDirectory,
+      stdout: "inherit",
+      stderr: "inherit",
+    })
+    if (circuitToSvgBuildResult.exitCode !== 0) {
+      throw new Error(
+        `Unable to prepare circuit-to-svg dependency (exit ${circuitToSvgBuildResult.exitCode})`,
+      )
+    }
+  }
+
   cpSync(
     path.join(packageDirectory, "lib"),
     path.join(stagingDirectory, "lib"),
