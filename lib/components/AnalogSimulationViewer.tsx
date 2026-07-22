@@ -5,7 +5,13 @@ import {
   convertCircuitJsonToSchematicSimulationSvg,
   convertCircuitJsonToSimulationGraphSvg,
 } from "circuit-to-svg"
-import { useEffect, useMemo, useRef, useState } from "react"
+import {
+  type MutableRefObject,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { toString as transformToString } from "transformation-matrix"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
@@ -46,8 +52,8 @@ export const AnalogSimulationViewer = ({
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [svgObjectUrl, setSvgObjectUrl] = useState<string | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const imgRef = useRef<HTMLImageElement>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const imgRef = useRef<HTMLImageElement | null>(null)
 
   const { containerWidth } = useResizeHandling(
     containerRef as React.RefObject<HTMLElement>,
@@ -66,6 +72,8 @@ export const AnalogSimulationViewer = ({
       }
     },
   })
+  const mutableTransformRef =
+    transformRef as MutableRefObject<HTMLDivElement | null>
 
   const defaultRenderAspectRatio = hideSchematic
     ? DEFAULT_GRAPH_ONLY_RENDER_ASPECT_RATIO
@@ -292,7 +300,7 @@ export const AnalogSimulationViewer = ({
     <div
       ref={(node) => {
         containerRef.current = node
-        transformRef.current = node
+        mutableTransformRef.current = node
       }}
       style={{
         position: "relative",
