@@ -12,11 +12,11 @@ const schematicCircuitJson = renderToCircuitJson(
   </board>,
 )
 
-export const withAnalogAnalysis = (
-  simulationElements: CircuitJson,
-): CircuitJson => [...schematicCircuitJson, ...simulationElements]
+export const withSchematicCircuitJson = (
+  simulationCircuitJson: CircuitJson,
+): CircuitJson => [...schematicCircuitJson, ...simulationCircuitJson]
 
-export const dcOperatingPointElements = [
+export const dcOperatingPointCircuitJson = [
   {
     type: "simulation_experiment",
     simulation_experiment_id: "simulation_experiment_dc_operating_point",
@@ -43,16 +43,15 @@ export const dcOperatingPointElements = [
     current: 1.2,
     color: "#dc2626",
   },
-] as CircuitJson
+] satisfies CircuitJson
 
-export const dcSweepElements = [
+export const dcSweepCircuitJson = [
   {
     type: "simulation_experiment",
     simulation_experiment_id: "simulation_experiment_dc_sweep",
     name: "Line Regulation",
     experiment_type: "spice_dc_sweep",
-    dc_sweep_source_id: "source_component_vin",
-    dc_sweep_source_type: "voltage",
+    dc_sweep_voltage_source_id: "source_component_vin",
     dc_sweep_start: 0,
     dc_sweep_stop: 5,
     dc_sweep_step: 1,
@@ -82,9 +81,9 @@ export const dcSweepElements = [
     current_levels: [0, 0.45, 0.9, 1.35, 1.65, 1.65],
     color: "#dc2626",
   },
-] as CircuitJson
+] satisfies CircuitJson
 
-export const acSweepElements = [
+export const acSweepCircuitJson = [
   {
     type: "simulation_experiment",
     simulation_experiment_id: "simulation_experiment_ac_sweep",
@@ -131,9 +130,9 @@ export const acSweepElements = [
     ],
     color: "#dc2626",
   },
-] as CircuitJson
+] satisfies CircuitJson
 
-export const parameterSweepElements = [
+export const parameterSweepCircuitJson = [
   {
     type: "simulation_experiment",
     simulation_experiment_id: "simulation_experiment_parameter_sweep",
@@ -150,37 +149,40 @@ export const parameterSweepElements = [
     parameter_values: [100, 1_000, 10_000],
     parameter_unit: "Ω",
   },
-  ...[100, 1_000, 10_000].flatMap((parameterValue, sweepIndex) => {
-    const sweepPointId = `simulation_parameter_sweep_point_${sweepIndex}`
+  ...[
+    { resistance: 100, voltage: 0.45, current: 1.8 },
+    { resistance: 1_000, voltage: 2.5, current: 1.2 },
+    { resistance: 10_000, voltage: 4.55, current: 0.4 },
+  ].flatMap((sweepResult, sweepIndex) => {
+    const simulationParameterSweepCoordinate = {
+      simulation_parameter_sweep_id: "simulation_parameter_sweep_load",
+      sweep_index: sweepIndex,
+      parameter_value: sweepResult.resistance,
+      parameter_unit: "Ω" as const,
+    }
     return [
-      {
-        type: "simulation_parameter_sweep_point",
-        simulation_parameter_sweep_point_id: sweepPointId,
-        simulation_parameter_sweep_id: "simulation_parameter_sweep_load",
-        sweep_index: sweepIndex,
-        parameter_value: parameterValue,
-        parameter_unit: "Ω",
-      },
       {
         type: "simulation_dc_operating_point_voltage",
         simulation_dc_operating_point_voltage_id: `simulation_dc_operating_point_voltage_${sweepIndex}`,
         simulation_experiment_id: "simulation_experiment_parameter_sweep",
-        simulation_parameter_sweep_point_id: sweepPointId,
+        simulation_parameter_sweep_coordinate:
+          simulationParameterSweepCoordinate,
         simulation_voltage_probe_id: "simulation_voltage_probe_vout",
         name: "VOUT",
-        voltage: [0.45, 2.5, 4.55][sweepIndex]!,
+        voltage: sweepResult.voltage,
         color: "#315cff",
       },
       {
         type: "simulation_dc_operating_point_current",
         simulation_dc_operating_point_current_id: `simulation_dc_operating_point_current_${sweepIndex}`,
         simulation_experiment_id: "simulation_experiment_parameter_sweep",
-        simulation_parameter_sweep_point_id: sweepPointId,
+        simulation_parameter_sweep_coordinate:
+          simulationParameterSweepCoordinate,
         simulation_current_probe_id: "simulation_current_probe_load",
         name: "I(R1)",
-        current: [1.8, 1.2, 0.4][sweepIndex]!,
+        current: sweepResult.current,
         color: "#dc2626",
       },
-    ]
+    ] satisfies CircuitJson
   }),
-] as CircuitJson
+] satisfies CircuitJson

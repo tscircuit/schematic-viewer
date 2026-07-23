@@ -1,10 +1,10 @@
 import { AnalogSimulationViewer } from "lib/components/AnalogSimulationViewer"
 import {
-  dcOperatingPointElements,
-  withAnalogAnalysis,
+  dcOperatingPointCircuitJson,
+  withSchematicCircuitJson,
 } from "./analog-analysis-circuit-json"
 
-const circuitJson = withAnalogAnalysis(dcOperatingPointElements)
+const circuitJson = withSchematicCircuitJson(dcOperatingPointCircuitJson)
 
 export default () => (
   <AnalogSimulationViewer

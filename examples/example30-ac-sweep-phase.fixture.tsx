@@ -1,10 +1,10 @@
 import { AnalogSimulationViewer } from "lib/components/AnalogSimulationViewer"
 import {
-  acSweepElements,
-  withAnalogAnalysis,
+  acSweepCircuitJson,
+  withSchematicCircuitJson,
 } from "./analog-analysis-circuit-json"
 
-const circuitJson = withAnalogAnalysis(acSweepElements)
+const circuitJson = withSchematicCircuitJson(acSweepCircuitJson)
 
 export default () => (
   <AnalogSimulationViewer
