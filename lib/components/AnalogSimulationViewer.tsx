@@ -1,5 +1,6 @@
 import type { CircuitJson } from "circuit-json"
 import {
+  type AcSweepView,
   type ColorOverrides,
   convertCircuitJsonToSchematicSimulationSvg,
   convertCircuitJsonToSimulationGraphSvg,
@@ -26,6 +27,8 @@ interface Props {
   hideSchematic?: boolean
   /** Called when the active simulation changes. */
   onSimulationChange?: (simulationExperimentId: string) => void
+  /** Selects the AC result view. Defaults to magnitude. */
+  acSweepView?: AcSweepView
 }
 
 export const AnalogSimulationViewer = ({
@@ -37,6 +40,7 @@ export const AnalogSimulationViewer = ({
   className,
   hideSchematic = false,
   onSimulationChange,
+  acSweepView = "magnitude",
 }: Props) => {
   const [circuitJson, setCircuitJson] = useState<CircuitJson | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -110,27 +114,6 @@ export const AnalogSimulationViewer = ({
     onSimulationChange?.(nextSimulationExperimentId)
   }
 
-  // Find simulation graph IDs from circuit JSON
-  const simulationVoltageGraphIds = useMemo(() => {
-    if (!circuitJson) return []
-    return circuitJson.flatMap((element) =>
-      element.type === "simulation_transient_voltage_graph" &&
-      element.simulation_experiment_id === simulationExperimentId
-        ? [element.simulation_transient_voltage_graph_id]
-        : [],
-    )
-  }, [circuitJson, simulationExperimentId])
-
-  const simulationCurrentGraphIds = useMemo(() => {
-    if (!circuitJson) return []
-    return circuitJson.flatMap((element) =>
-      element.type === "simulation_transient_current_graph" &&
-      element.simulation_experiment_id === simulationExperimentId
-        ? [element.simulation_transient_current_graph_id]
-        : [],
-    )
-  }, [circuitJson, simulationExperimentId])
-
   // Generate the simulation SVG from CircuitJSON
   const simulationSvg = useMemo(() => {
     if (
@@ -145,8 +128,7 @@ export const AnalogSimulationViewer = ({
       const simulationOptions = {
         circuitJson,
         simulation_experiment_id: simulationExperimentId,
-        simulation_transient_current_graph_ids: simulationCurrentGraphIds,
-        simulation_transient_voltage_graph_ids: simulationVoltageGraphIds,
+        ac_sweep_view: acSweepView,
         width: effectiveWidth,
         height: effectiveHeight,
       }
@@ -168,8 +150,7 @@ export const AnalogSimulationViewer = ({
     colorOverrides,
     hideSchematic,
     simulationExperimentId,
-    simulationCurrentGraphIds,
-    simulationVoltageGraphIds,
+    acSweepView,
   ])
 
   // Create/revoke object URL whenever the SVG changes
