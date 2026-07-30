@@ -7,6 +7,7 @@ import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSc
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { useSchematicNetHover } from "lib/hooks/useSchematicNetHover"
+import { useSchematicSearch } from "lib/hooks/useSchematicSearch"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -34,6 +35,7 @@ import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
+import { SchematicSearch } from "./SchematicSearch"
 
 interface Props {
   circuitJson: CircuitJson
@@ -62,6 +64,8 @@ interface Props {
   }) => void
   /** Called when the active schematic sheet changes (multi-sheet circuits). */
   onSchematicSheetChange?: (schematicSheetId: string) => void
+  /** Show component and net-label search. Default true. */
+  searchEnabled?: boolean
 }
 
 export const SchematicViewer = ({
@@ -81,6 +85,7 @@ export const SchematicViewer = ({
   showSchematicPorts = false,
   onSchematicPortClicked,
   onSchematicSheetChange,
+  searchEnabled = true,
   css,
   className,
 }: Props) => {
@@ -283,15 +288,27 @@ export const SchematicViewer = ({
     }
   }, [circuitJson])
 
+  const shouldHandleViewerGesture = useCallback(
+    (event: MouseEvent | TouchEvent | WheelEvent) => {
+      const target = event.target
+      return !(
+        target instanceof Element && target.closest("[data-schematic-search]")
+      )
+    },
+    [],
+  )
+
   const {
     ref: containerRef,
     cancelDrag,
     transform: svgToScreenProjection,
+    setTransform: setSvgToScreenProjection,
   } = useMouseMatrixTransform({
     onSetTransform(transform) {
       if (!svgDivRef.current) return
       svgDivRef.current.style.transform = transformToString(transform)
     },
+    shouldDrag: shouldHandleViewerGesture,
     // @ts-ignore disabled is a valid prop but not typed
     enabled: isInteractionEnabled,
   })
@@ -344,6 +361,26 @@ export const SchematicViewer = ({
       return identity()
     }
   }, [svgString])
+
+  const {
+    searchQuery,
+    setSearchQuery,
+    searchResults,
+    handleSearchResultSelect,
+    handleCancelSearch,
+  } = useSchematicSearch({
+    circuitJson,
+    circuitJsonKey,
+    svgDivRef,
+    containerRef,
+    activeSheetId,
+    hasMultipleSheets,
+    handleSelectSheet,
+    svgString,
+    svgToScreenProjection,
+    setSvgToScreenProjection,
+    setIsInteractionEnabled,
+  })
 
   const handleEditEvent = (event: ManualEditEvent) => {
     setInternalEditEvents((prev) => [...prev, event])
@@ -446,6 +483,18 @@ export const SchematicViewer = ({
         <style>
           {`.sch-net-faded { opacity: 0.35; }
             svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id]) { transition: opacity 0.12s ease-in-out; }`}
+        </style>
+      )}
+      {searchEnabled && (
+        <style>
+          {`.schematic-search-match text,
+            text.schematic-search-match {
+              fill: #ff00d4 !important;
+            }
+            .schematic-search-match [stroke]:not(text):not([stroke="none"]),
+            [stroke]:not(text):not([stroke="none"]).schematic-search-match {
+              stroke: #ff00d4 !important;
+            }`}
         </style>
       )}
       {onSchematicComponentClicked && (
@@ -563,6 +612,16 @@ export const SchematicViewer = ({
           selectedSheetId={activeSheetId}
           onSelectSheet={handleSelectSheet}
         />
+        {searchEnabled && (
+          <SchematicSearch
+            query={searchQuery}
+            onQueryChange={setSearchQuery}
+            onCancel={handleCancelSearch}
+            results={searchResults}
+            onSelect={handleSearchResultSelect}
+            topOffset={hasMultipleSheets ? 58 : 16}
+          />
+        )}
         {onSchematicComponentClicked &&
           schematicComponentIds.map((componentId) => (
             <SchematicComponentMouseTarget
