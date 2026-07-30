@@ -331,7 +331,9 @@ export const SchematicSearch = ({
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            padding: "8px 12px",
+            height: "32px",
+            boxSizing: "border-box",
+            padding: "0 12px",
             borderBottom: searchHeaderBorder,
           }}
         >
