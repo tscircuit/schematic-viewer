@@ -318,7 +318,7 @@ export const SchematicSearch = ({
       <div
         onKeyDown={handleSearchKeyDown}
         style={{
-          width: "min(320px, calc(100vw - 32px))",
+          width: "min(280px, calc(100vw - 32px))",
           overflow: "hidden",
           border: "none",
           borderRadius: "4px",
@@ -331,11 +331,11 @@ export const SchematicSearch = ({
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            padding: "9px 12px",
+            padding: "8px 12px",
             borderBottom: searchHeaderBorder,
           }}
         >
-          <Search size={17} strokeWidth={2} aria-hidden="true" />
+          <Search size={15} strokeWidth={2} aria-hidden="true" />
           <input
             ref={inputRef}
             value={query}
@@ -347,7 +347,7 @@ export const SchematicSearch = ({
               flex: 1,
               border: "none",
               outline: "none",
-              fontSize: "14px",
+              fontSize: "13px",
               color: "#222222",
               background: "transparent",
             }}
