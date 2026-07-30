@@ -48,14 +48,12 @@ export const SchematicSearch = ({
   onCancel,
   results,
   onSelect,
-  topOffset,
 }: {
   query: string
   onQueryChange: (query: string) => void
   onCancel: () => void
   results: SchematicSearchResult[]
   onSelect: (result: SchematicSearchResult) => void
-  topOffset: number
 }) => {
   const [activeResultId, setActiveResultId] = useState<string | null>(null)
   const [hoveredResultId, setHoveredResultId] = useState<string | null>(null)
@@ -208,19 +206,7 @@ export const SchematicSearch = ({
           const active = result.target.id === activeResult?.target.id
           const hovering = result.target.id === hoveredResultId
           let resultBackground = "#ffffff"
-          if (hovering) resultBackground = "#f5f7fa"
-          if (active) resultBackground = "#e8f2ff"
-
-          let resultBoxShadow = "none"
-          let iconBorderColor = "#e5e5e5"
-          let iconBackgroundColor = "#f7f7f7"
-          let iconColor = "#666666"
-          if (active) {
-            resultBoxShadow = "inset 2px 0 0 #2f80d0"
-            iconBorderColor = "#bfd9f7"
-            iconBackgroundColor = "#ffffff"
-            iconColor = "#1667b1"
-          }
+          if (hovering || active) resultBackground = "#f1f3f5"
 
           let resultIcon = (
             <GitBranch size={15} strokeWidth={1.8} aria-hidden="true" />
@@ -247,7 +233,6 @@ export const SchematicSearch = ({
                 padding: "7px 12px",
                 border: "none",
                 background: resultBackground,
-                boxShadow: resultBoxShadow,
                 color: "#222222",
                 cursor: "pointer",
                 textAlign: "left",
@@ -260,10 +245,10 @@ export const SchematicSearch = ({
                   flexShrink: 0,
                   display: "grid",
                   placeItems: "center",
-                  border: `1px solid ${iconBorderColor}`,
+                  border: "1px solid #e5e5e5",
                   borderRadius: "6px",
-                  backgroundColor: iconBackgroundColor,
-                  color: iconColor,
+                  backgroundColor: "#f7f7f7",
+                  color: "#666666",
                 }}
               >
                 {resultIcon}
@@ -304,7 +289,7 @@ export const SchematicSearch = ({
                   title="Press Enter to open"
                   style={{
                     flexShrink: 0,
-                    color: "#6f7f90",
+                    color: "#666666",
                     fontSize: "17px",
                     lineHeight: 1,
                   }}
@@ -325,9 +310,7 @@ export const SchematicSearch = ({
       onPointerDown={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
       style={{
-        position: "absolute",
-        top: `${topOffset}px`,
-        left: "16px",
+        position: "relative",
         zIndex: zIndexMap.schematicSearch,
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       }}
@@ -337,8 +320,8 @@ export const SchematicSearch = ({
         style={{
           width: "min(320px, calc(100vw - 32px))",
           overflow: "hidden",
-          border: "1px solid #dedede",
-          borderRadius: "9px",
+          border: "none",
+          borderRadius: "4px",
           backgroundColor: "#ffffff",
           boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
         }}
@@ -397,25 +380,27 @@ export const SchematicSearch = ({
               {shortcutLabel}
             </kbd>
           )}
-          <button
-            type="button"
-            aria-label="Clear search"
-            onClick={cancelSearch}
-            style={{
-              border: "none",
-              background: "transparent",
-              color: "#777777",
-              cursor: "pointer",
-              width: "20px",
-              height: "20px",
-              display: "grid",
-              placeItems: "center",
-              padding: 0,
-              lineHeight: 1,
-            }}
-          >
-            <X size={16} strokeWidth={2} aria-hidden="true" />
-          </button>
+          {query && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={cancelSearch}
+              style={{
+                border: "none",
+                background: "transparent",
+                color: "#777777",
+                cursor: "pointer",
+                width: "20px",
+                height: "20px",
+                display: "grid",
+                placeItems: "center",
+                padding: 0,
+                lineHeight: 1,
+              }}
+            >
+              <X size={16} strokeWidth={2} aria-hidden="true" />
+            </button>
+          )}
         </div>
         {query && (
           <div

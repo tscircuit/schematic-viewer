@@ -607,21 +607,32 @@ export const SchematicViewer = ({
           showGrid={showGrid}
           onToggleGrid={setShowGridInternal}
         />
-        <SchematicSheetSelector
-          sheets={schematicSheets}
-          selectedSheetId={activeSheetId}
-          onSelectSheet={handleSelectSheet}
-        />
-        {searchEnabled && (
-          <SchematicSearch
-            query={searchQuery}
-            onQueryChange={setSearchQuery}
-            onCancel={handleCancelSearch}
-            results={searchResults}
-            onSelect={handleSearchResultSelect}
-            topOffset={hasMultipleSheets ? 58 : 16}
+        <div
+          style={{
+            position: "absolute",
+            top: "16px",
+            left: "16px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "8px",
+            zIndex: zIndexMap.schematicSearch,
+          }}
+        >
+          {searchEnabled && (
+            <SchematicSearch
+              query={searchQuery}
+              onQueryChange={setSearchQuery}
+              onCancel={handleCancelSearch}
+              results={searchResults}
+              onSelect={handleSearchResultSelect}
+            />
+          )}
+          <SchematicSheetSelector
+            sheets={schematicSheets}
+            selectedSheetId={activeSheetId}
+            onSelectSheet={handleSelectSheet}
           />
-        )}
+        </div>
         {onSchematicComponentClicked &&
           schematicComponentIds.map((componentId) => (
             <SchematicComponentMouseTarget
