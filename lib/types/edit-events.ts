@@ -9,6 +9,22 @@ export type EditSchematicComponentLocationEventWithElement =
     _element: SVGElement
   }
 
+// Emitted while / after dragging a schematic port. Ports are anchored to their
+// component in circuit-json, so backends receive both ids and the delta the
+// port moved relative to its original center.
+export interface EditSchematicPortLocationEvent extends BaseManualEditEvent {
+  edit_event_type: "edit_schematic_port_location"
+  schematic_port_id: string
+  schematic_component_id: string
+  original_center: { x: number; y: number }
+  new_center: { x: number; y: number }
+}
+
+export type EditSchematicPortLocationEventWithElement =
+  EditSchematicPortLocationEvent & {
+    _element: SVGElement
+  }
+
 export interface EditSchematicWireAddEvent extends BaseManualEditEvent {
   edit_event_type: "edit_schematic_wire_add"
   from_schematic_port_id: string
@@ -93,6 +109,7 @@ export interface EditSchematicComponentAddEvent extends BaseManualEditEvent {
 
 export type ExtendedManualEditEvent =
   | ManualEditEvent
+  | EditSchematicPortLocationEvent
   | EditSchematicWireAddEvent
   | EditSchematicBusAddEvent
   | EditSchematicBusEntryAddEvent

@@ -4,7 +4,10 @@ import {
 } from "circuit-to-svg"
 import { su } from "@tscircuit/soup-util"
 import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
+import { useChangeSchematicPortLocationsInSvg } from "lib/hooks/useChangeSchematicPortLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import { useOrthogonalTraceReroute } from "lib/hooks/useOrthogonalTraceReroute"
+import { useSchematicPortDragging } from "lib/hooks/useSchematicPortDragging"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { useSchematicNetHover } from "lib/hooks/useSchematicNetHover"
 import { enableDebug } from "lib/utils/debug"
@@ -618,6 +621,26 @@ export const SchematicViewer = ({
     snapToGrid,
   })
 
+  const {
+    handleMouseDown: handlePortDragMouseDown,
+    activeEditEvent: activePortDragEvent,
+  } = useSchematicPortDragging({
+    // The port event isn't in the base ManualEditEvent union yet — cast so the
+    // existing handler (which forwards to the host app) can carry it through.
+    onEditEvent: handleEditEvent as any,
+    cancelDrag,
+    realToSvgProjection,
+    svgToScreenProjection,
+    circuitJson,
+    editEvents: editEventsWithUnappliedEditEvents,
+    enabled:
+      allowComponentEdit &&
+      isInteractionEnabled &&
+      !showSpiceOverlay &&
+      toolMode === "select",
+    snapToGrid,
+  })
+
   const isProjectionReady =
     svgToScreenProjection?.a != null &&
     !isNaN(svgToScreenProjection.a) &&
@@ -795,11 +818,29 @@ export const SchematicViewer = ({
     activeEditEvent,
   })
 
+  useChangeSchematicPortLocationsInSvg({
+    svgDivRef,
+    realToSvgProjection,
+    editEvents: editEventsWithUnappliedEditEvents,
+    activeEditEvent: activePortDragEvent,
+  })
+
   useChangeSchematicTracesForMovedComponents({
     svgDivRef,
     circuitJson,
     activeEditEvent,
     editEvents: editEventsWithUnappliedEditEvents,
+  })
+
+  // Keep every trace connected to a moving component/port strictly orthogonal
+  // (Altium-style L-shape) — no diagonals or scribbles during/after drag.
+  useOrthogonalTraceReroute({
+    svgDivRef,
+    circuitJson,
+    realToSvgProjection,
+    editEvents: editEventsWithUnappliedEditEvents,
+    activeComponentEditEvent: activeEditEvent,
+    activePortEditEvent: activePortDragEvent,
   })
 
   // Add group overlays when enabled. The key includes the active sheet so
@@ -1141,10 +1182,16 @@ export const SchematicViewer = ({
               containerRef={containerRef}
               showOutline={true}
               interactive={
-                toolMode === "draw_wire" || toolMode === "draw_trace"
+                toolMode === "draw_wire" ||
+                toolMode === "draw_trace" ||
+                (toolMode === "select" && allowComponentEdit)
               }
               hitPaddingPx={toolMode === "draw_trace" ? 12 : 4}
-              onPortMouseDown={portMouseDownHandler}
+              onPortMouseDown={
+                toolMode === "select" && allowComponentEdit
+                  ? handlePortDragMouseDown
+                  : portMouseDownHandler
+              }
               circuitJsonKey={circuitJsonKey}
               onHoverChange={handlePortHoverChange}
               onPortClick={
