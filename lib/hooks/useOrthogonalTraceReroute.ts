@@ -2,7 +2,6 @@ import { su } from "@tscircuit/soup-util"
 import type { CircuitJson } from "circuit-json"
 import { useEffect, useRef } from "react"
 import { type Matrix, applyToPoint } from "transformation-matrix"
-import { computeTraceRoute } from "../utils/computeTraceRoute"
 import type {
   EditSchematicComponentLocationEventWithElement,
   EditSchematicPortLocationEventWithElement,
@@ -23,6 +22,10 @@ interface Args {
 type Pt = { x: number; y: number }
 
 const EPS = 1e-3
+
+function ptKey(p: Pt): string {
+  return `${p.x.toFixed(5)},${p.y.toFixed(5)}`
+}
 
 function collectCustomRoutes(
   editEvents: ExtendedManualEditEvent[],
@@ -49,53 +52,165 @@ function collectCustomRoutes(
   return routes
 }
 
-function collectPortOffsets(
+/** Port original centers + net delta after component/port drags. */
+function collectMovedPorts(
   circuitJson: CircuitJson,
   editEvents: ExtendedManualEditEvent[],
   activeComponent: EditSchematicComponentLocationEventWithElement | null,
   activePort: EditSchematicPortLocationEventWithElement | null,
-): Map<string, Pt> {
-  const offsets = new Map<string, Pt>()
+): Array<{ x: number; y: number; dx: number; dy: number }> {
+  const offsetByPortId = new Map<string, Pt>()
 
-  const applyComponentDelta = (componentId: string, dx: number, dy: number) => {
+  const addComponentDelta = (componentId: string, dx: number, dy: number) => {
     const ports = su(circuitJson).schematic_port.list({
       schematic_component_id: componentId,
     }) as { schematic_port_id: string }[]
     for (const p of ports) {
-      const prev = offsets.get(p.schematic_port_id) ?? { x: 0, y: 0 }
-      offsets.set(p.schematic_port_id, { x: prev.x + dx, y: prev.y + dy })
+      const prev = offsetByPortId.get(p.schematic_port_id) ?? { x: 0, y: 0 }
+      offsetByPortId.set(p.schematic_port_id, {
+        x: prev.x + dx,
+        y: prev.y + dy,
+      })
     }
   }
 
-  const applyPortDelta = (portId: string, dx: number, dy: number) => {
-    const prev = offsets.get(portId) ?? { x: 0, y: 0 }
-    offsets.set(portId, { x: prev.x + dx, y: prev.y + dy })
+  const addPortDelta = (portId: string, dx: number, dy: number) => {
+    const prev = offsetByPortId.get(portId) ?? { x: 0, y: 0 }
+    offsetByPortId.set(portId, { x: prev.x + dx, y: prev.y + dy })
   }
 
-  const events: (
-    | ExtendedManualEditEvent
-    | EditSchematicComponentLocationEventWithElement
-    | EditSchematicPortLocationEventWithElement
-  )[] = [
+  for (const ev of [
     ...editEvents,
     ...(activeComponent ? [activeComponent] : []),
     ...(activePort ? [activePort] : []),
-  ]
-
-  for (const ev of events) {
+  ]) {
     if (!("edit_event_type" in ev)) continue
     if (ev.edit_event_type === "edit_schematic_component_location") {
       const dx = ev.new_center.x - ev.original_center.x
       const dy = ev.new_center.y - ev.original_center.y
-      if (dx || dy) applyComponentDelta(ev.schematic_component_id, dx, dy)
+      if (dx || dy) addComponentDelta(ev.schematic_component_id, dx, dy)
     } else if (ev.edit_event_type === "edit_schematic_port_location") {
       const dx = ev.new_center.x - ev.original_center.x
       const dy = ev.new_center.y - ev.original_center.y
-      if (dx || dy) applyPortDelta(ev.schematic_port_id, dx, dy)
+      if (dx || dy) addPortDelta(ev.schematic_port_id, dx, dy)
     }
   }
 
-  return offsets
+  if (offsetByPortId.size === 0) return []
+
+  const moved: Array<{ x: number; y: number; dx: number; dy: number }> = []
+  for (const p of su(circuitJson).schematic_port.list() as {
+    schematic_port_id: string
+    center: Pt
+  }[]) {
+    const o = offsetByPortId.get(p.schematic_port_id)
+    if (!o || (Math.abs(o.x) < EPS && Math.abs(o.y) < EPS)) continue
+    if (!p.center) continue
+    moved.push({ x: p.center.x, y: p.center.y, dx: o.x, dy: o.y })
+  }
+  return moved
+}
+
+function getPortDelta(
+  p: Pt,
+  movedPorts: Array<{ x: number; y: number; dx: number; dy: number }>,
+): Pt | null {
+  for (const m of movedPorts) {
+    if (Math.abs(p.x - m.x) < EPS && Math.abs(p.y - m.y) < EPS) {
+      return { x: m.dx, y: m.dy }
+    }
+  }
+  return null
+}
+
+/**
+ * Shift only vertices that sit on a moved port; keep the rest of the polyline
+ * (including net-label ends). Nudge the neighbouring corner so segments stay
+ * orthogonal — same idea as webui applySchematicEdits.
+ */
+function shiftEdgesOrthogonally(
+  edges: Array<{ from: Pt; to: Pt }>,
+  movedPorts: Array<{ x: number; y: number; dx: number; dy: number }>,
+): Pt[] | null {
+  if (!edges.length || movedPorts.length === 0) return null
+
+  type EdgeState = {
+    origFrom: Pt
+    origTo: Pt
+    from: Pt
+    to: Pt
+    fromShifted: boolean
+    toShifted: boolean
+  }
+
+  const states: EdgeState[] = edges.map((edge) => {
+    const dFrom = getPortDelta(edge.from, movedPorts)
+    const dTo = getPortDelta(edge.to, movedPorts)
+    return {
+      origFrom: edge.from,
+      origTo: edge.to,
+      from: dFrom
+        ? { x: edge.from.x + dFrom.x, y: edge.from.y + dFrom.y }
+        : edge.from,
+      to: dTo ? { x: edge.to.x + dTo.x, y: edge.to.y + dTo.y } : edge.to,
+      fromShifted: !!dFrom,
+      toShifted: !!dTo,
+    }
+  })
+
+  const adjustments = new Map<string, Pt>()
+  for (const s of states) {
+    const wasH = Math.abs(s.origFrom.y - s.origTo.y) < EPS
+    const wasV = Math.abs(s.origFrom.x - s.origTo.x) < EPS
+    if (s.fromShifted && !s.toShifted) {
+      const key = ptKey(s.origTo)
+      if (!adjustments.has(key)) {
+        if (wasH) adjustments.set(key, { x: s.to.x, y: s.from.y })
+        else if (wasV) adjustments.set(key, { x: s.from.x, y: s.to.y })
+      }
+    } else if (!s.fromShifted && s.toShifted) {
+      const key = ptKey(s.origFrom)
+      if (!adjustments.has(key)) {
+        if (wasH) adjustments.set(key, { x: s.from.x, y: s.to.y })
+        else if (wasV) adjustments.set(key, { x: s.to.x, y: s.from.y })
+      }
+    }
+  }
+
+  const route: Pt[] = []
+  let changed = false
+  for (let i = 0; i < states.length; i++) {
+    const s = states[i]
+    const finalFrom = s.fromShifted
+      ? s.from
+      : (adjustments.get(ptKey(s.origFrom)) ?? s.from)
+    const finalTo = s.toShifted
+      ? s.to
+      : (adjustments.get(ptKey(s.origTo)) ?? s.to)
+
+    if (
+      Math.abs(finalFrom.x - s.origFrom.x) > EPS ||
+      Math.abs(finalFrom.y - s.origFrom.y) > EPS ||
+      Math.abs(finalTo.x - s.origTo.x) > EPS ||
+      Math.abs(finalTo.y - s.origTo.y) > EPS
+    ) {
+      changed = true
+    }
+
+    if (i === 0) route.push({ ...finalFrom })
+    else {
+      const last = route[route.length - 1]
+      if (
+        Math.abs(last.x - finalFrom.x) > EPS ||
+        Math.abs(last.y - finalFrom.y) > EPS
+      ) {
+        route.push({ ...finalFrom })
+      }
+    }
+    route.push({ ...finalTo })
+  }
+
+  return changed && route.length >= 2 ? route : null
 }
 
 function applyPathD(traceEl: Element, d: string) {
@@ -107,16 +222,16 @@ function applyPathD(traceEl: Element, d: string) {
   }
 }
 
-function near(a: Pt, b: Pt): boolean {
-  return Math.abs(a.x - b.x) < EPS && Math.abs(a.y - b.y) < EPS
+function routeToSvgD(routeMm: Pt[], realToSvgProjection: Matrix): string {
+  const routeSvg = routeMm.map((pt) => applyToPoint(realToSvgProjection, pt))
+  return routeSvg.map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ")
 }
 
 /**
- * Rewrites SVG trace paths to stay orthogonal while components/ports move,
- * and to honour in-progress / committed manual trace reshape events.
- *
- * Backend traces often omit from/to port ids — in that case we match edge
- * endpoints against port centers so wires still follow a dragged pin.
+ * Live SVG trace updates while editing:
+ * - Manual trace reshape → honour the custom orthogonal route
+ * - Component/port move → shift only pin-attached vertices; never rewrite the
+ *   whole wire as a port-to-port L (that was destroying net-label connections)
  */
 export const useOrthogonalTraceReroute = ({
   svgDivRef,
@@ -134,37 +249,14 @@ export const useOrthogonalTraceReroute = ({
     if (!svg) return
 
     const apply = () => {
-      const offsets = collectPortOffsets(
+      const customRoutes = collectCustomRoutes(editEvents, activeTraceEditEvent)
+      const movedPorts = collectMovedPorts(
         circuitJson,
         editEvents,
         activeComponentEditEvent,
         activePortEditEvent,
       )
-      const customRoutes = collectCustomRoutes(editEvents, activeTraceEditEvent)
-      if (offsets.size === 0 && customRoutes.size === 0) return
-
-      const portById = new Map<
-        string,
-        { center: Pt; schematic_port_id: string }
-      >()
-      const portsAtPoint: Array<{ center: Pt; id: string }> = []
-      for (const p of su(circuitJson).schematic_port.list() as {
-        schematic_port_id: string
-        center: Pt
-      }[]) {
-        portById.set(p.schematic_port_id, {
-          center: p.center,
-          schematic_port_id: p.schematic_port_id,
-        })
-        portsAtPoint.push({ center: p.center, id: p.schematic_port_id })
-      }
-
-      const findPortIdAt = (pt: Pt): string | undefined => {
-        for (const p of portsAtPoint) {
-          if (near(p.center, pt)) return p.id
-        }
-        return undefined
-      }
+      if (customRoutes.size === 0 && movedPorts.length === 0) return
 
       const traces = svg.querySelectorAll(
         '[data-circuit-json-type="schematic_trace"]',
@@ -176,64 +268,20 @@ export const useOrthogonalTraceReroute = ({
 
         const customRoute = customRoutes.get(traceId)
         if (customRoute && customRoute.length >= 2) {
-          const routeSvg = customRoute.map((pt) =>
-            applyToPoint(realToSvgProjection, pt),
-          )
-          const d = routeSvg
-            .map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`)
-            .join(" ")
-          applyPathD(trace, d)
+          applyPathD(trace, routeToSvgD(customRoute, realToSvgProjection))
           continue
         }
 
+        if (movedPorts.length === 0) continue
+
         const sch_trace = su(circuitJson).schematic_trace.get(traceId) as
-          | {
-              from_schematic_port_id?: string
-              to_schematic_port_id?: string
-              edges?: { from: Pt; to: Pt }[]
-            }
+          | { edges?: Array<{ from: Pt; to: Pt }> }
           | undefined
+        if (!sch_trace?.edges?.length) continue
 
-        let fromId = sch_trace?.from_schematic_port_id
-        let toId = sch_trace?.to_schematic_port_id
-
-        // Fallback: infer ports from edge endpoints (common for backend JSON).
-        if ((!fromId || !toId) && sch_trace?.edges?.length) {
-          const first = sch_trace.edges[0]?.from
-          const last = sch_trace.edges[sch_trace.edges.length - 1]?.to
-          if (first && !fromId) fromId = findPortIdAt(first)
-          if (last && !toId) toId = findPortIdAt(last)
-        }
-
-        if (!fromId || !toId) continue
-
-        const fromMoved = offsets.has(fromId)
-        const toMoved = offsets.has(toId)
-        if (!fromMoved && !toMoved) continue
-
-        const fromPort = portById.get(fromId)
-        const toPort = portById.get(toId)
-        if (!fromPort || !toPort) continue
-
-        const fromOffset = offsets.get(fromId) ?? { x: 0, y: 0 }
-        const toOffset = offsets.get(toId) ?? { x: 0, y: 0 }
-        const from = {
-          x: fromPort.center.x + fromOffset.x,
-          y: fromPort.center.y + fromOffset.y,
-        }
-        const to = {
-          x: toPort.center.x + toOffset.x,
-          y: toPort.center.y + toOffset.y,
-        }
-
-        const routeMm = computeTraceRoute(from, to)
-        const routeSvg = routeMm.map((pt) =>
-          applyToPoint(realToSvgProjection, pt),
-        )
-        const d = routeSvg
-          .map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`)
-          .join(" ")
-        applyPathD(trace, d)
+        const shifted = shiftEdgesOrthogonally(sch_trace.edges, movedPorts)
+        if (!shifted) continue
+        applyPathD(trace, routeToSvgD(shifted, realToSvgProjection))
       }
     }
 

@@ -14,8 +14,13 @@ interface Args {
   activeEditEvent: EditSchematicPortLocationEventWithElement | null
 }
 
-// Cumulative (mm) offset per schematic_port_id from completed events + active drag.
-function collectOffsets(
+/**
+ * ONLY port-location edits — never component moves.
+ * Pins live inside the component <g>, so a component drag already moves them
+ * via useChangeSchematicComponentLocationsInSvg. Applying component deltas here
+ * would double-transform pins and detach wires.
+ */
+function collectPortOnlyOffsets(
   editEvents: ExtendedManualEditEvent[],
   activeEditEvent: EditSchematicPortLocationEventWithElement | null,
 ) {
@@ -49,12 +54,6 @@ function collectOffsets(
   return offsets
 }
 
-/**
- * circuit-to-svg stamps BOTH ids onto SVG:
- *  - pin groups inside components → data-schematic-port-id = source_port_id
- *  - optional drawPorts indicators → data-schematic-port-id = schematic_port_id
- * Offsets are always keyed by schematic_port_id; resolve either attribute value.
- */
 function resolveOffset(
   attrId: string,
   offsets: Map<string, { x: number; y: number }>,
@@ -66,10 +65,6 @@ function resolveOffset(
   return undefined
 }
 
-/**
- * Translates dragged schematic ports in the SVG independently of their parent
- * component group. Moves the real pin circles (`.sch-port`) the user sees.
- */
 export const useChangeSchematicPortLocationsInSvg = ({
   svgDivRef,
   circuitJson,
@@ -92,7 +87,7 @@ export const useChangeSchematicPortLocationsInSvg = ({
     }
 
     const apply = () => {
-      const offsets = collectOffsets(editEvents, activeEditEvent)
+      const offsets = collectPortOnlyOffsets(editEvents, activeEditEvent)
       const targets = svg.querySelectorAll<SVGElement>(
         "[data-schematic-port-id]",
       )

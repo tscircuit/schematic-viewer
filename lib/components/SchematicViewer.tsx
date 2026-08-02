@@ -1238,7 +1238,7 @@ export const SchematicViewer = ({
                 (toolMode === "select" && allowComponentEdit)
               }
               hitPaddingPx={
-                toolMode === "draw_trace" ? 12 : toolMode === "select" ? 10 : 4
+                toolMode === "draw_trace" ? 12 : toolMode === "select" ? 14 : 4
               }
               onPortMouseDown={
                 toolMode === "select" && allowComponentEdit

@@ -107,7 +107,7 @@ var useChangeSchematicComponentLocationsInSvg = ({
 import { su as su2 } from "@tscircuit/soup-util";
 import { useEffect as useEffect2, useRef as useRef2 } from "react";
 import "transformation-matrix";
-function collectOffsets(editEvents, activeEditEvent) {
+function collectPortOnlyOffsets(editEvents, activeEditEvent) {
   const offsets = /* @__PURE__ */ new Map();
   const apply = (portId, original, next) => {
     const prev = offsets.get(portId) ?? { x: 0, y: 0 };
@@ -152,7 +152,7 @@ var useChangeSchematicPortLocationsInSvg = ({
       if (p.source_port_id) sourceToSch.set(p.source_port_id, p.schematic_port_id);
     }
     const apply = () => {
-      const offsets = collectOffsets(editEvents, activeEditEvent);
+      const offsets = collectPortOnlyOffsets(editEvents, activeEditEvent);
       const targets = svg.querySelectorAll(
         "[data-schematic-port-id]"
       );
@@ -286,22 +286,10 @@ var useChangeSchematicTracesForMovedComponents = ({
 import { su as su4 } from "@tscircuit/soup-util";
 import { useEffect as useEffect4, useRef as useRef4 } from "react";
 import { applyToPoint as applyToPoint2 } from "transformation-matrix";
-
-// lib/utils/computeTraceRoute.ts
-function computeTraceRoute(from, to) {
-  if (Math.abs(from.x - to.x) < 1e-6 || Math.abs(from.y - to.y) < 1e-6) {
-    return [from, to];
-  }
-  const viaHFirst = { x: to.x, y: from.y };
-  const viaVFirst = { x: from.x, y: to.y };
-  const lenH = Math.abs(from.x - viaHFirst.x) + Math.abs(from.y - viaHFirst.y) + Math.abs(viaHFirst.x - to.x) + Math.abs(viaHFirst.y - to.y);
-  const lenV = Math.abs(from.x - viaVFirst.x) + Math.abs(from.y - viaVFirst.y) + Math.abs(viaVFirst.x - to.x) + Math.abs(viaVFirst.y - to.y);
-  const corner = lenH <= lenV ? viaHFirst : viaVFirst;
-  return [from, corner, to];
-}
-
-// lib/hooks/useOrthogonalTraceReroute.ts
 var EPS = 1e-3;
+function ptKey(p) {
+  return `${p.x.toFixed(5)},${p.y.toFixed(5)}`;
+}
 function collectCustomRoutes(editEvents, active) {
   const routes = /* @__PURE__ */ new Map();
   for (const ev of editEvents) {
@@ -320,39 +308,109 @@ function collectCustomRoutes(editEvents, active) {
   }
   return routes;
 }
-function collectPortOffsets(circuitJson, editEvents, activeComponent, activePort) {
-  const offsets = /* @__PURE__ */ new Map();
-  const applyComponentDelta = (componentId, dx, dy) => {
+function collectMovedPorts(circuitJson, editEvents, activeComponent, activePort) {
+  const offsetByPortId = /* @__PURE__ */ new Map();
+  const addComponentDelta = (componentId, dx, dy) => {
     const ports = su4(circuitJson).schematic_port.list({
       schematic_component_id: componentId
     });
     for (const p of ports) {
-      const prev = offsets.get(p.schematic_port_id) ?? { x: 0, y: 0 };
-      offsets.set(p.schematic_port_id, { x: prev.x + dx, y: prev.y + dy });
+      const prev = offsetByPortId.get(p.schematic_port_id) ?? { x: 0, y: 0 };
+      offsetByPortId.set(p.schematic_port_id, {
+        x: prev.x + dx,
+        y: prev.y + dy
+      });
     }
   };
-  const applyPortDelta = (portId, dx, dy) => {
-    const prev = offsets.get(portId) ?? { x: 0, y: 0 };
-    offsets.set(portId, { x: prev.x + dx, y: prev.y + dy });
+  const addPortDelta = (portId, dx, dy) => {
+    const prev = offsetByPortId.get(portId) ?? { x: 0, y: 0 };
+    offsetByPortId.set(portId, { x: prev.x + dx, y: prev.y + dy });
   };
-  const events = [
+  for (const ev of [
     ...editEvents,
     ...activeComponent ? [activeComponent] : [],
     ...activePort ? [activePort] : []
-  ];
-  for (const ev of events) {
+  ]) {
     if (!("edit_event_type" in ev)) continue;
     if (ev.edit_event_type === "edit_schematic_component_location") {
       const dx = ev.new_center.x - ev.original_center.x;
       const dy = ev.new_center.y - ev.original_center.y;
-      if (dx || dy) applyComponentDelta(ev.schematic_component_id, dx, dy);
+      if (dx || dy) addComponentDelta(ev.schematic_component_id, dx, dy);
     } else if (ev.edit_event_type === "edit_schematic_port_location") {
       const dx = ev.new_center.x - ev.original_center.x;
       const dy = ev.new_center.y - ev.original_center.y;
-      if (dx || dy) applyPortDelta(ev.schematic_port_id, dx, dy);
+      if (dx || dy) addPortDelta(ev.schematic_port_id, dx, dy);
     }
   }
-  return offsets;
+  if (offsetByPortId.size === 0) return [];
+  const moved = [];
+  for (const p of su4(circuitJson).schematic_port.list()) {
+    const o = offsetByPortId.get(p.schematic_port_id);
+    if (!o || Math.abs(o.x) < EPS && Math.abs(o.y) < EPS) continue;
+    if (!p.center) continue;
+    moved.push({ x: p.center.x, y: p.center.y, dx: o.x, dy: o.y });
+  }
+  return moved;
+}
+function getPortDelta(p, movedPorts) {
+  for (const m of movedPorts) {
+    if (Math.abs(p.x - m.x) < EPS && Math.abs(p.y - m.y) < EPS) {
+      return { x: m.dx, y: m.dy };
+    }
+  }
+  return null;
+}
+function shiftEdgesOrthogonally(edges, movedPorts) {
+  if (!edges.length || movedPorts.length === 0) return null;
+  const states = edges.map((edge) => {
+    const dFrom = getPortDelta(edge.from, movedPorts);
+    const dTo = getPortDelta(edge.to, movedPorts);
+    return {
+      origFrom: edge.from,
+      origTo: edge.to,
+      from: dFrom ? { x: edge.from.x + dFrom.x, y: edge.from.y + dFrom.y } : edge.from,
+      to: dTo ? { x: edge.to.x + dTo.x, y: edge.to.y + dTo.y } : edge.to,
+      fromShifted: !!dFrom,
+      toShifted: !!dTo
+    };
+  });
+  const adjustments = /* @__PURE__ */ new Map();
+  for (const s of states) {
+    const wasH = Math.abs(s.origFrom.y - s.origTo.y) < EPS;
+    const wasV = Math.abs(s.origFrom.x - s.origTo.x) < EPS;
+    if (s.fromShifted && !s.toShifted) {
+      const key = ptKey(s.origTo);
+      if (!adjustments.has(key)) {
+        if (wasH) adjustments.set(key, { x: s.to.x, y: s.from.y });
+        else if (wasV) adjustments.set(key, { x: s.from.x, y: s.to.y });
+      }
+    } else if (!s.fromShifted && s.toShifted) {
+      const key = ptKey(s.origFrom);
+      if (!adjustments.has(key)) {
+        if (wasH) adjustments.set(key, { x: s.from.x, y: s.to.y });
+        else if (wasV) adjustments.set(key, { x: s.to.x, y: s.from.y });
+      }
+    }
+  }
+  const route = [];
+  let changed = false;
+  for (let i = 0; i < states.length; i++) {
+    const s = states[i];
+    const finalFrom = s.fromShifted ? s.from : adjustments.get(ptKey(s.origFrom)) ?? s.from;
+    const finalTo = s.toShifted ? s.to : adjustments.get(ptKey(s.origTo)) ?? s.to;
+    if (Math.abs(finalFrom.x - s.origFrom.x) > EPS || Math.abs(finalFrom.y - s.origFrom.y) > EPS || Math.abs(finalTo.x - s.origTo.x) > EPS || Math.abs(finalTo.y - s.origTo.y) > EPS) {
+      changed = true;
+    }
+    if (i === 0) route.push({ ...finalFrom });
+    else {
+      const last = route[route.length - 1];
+      if (Math.abs(last.x - finalFrom.x) > EPS || Math.abs(last.y - finalFrom.y) > EPS) {
+        route.push({ ...finalFrom });
+      }
+    }
+    route.push({ ...finalTo });
+  }
+  return changed && route.length >= 2 ? route : null;
 }
 function applyPathD(traceEl, d) {
   const paths = traceEl.querySelectorAll("path");
@@ -362,8 +420,9 @@ function applyPathD(traceEl, d) {
     path.setAttribute("d", d);
   }
 }
-function near(a, b) {
-  return Math.abs(a.x - b.x) < EPS && Math.abs(a.y - b.y) < EPS;
+function routeToSvgD(routeMm, realToSvgProjection) {
+  const routeSvg = routeMm.map((pt) => applyToPoint2(realToSvgProjection, pt));
+  return routeSvg.map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ");
 }
 var useOrthogonalTraceReroute = ({
   svgDivRef,
@@ -379,29 +438,14 @@ var useOrthogonalTraceReroute = ({
     const svg = svgDivRef.current;
     if (!svg) return;
     const apply = () => {
-      const offsets = collectPortOffsets(
+      const customRoutes = collectCustomRoutes(editEvents, activeTraceEditEvent);
+      const movedPorts = collectMovedPorts(
         circuitJson,
         editEvents,
         activeComponentEditEvent,
         activePortEditEvent
       );
-      const customRoutes = collectCustomRoutes(editEvents, activeTraceEditEvent);
-      if (offsets.size === 0 && customRoutes.size === 0) return;
-      const portById = /* @__PURE__ */ new Map();
-      const portsAtPoint = [];
-      for (const p of su4(circuitJson).schematic_port.list()) {
-        portById.set(p.schematic_port_id, {
-          center: p.center,
-          schematic_port_id: p.schematic_port_id
-        });
-        portsAtPoint.push({ center: p.center, id: p.schematic_port_id });
-      }
-      const findPortIdAt = (pt) => {
-        for (const p of portsAtPoint) {
-          if (near(p.center, pt)) return p.id;
-        }
-        return void 0;
-      };
+      if (customRoutes.size === 0 && movedPorts.length === 0) return;
       const traces = svg.querySelectorAll(
         '[data-circuit-json-type="schematic_trace"]'
       );
@@ -410,45 +454,15 @@ var useOrthogonalTraceReroute = ({
         if (!traceId) continue;
         const customRoute = customRoutes.get(traceId);
         if (customRoute && customRoute.length >= 2) {
-          const routeSvg2 = customRoute.map(
-            (pt) => applyToPoint2(realToSvgProjection, pt)
-          );
-          const d2 = routeSvg2.map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ");
-          applyPathD(trace, d2);
+          applyPathD(trace, routeToSvgD(customRoute, realToSvgProjection));
           continue;
         }
+        if (movedPorts.length === 0) continue;
         const sch_trace = su4(circuitJson).schematic_trace.get(traceId);
-        let fromId = sch_trace?.from_schematic_port_id;
-        let toId = sch_trace?.to_schematic_port_id;
-        if ((!fromId || !toId) && sch_trace?.edges?.length) {
-          const first = sch_trace.edges[0]?.from;
-          const last = sch_trace.edges[sch_trace.edges.length - 1]?.to;
-          if (first && !fromId) fromId = findPortIdAt(first);
-          if (last && !toId) toId = findPortIdAt(last);
-        }
-        if (!fromId || !toId) continue;
-        const fromMoved = offsets.has(fromId);
-        const toMoved = offsets.has(toId);
-        if (!fromMoved && !toMoved) continue;
-        const fromPort = portById.get(fromId);
-        const toPort = portById.get(toId);
-        if (!fromPort || !toPort) continue;
-        const fromOffset = offsets.get(fromId) ?? { x: 0, y: 0 };
-        const toOffset = offsets.get(toId) ?? { x: 0, y: 0 };
-        const from = {
-          x: fromPort.center.x + fromOffset.x,
-          y: fromPort.center.y + fromOffset.y
-        };
-        const to = {
-          x: toPort.center.x + toOffset.x,
-          y: toPort.center.y + toOffset.y
-        };
-        const routeMm = computeTraceRoute(from, to);
-        const routeSvg = routeMm.map(
-          (pt) => applyToPoint2(realToSvgProjection, pt)
-        );
-        const d = routeSvg.map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ");
-        applyPathD(trace, d);
+        if (!sch_trace?.edges?.length) continue;
+        const shifted = shiftEdgesOrthogonally(sch_trace.edges, movedPorts);
+        if (!shifted) continue;
+        applyPathD(trace, routeToSvgD(shifted, realToSvgProjection));
       }
     };
     const observer = new MutationObserver(() => {
@@ -6105,6 +6119,21 @@ var TextNotePreview = ({
 // lib/hooks/useTraceDrawing.ts
 import { useCallback as useCallback18, useEffect as useEffect33, useRef as useRef26, useState as useState21 } from "react";
 import "transformation-matrix";
+
+// lib/utils/computeTraceRoute.ts
+function computeTraceRoute(from, to) {
+  if (Math.abs(from.x - to.x) < 1e-6 || Math.abs(from.y - to.y) < 1e-6) {
+    return [from, to];
+  }
+  const viaHFirst = { x: to.x, y: from.y };
+  const viaVFirst = { x: from.x, y: to.y };
+  const lenH = Math.abs(from.x - viaHFirst.x) + Math.abs(from.y - viaHFirst.y) + Math.abs(viaHFirst.x - to.x) + Math.abs(viaHFirst.y - to.y);
+  const lenV = Math.abs(from.x - viaVFirst.x) + Math.abs(from.y - viaVFirst.y) + Math.abs(viaVFirst.x - to.x) + Math.abs(viaVFirst.y - to.y);
+  const corner = lenH <= lenV ? viaHFirst : viaVFirst;
+  return [from, corner, to];
+}
+
+// lib/hooks/useTraceDrawing.ts
 var useTraceDrawing = ({
   enabled,
   circuitJson,
@@ -7327,7 +7356,7 @@ var SchematicViewer = ({
               containerRef,
               showOutline: toolMode !== "select",
               interactive: toolMode === "draw_wire" || toolMode === "draw_trace" || toolMode === "select" && allowComponentEdit,
-              hitPaddingPx: toolMode === "draw_trace" ? 12 : toolMode === "select" ? 10 : 4,
+              hitPaddingPx: toolMode === "draw_trace" ? 12 : toolMode === "select" ? 14 : 4,
               onPortMouseDown: toolMode === "select" && allowComponentEdit ? handlePortDragMouseDown : portMouseDownHandler,
               circuitJsonKey,
               onHoverChange: handlePortHoverChange,
