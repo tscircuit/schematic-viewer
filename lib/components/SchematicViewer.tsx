@@ -8,6 +8,7 @@ import { useChangeSchematicPortLocationsInSvg } from "lib/hooks/useChangeSchemat
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useOrthogonalTraceReroute } from "lib/hooks/useOrthogonalTraceReroute"
 import { useSchematicPortDragging } from "lib/hooks/useSchematicPortDragging"
+import { useSchematicTraceDragging } from "lib/hooks/useSchematicTraceDragging"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { useSchematicNetHover } from "lib/hooks/useSchematicNetHover"
 import { enableDebug } from "lib/utils/debug"
@@ -40,6 +41,7 @@ import {
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
+import { SchematicTraceMouseTarget } from "./SchematicTraceMouseTarget"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
 import { useWireDrawing } from "../hooks/useWireDrawing"
 import { useBusDrawing } from "../hooks/useBusDrawing"
@@ -140,6 +142,12 @@ interface Props {
   /** Host sheet id excluded from hier-sheet placement targets. */
   activeSheetId?: string
   allowComponentEdit?: boolean
+  /**
+   * Screen-space rectangles the host reserves (e.g. the sheet title block).
+   * Component and port drags are clamped so their bboxes never enter these
+   * regions. Called on every mouse-move; keep it lightweight.
+   */
+  getBlockedScreenRegions?: () => DOMRect[] | undefined
   allowCanvasPan?: boolean
 }
 
@@ -179,6 +187,7 @@ export const SchematicViewer = ({
   hierSheetTargets = [],
   activeSheetId,
   allowComponentEdit = false,
+  getBlockedScreenRegions,
   allowCanvasPan = true,
 }: Props) => {
   if (debug) {
@@ -390,6 +399,19 @@ export const SchematicViewer = ({
       return []
     }
   }, [circuitJsonKey, circuitJson, selectedSchematicSheetId])
+
+  const schematicTraceIds = useMemo(() => {
+    try {
+      const traces = (su(circuitJson).schematic_trace?.list() ?? []).filter(
+        (trace) =>
+          !selectedSchematicSheetId ||
+          (trace as any).schematic_sheet_id === selectedSchematicSheetId,
+      )
+      return traces.map((t) => t.schematic_trace_id as string)
+    } catch {
+      return []
+    }
+  }, [circuitJson, selectedSchematicSheetId])
 
   const schematicPortsInfo = useMemo(() => {
     if (!showSchematicPorts) return []
@@ -619,6 +641,25 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
     enabled: allowComponentEdit && isInteractionEnabled && !showSpiceOverlay,
     snapToGrid,
+    getBlockedScreenRegions,
+  })
+
+  const {
+    handleMouseDown: handleTraceDragMouseDown,
+    activeEditEvent: activeTraceDragEvent,
+  } = useSchematicTraceDragging({
+    onEditEvent: handleEditEvent as any,
+    cancelDrag,
+    realToSvgProjection,
+    svgToScreenProjection,
+    circuitJson,
+    editEvents: editEventsWithUnappliedEditEvents,
+    enabled:
+      allowComponentEdit &&
+      isInteractionEnabled &&
+      !showSpiceOverlay &&
+      toolMode === "select",
+    snapToGrid,
   })
 
   const {
@@ -639,6 +680,7 @@ export const SchematicViewer = ({
       !showSpiceOverlay &&
       toolMode === "select",
     snapToGrid,
+    getBlockedScreenRegions,
   })
 
   const isProjectionReady =
@@ -841,6 +883,7 @@ export const SchematicViewer = ({
     editEvents: editEventsWithUnappliedEditEvents,
     activeComponentEditEvent: activeEditEvent,
     activePortEditEvent: activePortDragEvent,
+    activeTraceEditEvent: activeTraceDragEvent,
   })
 
   // Add group overlays when enabled. The key includes the active sheet so
@@ -1204,6 +1247,19 @@ export const SchematicViewer = ({
                     }
                   : undefined
               }
+            />
+          ))}
+        {allowComponentEdit &&
+          toolMode === "select" &&
+          schematicTraceIds.map((traceId) => (
+            <SchematicTraceMouseTarget
+              key={traceId}
+              traceId={traceId}
+              svgDivRef={svgDivRef}
+              containerRef={containerRef}
+              circuitJsonKey={circuitJsonKey}
+              interactive={isInteractionEnabled && !showSpiceOverlay}
+              onTraceMouseDown={handleTraceDragMouseDown}
             />
           ))}
       </div>

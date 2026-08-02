@@ -3,6 +3,10 @@ import Debug from "lib/utils/debug"
 import { getComponentOffsetDueToEvents } from "lib/utils/get-component-offset-due-to-events"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { type Matrix, compose } from "transformation-matrix"
+import {
+  type BlockedScreenRegionsProvider,
+  clampCenterAgainstBlockedRegions,
+} from "../utils/blockedRegions"
 import type {
   EditSchematicComponentLocationEventWithElement,
   ManualEditEvent,
@@ -19,6 +23,7 @@ export const useComponentDragging = ({
   realToSvgProjection,
   enabled = false,
   snapToGrid = false,
+  getBlockedScreenRegions,
 }: {
   circuitJson: any[]
   editEvents: ManualEditEvent[]
@@ -30,6 +35,8 @@ export const useComponentDragging = ({
   cancelDrag?: () => void
   enabled?: boolean
   snapToGrid?: boolean
+  /** Screen-space rects the dragged bbox must not enter (e.g. sheet title block). */
+  getBlockedScreenRegions?: BlockedScreenRegionsProvider
 }): {
   handleMouseDown: (e: React.MouseEvent) => void
   handleTouchStart: (e: React.TouchEvent) => void
@@ -50,6 +57,11 @@ export const useComponentDragging = ({
     x: number
     y: number
   } | null>(null)
+
+  // Screen bbox at drag start — must NOT be re-read mid-drag because the SVG
+  // transform hook already moves the element, which would double-count deltas
+  // inside clampCenterAgainstBlockedRegions.
+  const originalBBoxRef = useRef<DOMRect | null>(null)
 
   const activeEditEventRef =
     useRef<EditSchematicComponentLocationEventWithElement | null>(null)
@@ -121,6 +133,10 @@ export const useComponentDragging = ({
         })
       }
 
+      originalBBoxRef.current = (
+        componentGroup as Element
+      ).getBoundingClientRect()
+
       const newEditEvent: EditSchematicComponentLocationEventWithElement = {
         edit_event_id: Math.random().toString(36).substr(2, 9),
         edit_event_type: "edit_schematic_component_location",
@@ -180,6 +196,18 @@ export const useComponentDragging = ({
         newCenter = { x: snap(newCenter.x), y: snap(newCenter.y) }
       }
 
+      // Keep the dragged bbox out of reserved regions (title block, etc.).
+      const blockedRegions = getBlockedScreenRegions?.() ?? []
+      if (blockedRegions.length > 0 && originalBBoxRef.current) {
+        newCenter = clampCenterAgainstBlockedRegions({
+          currentBBox: originalBBoxRef.current,
+          originalCenter: activeEditEventRef.current.original_center,
+          proposedCenter: newCenter,
+          realToScreenProjection,
+          blockedRegions,
+        })
+      }
+
       const newEditEvent = {
         ...activeEditEventRef.current,
         new_center: newCenter,
@@ -188,7 +216,7 @@ export const useComponentDragging = ({
       activeEditEventRef.current = newEditEvent
       setActiveEditEvent(newEditEvent)
     },
-    [realToScreenProjection, snapToGrid],
+    [realToScreenProjection, snapToGrid, getBlockedScreenRegions],
   )
 
   const handleMouseMove = useCallback(
@@ -223,6 +251,7 @@ export const useComponentDragging = ({
     if (onEditEvent) onEditEvent(finalEvent)
     activeEditEventRef.current = null
     dragStartPosRef.current = null
+    originalBBoxRef.current = null
     setActiveEditEvent(null)
   }, [onEditEvent])
 

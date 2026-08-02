@@ -1,6 +1,10 @@
 import { su } from "@tscircuit/soup-util"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { type Matrix, compose } from "transformation-matrix"
+import {
+  type BlockedScreenRegionsProvider,
+  clampCenterAgainstBlockedRegions,
+} from "../utils/blockedRegions"
 import type {
   EditSchematicPortLocationEvent,
   EditSchematicPortLocationEventWithElement,
@@ -16,6 +20,7 @@ interface Args {
   cancelDrag?: () => void
   enabled?: boolean
   snapToGrid?: boolean
+  getBlockedScreenRegions?: BlockedScreenRegionsProvider
 }
 
 interface Result {
@@ -52,6 +57,7 @@ export const useSchematicPortDragging = ({
   cancelDrag,
   enabled = false,
   snapToGrid = false,
+  getBlockedScreenRegions,
 }: Args): Result => {
   const [activeEditEvent, setActiveEditEvent] =
     useState<EditSchematicPortLocationEventWithElement | null>(null)
@@ -59,6 +65,9 @@ export const useSchematicPortDragging = ({
     null,
   )
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null)
+  // Bbox at drag start — see useComponentDragging for why we must not re-read
+  // getBoundingClientRect mid-drag.
+  const originalBBoxRef = useRef<DOMRect | null>(null)
 
   const realToScreenProjection = compose(
     realToSvgProjection,
@@ -88,6 +97,13 @@ export const useSchematicPortDragging = ({
         ...port.center,
       }
       dragStartPosRef.current = { x: clientX, y: clientY }
+      const el = (target as Element | null)?.closest?.(
+        `[data-schematic-port-id="${portId}"]`,
+      ) as Element | null
+      originalBBoxRef.current =
+        el?.getBoundingClientRect() ??
+        (target as Element | null)?.getBoundingClientRect?.() ??
+        null
 
       const newEvent: EditSchematicPortLocationEventWithElement = {
         edit_event_id: Math.random().toString(36).slice(2, 11),
@@ -133,11 +149,21 @@ export const useSchematicPortDragging = ({
         const snap = (v: number) => Math.round(v * 10) / 10
         newCenter = { x: snap(newCenter.x), y: snap(newCenter.y) }
       }
+      const blockedRegions = getBlockedScreenRegions?.() ?? []
+      if (blockedRegions.length > 0 && originalBBoxRef.current) {
+        newCenter = clampCenterAgainstBlockedRegions({
+          currentBBox: originalBBoxRef.current,
+          originalCenter: activeRef.current.original_center,
+          proposedCenter: newCenter,
+          realToScreenProjection,
+          blockedRegions,
+        })
+      }
       const next = { ...activeRef.current, new_center: newCenter }
       activeRef.current = next
       setActiveEditEvent(next)
     },
-    [realToScreenProjection, snapToGrid],
+    [realToScreenProjection, snapToGrid, getBlockedScreenRegions],
   )
 
   const endDrag = useCallback(() => {
@@ -150,6 +176,7 @@ export const useSchematicPortDragging = ({
     if (onEditEvent) onEditEvent(final)
     activeRef.current = null
     dragStartPosRef.current = null
+    originalBBoxRef.current = null
     setActiveEditEvent(null)
   }, [onEditEvent])
 

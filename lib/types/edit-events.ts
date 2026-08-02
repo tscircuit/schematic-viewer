@@ -25,6 +25,20 @@ export type EditSchematicPortLocationEventWithElement =
     _element: SVGElement
   }
 
+// Emitted when a user drags a schematic trace to reshape it. Endpoints stay
+// pinned to their ports; only the middle corner (or waypoints) moves so the
+// wire remains orthogonal.
+export interface EditSchematicTraceMoveEvent extends BaseManualEditEvent {
+  edit_event_type: "edit_schematic_trace_move"
+  schematic_trace_id: string
+  route: Array<{ x: number; y: number }>
+}
+
+export type EditSchematicTraceMoveEventWithElement =
+  EditSchematicTraceMoveEvent & {
+    _element: SVGElement
+  }
+
 export interface EditSchematicWireAddEvent extends BaseManualEditEvent {
   edit_event_type: "edit_schematic_wire_add"
   from_schematic_port_id: string
@@ -110,6 +124,7 @@ export interface EditSchematicComponentAddEvent extends BaseManualEditEvent {
 export type ExtendedManualEditEvent =
   | ManualEditEvent
   | EditSchematicPortLocationEvent
+  | EditSchematicTraceMoveEvent
   | EditSchematicWireAddEvent
   | EditSchematicBusAddEvent
   | EditSchematicBusEntryAddEvent

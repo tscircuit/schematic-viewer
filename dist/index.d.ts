@@ -166,9 +166,15 @@ interface Props$1 {
     /** Host sheet id excluded from hier-sheet placement targets. */
     activeSheetId?: string;
     allowComponentEdit?: boolean;
+    /**
+     * Screen-space rectangles the host reserves (e.g. the sheet title block).
+     * Component and port drags are clamped so their bboxes never enter these
+     * regions. Called on every mouse-move; keep it lightweight.
+     */
+    getBlockedScreenRegions?: () => DOMRect[] | undefined;
     allowCanvasPan?: boolean;
 }
-declare const SchematicViewer: ({ circuitJson, containerStyle, editEvents: unappliedEditEvents, onEditEvent, defaultEditMode, debugGrid, editingEnabled, debug, clickToInteractEnabled, colorOverrides, spiceSimulationEnabled, disableGroups, netHoverHighlightEnabled, onSchematicComponentClicked, showSchematicPorts, onSchematicPortClicked, onSchematicSheetChange, css, className, toolMode, onWireAdded, onBusAdded, onBusEntryAdded, onNoConnectAdded, onNetLabelAdded, onGlobalLabelAdded, onHierSheetAdded, onPowerPortAdded, onGroundPortAdded, onTextNoteAdded, onComponentAdded, placementComponentKind, hierSheetTargets, activeSheetId, allowComponentEdit, allowCanvasPan, }: Props$1) => react.JSX.Element;
+declare const SchematicViewer: ({ circuitJson, containerStyle, editEvents: unappliedEditEvents, onEditEvent, defaultEditMode, debugGrid, editingEnabled, debug, clickToInteractEnabled, colorOverrides, spiceSimulationEnabled, disableGroups, netHoverHighlightEnabled, onSchematicComponentClicked, showSchematicPorts, onSchematicPortClicked, onSchematicSheetChange, css, className, toolMode, onWireAdded, onBusAdded, onBusEntryAdded, onNoConnectAdded, onNetLabelAdded, onGlobalLabelAdded, onHierSheetAdded, onPowerPortAdded, onGroundPortAdded, onTextNoteAdded, onComponentAdded, placementComponentKind, hierSheetTargets, activeSheetId, allowComponentEdit, getBlockedScreenRegions, allowCanvasPan, }: Props$1) => react.JSX.Element;
 
 interface BoundingBoxBounds {
     minX: number;
