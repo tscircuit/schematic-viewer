@@ -16,6 +16,7 @@ interface Args {
   editEvents: ExtendedManualEditEvent[]
   svgToScreenProjection: Matrix
   realToSvgProjection: Matrix
+  svgDivRef: React.RefObject<HTMLDivElement | null>
   onEditEvent?: (event: EditSchematicPortLocationEvent) => void
   cancelDrag?: () => void
   enabled?: boolean
@@ -25,11 +26,19 @@ interface Args {
 
 interface Result {
   handleMouseDown: (portId: string, e: MouseEvent) => void
+  /** Returns true if a port drag started (caller should skip component/pan). */
+  tryHandleMouseDown: (e: React.MouseEvent | MouseEvent) => boolean
   isDragging: boolean
   activeEditEvent: EditSchematicPortLocationEventWithElement | null
 }
 
-// Latest known port centers keyed by port id (accumulates completed drags).
+type PortEl = {
+  schematic_port_id: string
+  schematic_component_id: string
+  source_port_id?: string
+  center: { x: number; y: number }
+}
+
 function latestPortCenter(
   events: ExtendedManualEditEvent[],
   portId: string,
@@ -48,11 +57,25 @@ function latestPortCenter(
   return null
 }
 
+/** Resolve either schematic_port_id or source_port_id (SVG uses both). */
+function resolvePort(circuitJson: any[], attrId: string): PortEl | undefined {
+  const bySch = su(circuitJson).schematic_port.get(attrId) as PortEl | undefined
+  if (bySch?.center) return bySch
+  const all = su(circuitJson).schematic_port.list() as PortEl[]
+  return all.find((p) => p.source_port_id === attrId && p.center)
+}
+
+/**
+ * Drag individual schematic ports in select mode. Hit-testing uses the SVG
+ * port elements directly (same as component/trace) so it works even when the
+ * HTML port overlay isn't mounted.
+ */
 export const useSchematicPortDragging = ({
   circuitJson,
   editEvents,
   svgToScreenProjection,
   realToSvgProjection,
+  svgDivRef,
   onEditEvent,
   cancelDrag,
   enabled = false,
@@ -65,8 +88,6 @@ export const useSchematicPortDragging = ({
     null,
   )
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null)
-  // Bbox at drag start — see useComponentDragging for why we must not re-read
-  // getBoundingClientRect mid-drag.
   const originalBBoxRef = useRef<DOMRect | null>(null)
 
   const realToScreenProjection = compose(
@@ -76,29 +97,24 @@ export const useSchematicPortDragging = ({
 
   const startDrag = useCallback(
     (
-      portId: string,
+      portIdOrSourceId: string,
       clientX: number,
       clientY: number,
       target: EventTarget | null,
     ) => {
       if (!enabled) return false
-      const port = su(circuitJson).schematic_port.get(portId) as
-        | {
-            schematic_port_id: string
-            schematic_component_id: string
-            center: { x: number; y: number }
-          }
-        | undefined
+      const port = resolvePort(circuitJson, portIdOrSourceId)
       if (!port) return false
 
       if (cancelDrag) cancelDrag()
 
-      const startCenter = latestPortCenter(editEvents, portId) ?? {
-        ...port.center,
-      }
+      const startCenter = latestPortCenter(
+        editEvents,
+        port.schematic_port_id,
+      ) ?? { ...port.center }
       dragStartPosRef.current = { x: clientX, y: clientY }
       const el = (target as Element | null)?.closest?.(
-        `[data-schematic-port-id="${portId}"]`,
+        "[data-schematic-port-id]",
       ) as Element | null
       originalBBoxRef.current =
         el?.getBoundingClientRect() ??
@@ -128,6 +144,25 @@ export const useSchematicPortDragging = ({
       startDrag(portId, e.clientX, e.clientY, e.target)
     },
     [startDrag],
+  )
+
+  const tryHandleMouseDown = useCallback(
+    (e: React.MouseEvent | MouseEvent) => {
+      if (!enabled || e.button !== 0) return false
+      const target = e.target
+      if (!(target instanceof Element)) return false
+      const portEl = target.closest("[data-schematic-port-id]")
+      if (!portEl) return false
+      const attrId = portEl.getAttribute("data-schematic-port-id")
+      if (!attrId) return false
+      const started = startDrag(attrId, e.clientX, e.clientY, e.target)
+      if (started) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+      return started
+    },
+    [enabled, startDrag],
   )
 
   const updateDrag = useCallback(
@@ -181,8 +216,14 @@ export const useSchematicPortDragging = ({
   }, [onEditEvent])
 
   useEffect(() => {
-    const onMove = (e: MouseEvent) => updateDrag(e.clientX, e.clientY)
-    const onUp = () => endDrag()
+    const onMove = (e: MouseEvent) => {
+      if (!activeRef.current) return
+      updateDrag(e.clientX, e.clientY)
+    }
+    const onUp = () => {
+      if (!activeRef.current) return
+      endDrag()
+    }
     window.addEventListener("mousemove", onMove)
     window.addEventListener("mouseup", onUp)
     return () => {
@@ -191,9 +232,20 @@ export const useSchematicPortDragging = ({
     }
   }, [updateDrag, endDrag])
 
+  useEffect(() => {
+    const svgDiv = svgDivRef.current
+    if (!enabled || !svgDiv) return
+    const onDown = (e: MouseEvent) => {
+      tryHandleMouseDown(e)
+    }
+    svgDiv.addEventListener("mousedown", onDown, true)
+    return () => svgDiv.removeEventListener("mousedown", onDown, true)
+  }, [enabled, svgDivRef, tryHandleMouseDown])
+
   return {
     handleMouseDown,
-    isDragging: !!activeRef.current,
+    tryHandleMouseDown,
+    isDragging: !!activeEditEvent,
     activeEditEvent,
   }
 }

@@ -483,11 +483,18 @@ function latestPortCenter(events, portId) {
   }
   return null;
 }
+function resolvePort(circuitJson, attrId) {
+  const bySch = su4(circuitJson).schematic_port.get(attrId);
+  if (bySch?.center) return bySch;
+  const all = su4(circuitJson).schematic_port.list();
+  return all.find((p) => p.source_port_id === attrId && p.center);
+}
 var useSchematicPortDragging = ({
   circuitJson,
   editEvents,
   svgToScreenProjection,
   realToSvgProjection,
+  svgDivRef,
   onEditEvent,
   cancelDrag,
   enabled = false,
@@ -505,17 +512,18 @@ var useSchematicPortDragging = ({
     svgToScreenProjection
   );
   const startDrag = useCallback(
-    (portId, clientX, clientY, target) => {
+    (portIdOrSourceId, clientX, clientY, target) => {
       if (!enabled) return false;
-      const port = su4(circuitJson).schematic_port.get(portId);
+      const port = resolvePort(circuitJson, portIdOrSourceId);
       if (!port) return false;
       if (cancelDrag) cancelDrag();
-      const startCenter = latestPortCenter(editEvents, portId) ?? {
-        ...port.center
-      };
+      const startCenter = latestPortCenter(
+        editEvents,
+        port.schematic_port_id
+      ) ?? { ...port.center };
       dragStartPosRef.current = { x: clientX, y: clientY };
       const el = target?.closest?.(
-        `[data-schematic-port-id="${portId}"]`
+        "[data-schematic-port-id]"
       );
       originalBBoxRef.current = el?.getBoundingClientRect() ?? target?.getBoundingClientRect?.() ?? null;
       const newEvent = {
@@ -540,6 +548,24 @@ var useSchematicPortDragging = ({
       startDrag(portId, e.clientX, e.clientY, e.target);
     },
     [startDrag]
+  );
+  const tryHandleMouseDown = useCallback(
+    (e) => {
+      if (!enabled || e.button !== 0) return false;
+      const target = e.target;
+      if (!(target instanceof Element)) return false;
+      const portEl = target.closest("[data-schematic-port-id]");
+      if (!portEl) return false;
+      const attrId = portEl.getAttribute("data-schematic-port-id");
+      if (!attrId) return false;
+      const started = startDrag(attrId, e.clientX, e.clientY, e.target);
+      if (started) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      return started;
+    },
+    [enabled, startDrag]
   );
   const updateDrag = useCallback(
     (clientX, clientY) => {
@@ -590,8 +616,14 @@ var useSchematicPortDragging = ({
     setActiveEditEvent(null);
   }, [onEditEvent]);
   useEffect5(() => {
-    const onMove = (e) => updateDrag(e.clientX, e.clientY);
-    const onUp = () => endDrag();
+    const onMove = (e) => {
+      if (!activeRef.current) return;
+      updateDrag(e.clientX, e.clientY);
+    };
+    const onUp = () => {
+      if (!activeRef.current) return;
+      endDrag();
+    };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => {
@@ -599,9 +631,19 @@ var useSchematicPortDragging = ({
       window.removeEventListener("mouseup", onUp);
     };
   }, [updateDrag, endDrag]);
+  useEffect5(() => {
+    const svgDiv = svgDivRef.current;
+    if (!enabled || !svgDiv) return;
+    const onDown = (e) => {
+      tryHandleMouseDown(e);
+    };
+    svgDiv.addEventListener("mousedown", onDown, true);
+    return () => svgDiv.removeEventListener("mousedown", onDown, true);
+  }, [enabled, svgDivRef, tryHandleMouseDown]);
   return {
     handleMouseDown,
-    isDragging: !!activeRef.current,
+    tryHandleMouseDown,
+    isDragging: !!activeEditEvent,
     activeEditEvent
   };
 };
@@ -695,15 +737,25 @@ var useSchematicTraceDragging = ({
   const startDrag = useCallback2(
     (traceId, clientX, clientY, target) => {
       if (!enabled) return false;
-      const trace = su5(circuitJson).schematic_trace.get(traceId);
+      let trace = su5(circuitJson).schematic_trace.get(traceId);
+      if (!trace) {
+        trace = su5(circuitJson).schematic_trace.list().find(
+          (t) => t.schematic_trace_id === traceId
+        );
+      }
       if (!trace) return false;
-      const ends = endpointsFromTrace(circuitJson, trace);
-      if (!ends) return false;
       if (cancelDrag) cancelDrag();
+      const ends = endpointsFromTrace(circuitJson, trace);
       const persistedRoute = latestTraceRoute(editEvents, traceId);
       const fromEdges = routeFromEdges(trace.edges);
-      let route = persistedRoute ?? fromEdges ?? [ends.from, ends.to].map((p) => ({ ...p }));
-      route = [{ ...ends.from }, ...route.slice(1, -1), { ...ends.to }];
+      let route = persistedRoute ?? fromEdges ?? null;
+      if (!route || route.length < 2) {
+        if (!ends) return false;
+        route = [ends.from, ends.to].map((p) => ({ ...p }));
+      }
+      if (ends) {
+        route = [{ ...ends.from }, ...route.slice(1, -1), { ...ends.to }];
+      }
       if (route.length === 2) {
         const mid = {
           x: (route[0].x + route[1].x) / 2,
@@ -711,7 +763,7 @@ var useSchematicTraceDragging = ({
         };
         route = [route[0], { x: route[1].x, y: route[0].y }, route[1]];
         if (Math.abs(route[0].x - route[1].x) < 1e-6 && Math.abs(route[0].y - route[1].y) < 1e-6) {
-          route = [ends.from, mid, ends.to];
+          route = [{ ...route[0] }, mid, { ...route[route.length - 1] }];
         }
       }
       let clickMm = {
@@ -6633,7 +6685,7 @@ var SchematicViewer = ({
     }
     if (allowEdit) {
       const target = e.target;
-      if (target.closest('[data-circuit-json-type="schematic_component"]')) {
+      if (target.closest('[data-circuit-json-type="schematic_component"]') || target.closest('[data-circuit-json-type="schematic_trace"]') || target.closest("[data-schematic-port-id]") || target.closest(".schematic-port-hover")) {
         return false;
       }
     }
@@ -6739,6 +6791,7 @@ var SchematicViewer = ({
   });
   const {
     handleMouseDown: handlePortDragMouseDown,
+    tryHandleMouseDown: tryHandlePortDragMouseDown,
     activeEditEvent: activePortDragEvent
   } = useSchematicPortDragging({
     // The port event isn't in the base ManualEditEvent union yet — cast so the
@@ -6747,6 +6800,7 @@ var SchematicViewer = ({
     cancelDrag,
     realToSvgProjection,
     svgToScreenProjection,
+    svgDivRef,
     circuitJson,
     editEvents: editEventsWithUnappliedEditEvents,
     enabled: allowComponentEdit && isInteractionEnabled && !showSpiceOverlay && toolMode === "select",
@@ -6970,6 +7024,7 @@ var SchematicViewer = ({
             e.stopPropagation();
             return;
           }
+          if (tryHandlePortDragMouseDown(e)) return;
           if (tryHandleTraceDragMouseDown(e)) return;
           if (allowComponentEdit) {
             handleMouseDown(e);
@@ -7227,7 +7282,7 @@ var SchematicViewer = ({
               containerRef,
               showOutline: true,
               interactive: toolMode === "draw_wire" || toolMode === "draw_trace" || toolMode === "select" && allowComponentEdit,
-              hitPaddingPx: toolMode === "draw_trace" ? 12 : 4,
+              hitPaddingPx: toolMode === "draw_trace" ? 12 : toolMode === "select" ? 10 : 4,
               onPortMouseDown: toolMode === "select" && allowComponentEdit ? handlePortDragMouseDown : portMouseDownHandler,
               circuitJsonKey,
               onHoverChange: handlePortHoverChange,

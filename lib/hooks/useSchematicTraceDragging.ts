@@ -152,30 +152,38 @@ export const useSchematicTraceDragging = ({
       target: EventTarget | null,
     ) => {
       if (!enabled) return false
-      const trace = su(circuitJson).schematic_trace.get(traceId) as
-        | {
-            schematic_trace_id: string
-            from_schematic_port_id?: string
-            to_schematic_port_id?: string
-            edges?: { from: Pt; to: Pt }[]
-          }
+      type TraceEl = {
+        schematic_trace_id: string
+        from_schematic_port_id?: string
+        to_schematic_port_id?: string
+        edges?: { from: Pt; to: Pt }[]
+      }
+      let trace = su(circuitJson).schematic_trace.get(traceId) as
+        | TraceEl
         | undefined
+      if (!trace) {
+        // Fallback: some soup builds only support list().
+        trace = (su(circuitJson).schematic_trace.list() as TraceEl[]).find(
+          (t) => t.schematic_trace_id === traceId,
+        )
+      }
       if (!trace) return false
-
-      const ends = endpointsFromTrace(circuitJson, trace)
-      if (!ends) return false
 
       if (cancelDrag) cancelDrag()
 
+      const ends = endpointsFromTrace(circuitJson, trace)
       const persistedRoute = latestTraceRoute(editEvents, traceId)
       const fromEdges = routeFromEdges(trace.edges)
-      let route =
-        persistedRoute ??
-        fromEdges ??
-        [ends.from, ends.to].map((p) => ({ ...p }))
+      let route = persistedRoute ?? fromEdges ?? null
+      if (!route || route.length < 2) {
+        if (!ends) return false
+        route = [ends.from, ends.to].map((p) => ({ ...p }))
+      }
 
-      // Ensure endpoints match current pin/edge ends.
-      route = [{ ...ends.from }, ...route.slice(1, -1), { ...ends.to }]
+      // Prefer live port centers when available so the wire stays attached.
+      if (ends) {
+        route = [{ ...ends.from }, ...route.slice(1, -1), { ...ends.to }]
+      }
 
       // Straight wire → insert a corner so the user has something to drag.
       if (route.length === 2) {
@@ -191,7 +199,7 @@ export const useSchematicTraceDragging = ({
           Math.abs(route[0].x - route[1].x) < 1e-6 &&
           Math.abs(route[0].y - route[1].y) < 1e-6
         ) {
-          route = [ends.from, mid, ends.to]
+          route = [{ ...route[0] }, mid, { ...route[route.length - 1] }]
         }
       }
 

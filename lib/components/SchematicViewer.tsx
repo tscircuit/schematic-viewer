@@ -527,7 +527,13 @@ export const SchematicViewer = ({
 
     if (allowEdit) {
       const target = e.target as Element
-      if (target.closest('[data-circuit-json-type="schematic_component"]')) {
+      // Never pan when the user is grabbing a movable schematic element.
+      if (
+        target.closest('[data-circuit-json-type="schematic_component"]') ||
+        target.closest('[data-circuit-json-type="schematic_trace"]') ||
+        target.closest("[data-schematic-port-id]") ||
+        target.closest(".schematic-port-hover")
+      ) {
         return false
       }
     }
@@ -651,6 +657,7 @@ export const SchematicViewer = ({
 
   const {
     handleMouseDown: handlePortDragMouseDown,
+    tryHandleMouseDown: tryHandlePortDragMouseDown,
     activeEditEvent: activePortDragEvent,
   } = useSchematicPortDragging({
     // The port event isn't in the base ManualEditEvent union yet — cast so the
@@ -659,6 +666,7 @@ export const SchematicViewer = ({
     cancelDrag,
     realToSvgProjection,
     svgToScreenProjection,
+    svgDivRef,
     circuitJson,
     editEvents: editEventsWithUnappliedEditEvents,
     enabled:
@@ -999,7 +1007,8 @@ export const SchematicViewer = ({
             e.stopPropagation()
             return
           }
-          // Trace drag first — same SVG hitbox that drives net-hover.
+          // Port → trace → component (most specific hit-target first).
+          if (tryHandlePortDragMouseDown(e)) return
           if (tryHandleTraceDragMouseDown(e)) return
           if (allowComponentEdit) {
             handleMouseDown(e)
@@ -1223,7 +1232,9 @@ export const SchematicViewer = ({
                 toolMode === "draw_trace" ||
                 (toolMode === "select" && allowComponentEdit)
               }
-              hitPaddingPx={toolMode === "draw_trace" ? 12 : 4}
+              hitPaddingPx={
+                toolMode === "draw_trace" ? 12 : toolMode === "select" ? 10 : 4
+              }
               onPortMouseDown={
                 toolMode === "select" && allowComponentEdit
                   ? handlePortDragMouseDown
