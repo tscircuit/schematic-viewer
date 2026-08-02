@@ -1,6 +1,6 @@
 import { su } from "@tscircuit/soup-util"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { type Matrix, compose } from "transformation-matrix"
+import { type Matrix, compose, inverse, applyToPoint } from "transformation-matrix"
 import type {
   EditSchematicTraceMoveEvent,
   EditSchematicTraceMoveEventWithElement,
@@ -12,6 +12,8 @@ interface Args {
   editEvents: ExtendedManualEditEvent[]
   svgToScreenProjection: Matrix
   realToSvgProjection: Matrix
+  /** Root that contains the schematic SVG (same as svgDivRef). */
+  svgDivRef: React.RefObject<HTMLDivElement | null>
   onEditEvent?: (event: EditSchematicTraceMoveEvent) => void
   cancelDrag?: () => void
   enabled?: boolean
@@ -19,7 +21,8 @@ interface Args {
 }
 
 interface Result {
-  handleMouseDown: (traceId: string, e: MouseEvent) => void
+  /** Returns true if a trace drag started (caller should skip component/pan). */
+  tryHandleMouseDown: (e: React.MouseEvent | MouseEvent) => boolean
   isDragging: boolean
   activeEditEvent: EditSchematicTraceMoveEventWithElement | null
 }
@@ -81,22 +84,49 @@ function endpointsFromTrace(
       return { from: { ...fromPort.center }, to: { ...toPort.center } }
     }
   }
-  // Backend traces often only carry `edges` — use the polyline ends.
   const route = routeFromEdges(trace.edges)
   if (!route || route.length < 2) return null
   return { from: route[0], to: route[route.length - 1] }
 }
 
+function distPointToSegment(p: Pt, a: Pt, b: Pt): number {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const len2 = dx * dx + dy * dy
+  if (len2 < 1e-12) {
+    const ex = p.x - a.x
+    const ey = p.y - a.y
+    return Math.hypot(ex, ey)
+  }
+  let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2
+  t = Math.max(0, Math.min(1, t))
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy))
+}
+
+function nearestSegmentIndex(route: Pt[], point: Pt): number {
+  let best = 0
+  let bestDist = Infinity
+  for (let i = 0; i < route.length - 1; i++) {
+    const d = distPointToSegment(point, route[i], route[i + 1])
+    if (d < bestDist) {
+      bestDist = d
+      best = i
+    }
+  }
+  return best
+}
+
 /**
- * Drags an L-shaped schematic trace by moving the middle corner. Endpoints
- * stay pinned so the wire stays connected. If the trace is currently a
- * straight 2-point route we insert a fresh corner at the mouse on drag start.
+ * Drags a schematic trace in select mode by grabbing the SVG wire itself
+ * (including the wide invisible hitbox path). Endpoints stay pinned; the
+ * grabbed orthogonal segment translates so the wire stays 90°.
  */
 export const useSchematicTraceDragging = ({
   circuitJson,
   editEvents,
   svgToScreenProjection,
   realToSvgProjection,
+  svgDivRef,
   onEditEvent,
   cancelDrag,
   enabled = false,
@@ -106,24 +136,12 @@ export const useSchematicTraceDragging = ({
     useState<EditSchematicTraceMoveEventWithElement | null>(null)
   const activeRef = useRef<EditSchematicTraceMoveEventWithElement | null>(null)
   const dragStartRef = useRef<{ x: number; y: number } | null>(null)
-  const endpointsRef = useRef<{ from: Pt; to: Pt } | null>(null)
-  /** Corner position at drag start — delta is applied relative to this. */
-  const initialCornerRef = useRef<Pt | null>(null)
+  const initialRouteRef = useRef<Pt[] | null>(null)
+  const segmentIndexRef = useRef(0)
 
   const realToScreenProjection = compose(
     realToSvgProjection,
     svgToScreenProjection,
-  )
-
-  const buildOrthogonalRoute = useCallback(
-    (from: Pt, to: Pt, cornerHint: Pt | null): Pt[] => {
-      if (Math.abs(from.x - to.x) < 1e-6 || Math.abs(from.y - to.y) < 1e-6) {
-        return [from, to]
-      }
-      const corner = cornerHint ?? { x: to.x, y: from.y }
-      return [from, corner, to]
-    },
-    [],
   )
 
   const startDrag = useCallback(
@@ -151,22 +169,46 @@ export const useSchematicTraceDragging = ({
 
       const persistedRoute = latestTraceRoute(editEvents, traceId)
       const fromEdges = routeFromEdges(trace.edges)
-      const route =
+      let route =
         persistedRoute ??
         fromEdges ??
-        buildOrthogonalRoute(ends.from, ends.to, null)
+        [ends.from, ends.to].map((p) => ({ ...p }))
 
-      endpointsRef.current = {
-        from: { ...route[0] },
-        to: { ...route[route.length - 1] },
+      // Ensure endpoints match current pin/edge ends.
+      route = [{ ...ends.from }, ...route.slice(1, -1), { ...ends.to }]
+
+      // Straight wire → insert a corner so the user has something to drag.
+      if (route.length === 2) {
+        const mid = {
+          x: (route[0].x + route[1].x) / 2,
+          y: (route[0].y + route[1].y) / 2,
+        }
+        // Prefer the L orientation implied by a slight mouse bias later; start
+        // with a classic HV corner.
+        route = [route[0], { x: route[1].x, y: route[0].y }, route[1]]
+        // If that collapsed (axis-aligned already), use mid as free point.
+        if (
+          Math.abs(route[0].x - route[1].x) < 1e-6 &&
+          Math.abs(route[0].y - route[1].y) < 1e-6
+        ) {
+          route = [ends.from, mid, ends.to]
+        }
       }
-      initialCornerRef.current =
-        route.length >= 3
-          ? { ...route[1] }
-          : {
-              x: (route[0].x + route[route.length - 1].x) / 2,
-              y: (route[0].y + route[route.length - 1].y) / 2,
-            }
+
+      // Map click to real-mm to pick the nearest segment.
+      let clickMm: Pt = {
+        x: (route[0].x + route[route.length - 1].x) / 2,
+        y: (route[0].y + route[route.length - 1].y) / 2,
+      }
+      try {
+        const screenToReal = inverse(realToScreenProjection)
+        clickMm = applyToPoint(screenToReal, { x: clientX, y: clientY })
+      } catch {
+        // keep midpoint fallback
+      }
+
+      segmentIndexRef.current = nearestSegmentIndex(route, clickMm)
+      initialRouteRef.current = route.map((p) => ({ ...p }))
       dragStartRef.current = { x: clientX, y: clientY }
 
       const newEvent: EditSchematicTraceMoveEventWithElement = {
@@ -182,50 +224,111 @@ export const useSchematicTraceDragging = ({
       setActiveEvent(newEvent)
       return true
     },
-    [buildOrthogonalRoute, cancelDrag, circuitJson, editEvents, enabled],
+    [
+      cancelDrag,
+      circuitJson,
+      editEvents,
+      enabled,
+      realToScreenProjection,
+    ],
   )
 
-  const handleMouseDown = useCallback(
-    (traceId: string, e: MouseEvent) => {
-      startDrag(traceId, e.clientX, e.clientY, e.target)
+  const tryHandleMouseDown = useCallback(
+    (e: React.MouseEvent | MouseEvent) => {
+      if (!enabled || e.button !== 0) return false
+      const target = e.target
+      if (!(target instanceof Element)) return false
+      const traceEl = target.closest(
+        '[data-circuit-json-type="schematic_trace"]',
+      )
+      if (!traceEl) return false
+      // Don't steal clicks that are actually on a component body sitting above.
+      if (target.closest('[data-circuit-json-type="schematic_component"]')) {
+        return false
+      }
+      const traceId = traceEl.getAttribute("data-schematic-trace-id")
+      if (!traceId) return false
+      const started = startDrag(traceId, e.clientX, e.clientY, e.target)
+      if (started) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+      return started
     },
-    [startDrag],
+    [enabled, startDrag],
   )
 
   const updateDrag = useCallback(
     (clientX: number, clientY: number) => {
-      if (!activeRef.current || !dragStartRef.current || !endpointsRef.current)
+      if (!activeRef.current || !dragStartRef.current || !initialRouteRef.current)
         return
+
       const screenDelta = {
         x: clientX - dragStartRef.current.x,
         y: clientY - dragStartRef.current.y,
       }
-      const mmDelta = {
+      let mmDelta = {
         x: screenDelta.x / realToScreenProjection.a,
         y: screenDelta.y / realToScreenProjection.d,
       }
-      const { from, to } = endpointsRef.current
-      const baseCorner = initialCornerRef.current ?? {
-        x: (from.x + to.x) / 2,
-        y: (from.y + to.y) / 2,
-      }
-
-      // Move only the middle corner; endpoints stay pinned.
-      let corner = {
-        x: baseCorner.x + mmDelta.x,
-        y: baseCorner.y + mmDelta.y,
-      }
       if (snapToGrid) {
         const snap = (v: number) => Math.round(v * 10) / 10
-        corner = { x: snap(corner.x), y: snap(corner.y) }
+        mmDelta = { x: snap(mmDelta.x), y: snap(mmDelta.y) }
       }
-      const nextRoute = buildOrthogonalRoute(from, to, corner)
 
-      const next = { ...activeRef.current, route: nextRoute }
-      activeRef.current = next
-      setActiveEvent(next)
+      const initial = initialRouteRef.current
+      const seg = segmentIndexRef.current
+      const a = initial[seg]
+      const b = initial[seg + 1]
+      if (!a || !b) return
+
+      const next = initial.map((p) => ({ ...p }))
+      const horizontal = Math.abs(a.y - b.y) < 1e-6
+      const vertical = Math.abs(a.x - b.x) < 1e-6
+
+      // Translate the grabbed segment perpendicular to itself. Pin the route
+      // endpoints (index 0 and last) so the wire stays attached to ports.
+      if (horizontal) {
+        const newY = a.y + mmDelta.y
+        if (seg > 0) next[seg] = { ...next[seg], y: newY }
+        if (seg + 1 < next.length - 1) next[seg + 1] = { ...next[seg + 1], y: newY }
+        // If the segment includes an endpoint, only the free vertex moves —
+        // promote to a 3-point L if we started with a stub.
+        if (seg === 0 && next.length >= 3) {
+          next[1] = { ...next[1], y: newY }
+        }
+        if (seg === next.length - 2 && next.length >= 3) {
+          next[next.length - 2] = { ...next[next.length - 2], y: newY }
+        }
+      } else if (vertical) {
+        const newX = a.x + mmDelta.x
+        if (seg > 0) next[seg] = { ...next[seg], x: newX }
+        if (seg + 1 < next.length - 1) next[seg + 1] = { ...next[seg + 1], x: newX }
+        if (seg === 0 && next.length >= 3) {
+          next[1] = { ...next[1], x: newX }
+        }
+        if (seg === next.length - 2 && next.length >= 3) {
+          next[next.length - 2] = { ...next[next.length - 2], x: newX }
+        }
+      } else {
+        // Non-orthogonal legacy segment — snap by moving the middle corner.
+        if (next.length >= 3) {
+          next[1] = {
+            x: initial[1].x + mmDelta.x,
+            y: initial[1].y + mmDelta.y,
+          }
+        }
+      }
+
+      // Keep true endpoints fixed.
+      next[0] = { ...initial[0] }
+      next[next.length - 1] = { ...initial[initial.length - 1] }
+
+      const event = { ...activeRef.current, route: next }
+      activeRef.current = event
+      setActiveEvent(event)
     },
-    [buildOrthogonalRoute, realToScreenProjection, snapToGrid],
+    [realToScreenProjection, snapToGrid],
   )
 
   const endDrag = useCallback(() => {
@@ -238,14 +341,19 @@ export const useSchematicTraceDragging = ({
     if (onEditEvent) onEditEvent(final)
     activeRef.current = null
     dragStartRef.current = null
-    endpointsRef.current = null
-    initialCornerRef.current = null
+    initialRouteRef.current = null
     setActiveEvent(null)
   }, [onEditEvent])
 
   useEffect(() => {
-    const onMove = (e: MouseEvent) => updateDrag(e.clientX, e.clientY)
-    const onUp = () => endDrag()
+    const onMove = (e: MouseEvent) => {
+      if (!activeRef.current) return
+      updateDrag(e.clientX, e.clientY)
+    }
+    const onUp = () => {
+      if (!activeRef.current) return
+      endDrag()
+    }
     window.addEventListener("mousemove", onMove)
     window.addEventListener("mouseup", onUp)
     return () => {
@@ -254,9 +362,21 @@ export const useSchematicTraceDragging = ({
     }
   }, [updateDrag, endDrag])
 
+  // Also bind directly on the SVG so the wide sch-trace-hitbox path is
+  // clickable even when the React container handler order changes.
+  useEffect(() => {
+    const svgDiv = svgDivRef.current
+    if (!enabled || !svgDiv) return
+    const onDown = (e: MouseEvent) => {
+      tryHandleMouseDown(e)
+    }
+    svgDiv.addEventListener("mousedown", onDown, true)
+    return () => svgDiv.removeEventListener("mousedown", onDown, true)
+  }, [enabled, svgDivRef, tryHandleMouseDown])
+
   return {
-    handleMouseDown,
-    isDragging: !!activeRef.current,
+    tryHandleMouseDown,
+    isDragging: !!activeEvent,
     activeEditEvent: activeEvent,
   }
 }

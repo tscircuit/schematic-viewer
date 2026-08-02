@@ -20,35 +20,40 @@ interface Args {
   activeTraceEditEvent: EditSchematicTraceMoveEventWithElement | null
 }
 
-// Latest custom route per trace id (drag or manual) so we honour it instead
-// of the auto L-shape when computing SVG paths.
+type Pt = { x: number; y: number }
+
 function collectCustomRoutes(
   editEvents: ExtendedManualEditEvent[],
   active: EditSchematicTraceMoveEventWithElement | null,
-): Map<string, { x: number; y: number }[]> {
-  const routes = new Map<string, { x: number; y: number }[]>()
+): Map<string, Pt[]> {
+  const routes = new Map<string, Pt[]>()
   for (const ev of editEvents) {
     if (
       "edit_event_type" in ev &&
       ev.edit_event_type === "edit_schematic_trace_move"
     ) {
-      routes.set(ev.schematic_trace_id, ev.route.map((p) => ({ ...p })))
+      routes.set(
+        ev.schematic_trace_id,
+        ev.route.map((p) => ({ ...p })),
+      )
     }
   }
-  if (active) routes.set(active.schematic_trace_id, active.route.map((p) => ({ ...p })))
+  if (active) {
+    routes.set(
+      active.schematic_trace_id,
+      active.route.map((p) => ({ ...p })),
+    )
+  }
   return routes
 }
 
-// Accumulated (real-mm) port offsets after applying all completed edit events
-// plus the two active drags. Ports move with their component and can also be
-// dragged individually.
 function collectPortOffsets(
   circuitJson: CircuitJson,
   editEvents: ExtendedManualEditEvent[],
   activeComponent: EditSchematicComponentLocationEventWithElement | null,
   activePort: EditSchematicPortLocationEventWithElement | null,
-): Map<string, { x: number; y: number }> {
-  const offsets = new Map<string, { x: number; y: number }>()
+): Map<string, Pt> {
+  const offsets = new Map<string, Pt>()
 
   const applyComponentDelta = (componentId: string, dx: number, dy: number) => {
     const ports = su(circuitJson).schematic_port.list({
@@ -80,20 +85,30 @@ function collectPortOffsets(
     if (ev.edit_event_type === "edit_schematic_component_location") {
       const dx = ev.new_center.x - ev.original_center.x
       const dy = ev.new_center.y - ev.original_center.y
-      applyComponentDelta(ev.schematic_component_id, dx, dy)
+      if (dx || dy) applyComponentDelta(ev.schematic_component_id, dx, dy)
     } else if (ev.edit_event_type === "edit_schematic_port_location") {
       const dx = ev.new_center.x - ev.original_center.x
       const dy = ev.new_center.y - ev.original_center.y
-      applyPortDelta(ev.schematic_port_id, dx, dy)
+      if (dx || dy) applyPortDelta(ev.schematic_port_id, dx, dy)
     }
   }
+
   return offsets
 }
 
+function applyPathD(traceEl: Element, d: string) {
+  const paths = traceEl.querySelectorAll("path")
+  for (const path of Array.from(paths)) {
+    // Skip crossing arcs — they are not the main polyline.
+    const cls = path.getAttribute("class") ?? ""
+    if (cls.includes("crossing")) continue
+    path.setAttribute("d", d)
+  }
+}
+
 /**
- * Keeps schematic traces orthogonal (L-shaped, Altium-style) whenever a
- * component or port is moved. Rewrites the trace <path> in the SVG using
- * `computeTraceRoute` so wires never end up diagonal or scribbled.
+ * Rewrites SVG trace paths to stay orthogonal while components/ports move,
+ * and to honour in-progress / committed manual trace reshape events.
  */
 export const useOrthogonalTraceReroute = ({
   svgDivRef,
@@ -120,19 +135,13 @@ export const useOrthogonalTraceReroute = ({
       const customRoutes = collectCustomRoutes(editEvents, activeTraceEditEvent)
       if (offsets.size === 0 && customRoutes.size === 0) return
 
-      const portById = new Map<string, { center: { x: number; y: number } }>()
+      const portById = new Map<string, { center: Pt }>()
       for (const p of su(circuitJson).schematic_port.list() as {
         schematic_port_id: string
-        center: { x: number; y: number }
+        center: Pt
       }[]) {
         portById.set(p.schematic_port_id, { center: p.center })
       }
-
-      const resolvePortId = (
-        idOrRef:
-          | { from_schematic_port_id?: string; to_schematic_port_id?: string }
-          | string,
-      ) => (typeof idOrRef === "string" ? idOrRef : undefined)
 
       const traces = svg.querySelectorAll(
         '[data-circuit-json-type="schematic_trace"]',
@@ -141,23 +150,32 @@ export const useOrthogonalTraceReroute = ({
       for (const trace of Array.from(traces)) {
         const traceId = trace.getAttribute("data-schematic-trace-id")
         if (!traceId) continue
+
+        const customRoute = customRoutes.get(traceId)
+        if (customRoute && customRoute.length >= 2) {
+          const routeSvg = customRoute.map((pt) =>
+            applyToPoint(realToSvgProjection, pt),
+          )
+          const d = routeSvg
+            .map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`)
+            .join(" ")
+          applyPathD(trace, d)
+          continue
+        }
+
         const sch_trace = su(circuitJson).schematic_trace.get(traceId) as
           | {
               from_schematic_port_id?: string
               to_schematic_port_id?: string
             }
           | undefined
-        const fromId = sch_trace
-          ? (sch_trace.from_schematic_port_id ??
-            resolvePortId(sch_trace as any))
-          : undefined
+        const fromId = sch_trace?.from_schematic_port_id
         const toId = sch_trace?.to_schematic_port_id
         if (!fromId || !toId) continue
-        const customRoute = customRoutes.get(traceId)
-        // Only touch traces whose endpoints moved OR that were manually re-routed.
+
         const fromMoved = offsets.has(fromId)
         const toMoved = offsets.has(toId)
-        if (!fromMoved && !toMoved && !customRoute) continue
+        if (!fromMoved && !toMoved) continue
 
         const fromPort = portById.get(fromId)
         const toPort = portById.get(toId)
@@ -174,21 +192,14 @@ export const useOrthogonalTraceReroute = ({
           y: toPort.center.y + toOffset.y,
         }
 
-        const routeMm = customRoute
-          ? [from, ...customRoute.slice(1, -1), to]
-          : computeTraceRoute(from, to)
+        const routeMm = computeTraceRoute(from, to)
         const routeSvg = routeMm.map((pt) =>
           applyToPoint(realToSvgProjection, pt),
         )
         const d = routeSvg
           .map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`)
           .join(" ")
-
-        const paths = trace.querySelectorAll("path")
-        for (const path of Array.from(paths)) {
-          if (path.getAttribute("class")?.includes("invisible")) continue
-          path.setAttribute("d", d)
-        }
+        applyPathD(trace, d)
       }
     }
 
@@ -210,5 +221,6 @@ export const useOrthogonalTraceReroute = ({
     editEvents,
     activeComponentEditEvent,
     activePortEditEvent,
+    activeTraceEditEvent,
   ])
 }

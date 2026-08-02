@@ -41,7 +41,6 @@ import {
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
-import { SchematicTraceMouseTarget } from "./SchematicTraceMouseTarget"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
 import { useWireDrawing } from "../hooks/useWireDrawing"
 import { useBusDrawing } from "../hooks/useBusDrawing"
@@ -400,19 +399,6 @@ export const SchematicViewer = ({
     }
   }, [circuitJsonKey, circuitJson, selectedSchematicSheetId])
 
-  const schematicTraceIds = useMemo(() => {
-    try {
-      const traces = (su(circuitJson).schematic_trace?.list() ?? []).filter(
-        (trace) =>
-          !selectedSchematicSheetId ||
-          (trace as any).schematic_sheet_id === selectedSchematicSheetId,
-      )
-      return traces.map((t) => t.schematic_trace_id as string)
-    } catch {
-      return []
-    }
-  }, [circuitJson, selectedSchematicSheetId])
-
   const schematicPortsInfo = useMemo(() => {
     if (!showSchematicPorts) return []
     try {
@@ -645,13 +631,14 @@ export const SchematicViewer = ({
   })
 
   const {
-    handleMouseDown: handleTraceDragMouseDown,
+    tryHandleMouseDown: tryHandleTraceDragMouseDown,
     activeEditEvent: activeTraceDragEvent,
   } = useSchematicTraceDragging({
     onEditEvent: handleEditEvent as any,
     cancelDrag,
     realToSvgProjection,
     svgToScreenProjection,
+    svgDivRef,
     circuitJson,
     editEvents: editEventsWithUnappliedEditEvents,
     enabled:
@@ -953,6 +940,11 @@ export const SchematicViewer = ({
             svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id]) { transition: opacity 0.12s ease-in-out; }`}
         </style>
       )}
+      {allowComponentEdit && toolMode === "select" && (
+        <style>
+          {`svg g.trace, svg g.trace-overlays { cursor: move; }`}
+        </style>
+      )}
       {onSchematicComponentClicked && (
         <style>
           {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
@@ -1007,6 +999,8 @@ export const SchematicViewer = ({
             e.stopPropagation()
             return
           }
+          // Trace drag first — same SVG hitbox that drives net-hover.
+          if (tryHandleTraceDragMouseDown(e)) return
           if (allowComponentEdit) {
             handleMouseDown(e)
           }
@@ -1247,19 +1241,6 @@ export const SchematicViewer = ({
                     }
                   : undefined
               }
-            />
-          ))}
-        {allowComponentEdit &&
-          toolMode === "select" &&
-          schematicTraceIds.map((traceId) => (
-            <SchematicTraceMouseTarget
-              key={traceId}
-              traceId={traceId}
-              svgDivRef={svgDivRef}
-              containerRef={containerRef}
-              circuitJsonKey={circuitJsonKey}
-              interactive={isInteractionEnabled && !showSpiceOverlay}
-              onTraceMouseDown={handleTraceDragMouseDown}
             />
           ))}
       </div>

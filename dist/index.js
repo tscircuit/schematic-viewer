@@ -287,10 +287,18 @@ function collectCustomRoutes(editEvents, active) {
   const routes = /* @__PURE__ */ new Map();
   for (const ev of editEvents) {
     if ("edit_event_type" in ev && ev.edit_event_type === "edit_schematic_trace_move") {
-      routes.set(ev.schematic_trace_id, ev.route.map((p) => ({ ...p })));
+      routes.set(
+        ev.schematic_trace_id,
+        ev.route.map((p) => ({ ...p }))
+      );
     }
   }
-  if (active) routes.set(active.schematic_trace_id, active.route.map((p) => ({ ...p })));
+  if (active) {
+    routes.set(
+      active.schematic_trace_id,
+      active.route.map((p) => ({ ...p }))
+    );
+  }
   return routes;
 }
 function collectPortOffsets(circuitJson, editEvents, activeComponent, activePort) {
@@ -318,14 +326,22 @@ function collectPortOffsets(circuitJson, editEvents, activeComponent, activePort
     if (ev.edit_event_type === "edit_schematic_component_location") {
       const dx = ev.new_center.x - ev.original_center.x;
       const dy = ev.new_center.y - ev.original_center.y;
-      applyComponentDelta(ev.schematic_component_id, dx, dy);
+      if (dx || dy) applyComponentDelta(ev.schematic_component_id, dx, dy);
     } else if (ev.edit_event_type === "edit_schematic_port_location") {
       const dx = ev.new_center.x - ev.original_center.x;
       const dy = ev.new_center.y - ev.original_center.y;
-      applyPortDelta(ev.schematic_port_id, dx, dy);
+      if (dx || dy) applyPortDelta(ev.schematic_port_id, dx, dy);
     }
   }
   return offsets;
+}
+function applyPathD(traceEl, d) {
+  const paths = traceEl.querySelectorAll("path");
+  for (const path of Array.from(paths)) {
+    const cls = path.getAttribute("class") ?? "";
+    if (cls.includes("crossing")) continue;
+    path.setAttribute("d", d);
+  }
 }
 var useOrthogonalTraceReroute = ({
   svgDivRef,
@@ -353,21 +369,28 @@ var useOrthogonalTraceReroute = ({
       for (const p of su3(circuitJson).schematic_port.list()) {
         portById.set(p.schematic_port_id, { center: p.center });
       }
-      const resolvePortId = (idOrRef) => typeof idOrRef === "string" ? idOrRef : void 0;
       const traces = svg.querySelectorAll(
         '[data-circuit-json-type="schematic_trace"]'
       );
       for (const trace of Array.from(traces)) {
         const traceId = trace.getAttribute("data-schematic-trace-id");
         if (!traceId) continue;
+        const customRoute = customRoutes.get(traceId);
+        if (customRoute && customRoute.length >= 2) {
+          const routeSvg2 = customRoute.map(
+            (pt) => applyToPoint2(realToSvgProjection, pt)
+          );
+          const d2 = routeSvg2.map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ");
+          applyPathD(trace, d2);
+          continue;
+        }
         const sch_trace = su3(circuitJson).schematic_trace.get(traceId);
-        const fromId = sch_trace ? sch_trace.from_schematic_port_id ?? resolvePortId(sch_trace) : void 0;
+        const fromId = sch_trace?.from_schematic_port_id;
         const toId = sch_trace?.to_schematic_port_id;
         if (!fromId || !toId) continue;
-        const customRoute = customRoutes.get(traceId);
         const fromMoved = offsets.has(fromId);
         const toMoved = offsets.has(toId);
-        if (!fromMoved && !toMoved && !customRoute) continue;
+        if (!fromMoved && !toMoved) continue;
         const fromPort = portById.get(fromId);
         const toPort = portById.get(toId);
         if (!fromPort || !toPort) continue;
@@ -381,16 +404,12 @@ var useOrthogonalTraceReroute = ({
           x: toPort.center.x + toOffset.x,
           y: toPort.center.y + toOffset.y
         };
-        const routeMm = customRoute ? [from, ...customRoute.slice(1, -1), to] : computeTraceRoute(from, to);
+        const routeMm = computeTraceRoute(from, to);
         const routeSvg = routeMm.map(
           (pt) => applyToPoint2(realToSvgProjection, pt)
         );
         const d = routeSvg.map((pt, i) => `${i === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ");
-        const paths = trace.querySelectorAll("path");
-        for (const path of Array.from(paths)) {
-          if (path.getAttribute("class")?.includes("invisible")) continue;
-          path.setAttribute("d", d);
-        }
+        applyPathD(trace, d);
       }
     };
     const observer = new MutationObserver(() => {
@@ -409,7 +428,8 @@ var useOrthogonalTraceReroute = ({
     realToSvgProjection,
     editEvents,
     activeComponentEditEvent,
-    activePortEditEvent
+    activePortEditEvent,
+    activeTraceEditEvent
   ]);
 };
 
@@ -589,7 +609,7 @@ var useSchematicPortDragging = ({
 // lib/hooks/useSchematicTraceDragging.ts
 import { su as su5 } from "@tscircuit/soup-util";
 import { useCallback as useCallback2, useEffect as useEffect6, useRef as useRef6, useState as useState2 } from "react";
-import { compose as compose3 } from "transformation-matrix";
+import { compose as compose3, inverse, applyToPoint as applyToPoint3 } from "transformation-matrix";
 function latestTraceRoute(events, traceId) {
   for (let i = events.length - 1; i >= 0; i--) {
     const ev = events[i];
@@ -627,11 +647,37 @@ function endpointsFromTrace(circuitJson, trace) {
   if (!route || route.length < 2) return null;
   return { from: route[0], to: route[route.length - 1] };
 }
+function distPointToSegment(p, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len2 = dx * dx + dy * dy;
+  if (len2 < 1e-12) {
+    const ex = p.x - a.x;
+    const ey = p.y - a.y;
+    return Math.hypot(ex, ey);
+  }
+  let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+function nearestSegmentIndex(route, point) {
+  let best = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < route.length - 1; i++) {
+    const d = distPointToSegment(point, route[i], route[i + 1]);
+    if (d < bestDist) {
+      bestDist = d;
+      best = i;
+    }
+  }
+  return best;
+}
 var useSchematicTraceDragging = ({
   circuitJson,
   editEvents,
   svgToScreenProjection,
   realToSvgProjection,
+  svgDivRef,
   onEditEvent,
   cancelDrag,
   enabled = false,
@@ -640,21 +686,11 @@ var useSchematicTraceDragging = ({
   const [activeEvent, setActiveEvent] = useState2(null);
   const activeRef = useRef6(null);
   const dragStartRef = useRef6(null);
-  const endpointsRef = useRef6(null);
-  const initialCornerRef = useRef6(null);
+  const initialRouteRef = useRef6(null);
+  const segmentIndexRef = useRef6(0);
   const realToScreenProjection = compose3(
     realToSvgProjection,
     svgToScreenProjection
-  );
-  const buildOrthogonalRoute = useCallback2(
-    (from, to, cornerHint) => {
-      if (Math.abs(from.x - to.x) < 1e-6 || Math.abs(from.y - to.y) < 1e-6) {
-        return [from, to];
-      }
-      const corner = cornerHint ?? { x: to.x, y: from.y };
-      return [from, corner, to];
-    },
-    []
   );
   const startDrag = useCallback2(
     (traceId, clientX, clientY, target) => {
@@ -666,15 +702,29 @@ var useSchematicTraceDragging = ({
       if (cancelDrag) cancelDrag();
       const persistedRoute = latestTraceRoute(editEvents, traceId);
       const fromEdges = routeFromEdges(trace.edges);
-      const route = persistedRoute ?? fromEdges ?? buildOrthogonalRoute(ends.from, ends.to, null);
-      endpointsRef.current = {
-        from: { ...route[0] },
-        to: { ...route[route.length - 1] }
-      };
-      initialCornerRef.current = route.length >= 3 ? { ...route[1] } : {
+      let route = persistedRoute ?? fromEdges ?? [ends.from, ends.to].map((p) => ({ ...p }));
+      route = [{ ...ends.from }, ...route.slice(1, -1), { ...ends.to }];
+      if (route.length === 2) {
+        const mid = {
+          x: (route[0].x + route[1].x) / 2,
+          y: (route[0].y + route[1].y) / 2
+        };
+        route = [route[0], { x: route[1].x, y: route[0].y }, route[1]];
+        if (Math.abs(route[0].x - route[1].x) < 1e-6 && Math.abs(route[0].y - route[1].y) < 1e-6) {
+          route = [ends.from, mid, ends.to];
+        }
+      }
+      let clickMm = {
         x: (route[0].x + route[route.length - 1].x) / 2,
         y: (route[0].y + route[route.length - 1].y) / 2
       };
+      try {
+        const screenToReal = inverse(realToScreenProjection);
+        clickMm = applyToPoint3(screenToReal, { x: clientX, y: clientY });
+      } catch {
+      }
+      segmentIndexRef.current = nearestSegmentIndex(route, clickMm);
+      initialRouteRef.current = route.map((p) => ({ ...p }));
       dragStartRef.current = { x: clientX, y: clientY };
       const newEvent = {
         edit_event_id: Math.random().toString(36).slice(2, 11),
@@ -689,45 +739,96 @@ var useSchematicTraceDragging = ({
       setActiveEvent(newEvent);
       return true;
     },
-    [buildOrthogonalRoute, cancelDrag, circuitJson, editEvents, enabled]
+    [
+      cancelDrag,
+      circuitJson,
+      editEvents,
+      enabled,
+      realToScreenProjection
+    ]
   );
-  const handleMouseDown = useCallback2(
-    (traceId, e) => {
-      startDrag(traceId, e.clientX, e.clientY, e.target);
+  const tryHandleMouseDown = useCallback2(
+    (e) => {
+      if (!enabled || e.button !== 0) return false;
+      const target = e.target;
+      if (!(target instanceof Element)) return false;
+      const traceEl = target.closest(
+        '[data-circuit-json-type="schematic_trace"]'
+      );
+      if (!traceEl) return false;
+      if (target.closest('[data-circuit-json-type="schematic_component"]')) {
+        return false;
+      }
+      const traceId = traceEl.getAttribute("data-schematic-trace-id");
+      if (!traceId) return false;
+      const started = startDrag(traceId, e.clientX, e.clientY, e.target);
+      if (started) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      return started;
     },
-    [startDrag]
+    [enabled, startDrag]
   );
   const updateDrag = useCallback2(
     (clientX, clientY) => {
-      if (!activeRef.current || !dragStartRef.current || !endpointsRef.current)
+      if (!activeRef.current || !dragStartRef.current || !initialRouteRef.current)
         return;
       const screenDelta = {
         x: clientX - dragStartRef.current.x,
         y: clientY - dragStartRef.current.y
       };
-      const mmDelta = {
+      let mmDelta = {
         x: screenDelta.x / realToScreenProjection.a,
         y: screenDelta.y / realToScreenProjection.d
       };
-      const { from, to } = endpointsRef.current;
-      const baseCorner = initialCornerRef.current ?? {
-        x: (from.x + to.x) / 2,
-        y: (from.y + to.y) / 2
-      };
-      let corner = {
-        x: baseCorner.x + mmDelta.x,
-        y: baseCorner.y + mmDelta.y
-      };
       if (snapToGrid) {
         const snap = (v) => Math.round(v * 10) / 10;
-        corner = { x: snap(corner.x), y: snap(corner.y) };
+        mmDelta = { x: snap(mmDelta.x), y: snap(mmDelta.y) };
       }
-      const nextRoute = buildOrthogonalRoute(from, to, corner);
-      const next = { ...activeRef.current, route: nextRoute };
-      activeRef.current = next;
-      setActiveEvent(next);
+      const initial = initialRouteRef.current;
+      const seg = segmentIndexRef.current;
+      const a = initial[seg];
+      const b = initial[seg + 1];
+      if (!a || !b) return;
+      const next = initial.map((p) => ({ ...p }));
+      const horizontal = Math.abs(a.y - b.y) < 1e-6;
+      const vertical = Math.abs(a.x - b.x) < 1e-6;
+      if (horizontal) {
+        const newY = a.y + mmDelta.y;
+        if (seg > 0) next[seg] = { ...next[seg], y: newY };
+        if (seg + 1 < next.length - 1) next[seg + 1] = { ...next[seg + 1], y: newY };
+        if (seg === 0 && next.length >= 3) {
+          next[1] = { ...next[1], y: newY };
+        }
+        if (seg === next.length - 2 && next.length >= 3) {
+          next[next.length - 2] = { ...next[next.length - 2], y: newY };
+        }
+      } else if (vertical) {
+        const newX = a.x + mmDelta.x;
+        if (seg > 0) next[seg] = { ...next[seg], x: newX };
+        if (seg + 1 < next.length - 1) next[seg + 1] = { ...next[seg + 1], x: newX };
+        if (seg === 0 && next.length >= 3) {
+          next[1] = { ...next[1], x: newX };
+        }
+        if (seg === next.length - 2 && next.length >= 3) {
+          next[next.length - 2] = { ...next[next.length - 2], x: newX };
+        }
+      } else {
+        if (next.length >= 3) {
+          next[1] = {
+            x: initial[1].x + mmDelta.x,
+            y: initial[1].y + mmDelta.y
+          };
+        }
+      }
+      next[0] = { ...initial[0] };
+      next[next.length - 1] = { ...initial[initial.length - 1] };
+      const event = { ...activeRef.current, route: next };
+      activeRef.current = event;
+      setActiveEvent(event);
     },
-    [buildOrthogonalRoute, realToScreenProjection, snapToGrid]
+    [realToScreenProjection, snapToGrid]
   );
   const endDrag = useCallback2(() => {
     if (!activeRef.current) return;
@@ -739,13 +840,18 @@ var useSchematicTraceDragging = ({
     if (onEditEvent) onEditEvent(final);
     activeRef.current = null;
     dragStartRef.current = null;
-    endpointsRef.current = null;
-    initialCornerRef.current = null;
+    initialRouteRef.current = null;
     setActiveEvent(null);
   }, [onEditEvent]);
   useEffect6(() => {
-    const onMove = (e) => updateDrag(e.clientX, e.clientY);
-    const onUp = () => endDrag();
+    const onMove = (e) => {
+      if (!activeRef.current) return;
+      updateDrag(e.clientX, e.clientY);
+    };
+    const onUp = () => {
+      if (!activeRef.current) return;
+      endDrag();
+    };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => {
@@ -753,9 +859,18 @@ var useSchematicTraceDragging = ({
       window.removeEventListener("mouseup", onUp);
     };
   }, [updateDrag, endDrag]);
+  useEffect6(() => {
+    const svgDiv = svgDivRef.current;
+    if (!enabled || !svgDiv) return;
+    const onDown = (e) => {
+      tryHandleMouseDown(e);
+    };
+    svgDiv.addEventListener("mousedown", onDown, true);
+    return () => svgDiv.removeEventListener("mousedown", onDown, true);
+  }, [enabled, svgDivRef, tryHandleMouseDown]);
   return {
-    handleMouseDown,
-    isDragging: !!activeRef.current,
+    tryHandleMouseDown,
+    isDragging: !!activeEvent,
     activeEditEvent: activeEvent
   };
 };
@@ -1156,7 +1271,7 @@ var enableDebug = () => {
 var debug_default = debug;
 
 // lib/components/SchematicViewer.tsx
-import { useCallback as useCallback21, useEffect as useEffect36, useMemo as useMemo6, useRef as useRef29, useState as useState24 } from "react";
+import { useCallback as useCallback20, useEffect as useEffect35, useMemo as useMemo6, useRef as useRef28, useState as useState23 } from "react";
 import {
   fromString,
   identity,
@@ -3048,97 +3163,10 @@ var SchematicPortMouseTarget = ({
   ] });
 };
 
-// lib/components/SchematicTraceMouseTarget.tsx
-import { useCallback as useCallback8, useEffect as useEffect17, useRef as useRef12, useState as useState9 } from "react";
-import { jsx as jsx12 } from "react/jsx-runtime";
-var SchematicTraceMouseTarget = ({
-  traceId,
-  svgDivRef,
-  containerRef,
-  circuitJsonKey,
-  interactive,
-  onTraceMouseDown
-}) => {
-  const [rect, setRect] = useState9(null);
-  const frameRef = useRef12(null);
-  const measure = useCallback8(() => {
-    frameRef.current = null;
-    const svgDiv = svgDivRef.current;
-    const container = containerRef.current;
-    if (!svgDiv || !container) {
-      setRect((prev) => prev ? null : prev);
-      return;
-    }
-    const el = svgDiv.querySelector(
-      `[data-schematic-trace-id="${traceId}"]`
-    );
-    if (!el) {
-      setRect((prev) => prev ? null : prev);
-      return;
-    }
-    const bbox = el.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    const pad = 6;
-    const next = {
-      left: bbox.left - containerRect.left - pad,
-      top: bbox.top - containerRect.top - pad,
-      width: bbox.width + pad * 2,
-      height: bbox.height + pad * 2
-    };
-    setRect(
-      (prev) => prev && Math.abs(prev.left - next.left) < 0.5 && Math.abs(prev.top - next.top) < 0.5 && Math.abs(prev.width - next.width) < 0.5 && Math.abs(prev.height - next.height) < 0.5 ? prev : next
-    );
-  }, [svgDivRef, containerRef, traceId]);
-  const scheduleMeasure = useCallback8(() => {
-    if (frameRef.current != null) return;
-    frameRef.current = requestAnimationFrame(measure);
-  }, [measure]);
-  useEffect17(() => {
-    scheduleMeasure();
-    const svgDiv = svgDivRef.current;
-    if (!svgDiv) return;
-    const observer = new MutationObserver(scheduleMeasure);
-    observer.observe(svgDiv, {
-      childList: true,
-      subtree: true,
-      attributes: true
-    });
-    window.addEventListener("resize", scheduleMeasure);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", scheduleMeasure);
-      if (frameRef.current != null) cancelAnimationFrame(frameRef.current);
-    };
-  }, [svgDivRef, scheduleMeasure, circuitJsonKey]);
-  if (!rect || !interactive) return null;
-  return /* @__PURE__ */ jsx12(
-    "div",
-    {
-      style: {
-        position: "absolute",
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height,
-        cursor: "move",
-        pointerEvents: "auto",
-        // Debug-friendly: transparent, but shows a faint highlight on hover.
-        background: "transparent"
-      },
-      onMouseDown: (e) => {
-        if (e.button !== 0) return;
-        e.preventDefault();
-        e.stopPropagation();
-        onTraceMouseDown?.(traceId, e.nativeEvent);
-      }
-    }
-  );
-};
-
 // lib/components/SchematicSheetSelector.tsx
-import { useState as useState10 } from "react";
+import { useState as useState9 } from "react";
 import * as DropdownMenu2 from "@radix-ui/react-dropdown-menu";
-import { Fragment as Fragment3, jsx as jsx13, jsxs as jsxs7 } from "react/jsx-runtime";
+import { Fragment as Fragment3, jsx as jsx12, jsxs as jsxs7 } from "react/jsx-runtime";
 var FONT_FAMILY2 = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 var contentStyles2 = {
   backgroundColor: "#ffffff",
@@ -3188,7 +3216,7 @@ var MENU_CSS = `
 .sv-sheet-chevron { transition: transform 0.2s ease; }
 [data-state="open"] > .sv-sheet-chevron { transform: rotate(180deg); }
 `;
-var CheckIcon2 = () => /* @__PURE__ */ jsx13(
+var CheckIcon2 = () => /* @__PURE__ */ jsx12(
   "svg",
   {
     width: "14",
@@ -3200,10 +3228,10 @@ var CheckIcon2 = () => /* @__PURE__ */ jsx13(
     strokeLinecap: "round",
     strokeLinejoin: "round",
     "aria-hidden": "true",
-    children: /* @__PURE__ */ jsx13("path", { d: "M20 6 9 17l-5-5" })
+    children: /* @__PURE__ */ jsx12("path", { d: "M20 6 9 17l-5-5" })
   }
 );
-var ChevronDownIcon = ({ className }) => /* @__PURE__ */ jsx13(
+var ChevronDownIcon = ({ className }) => /* @__PURE__ */ jsx12(
   "svg",
   {
     className,
@@ -3217,7 +3245,7 @@ var ChevronDownIcon = ({ className }) => /* @__PURE__ */ jsx13(
     strokeLinejoin: "round",
     style: { opacity: 0.6, flexShrink: 0 },
     "aria-hidden": "true",
-    children: /* @__PURE__ */ jsx13("path", { d: "m6 9 6 6 6-6" })
+    children: /* @__PURE__ */ jsx12("path", { d: "m6 9 6 6 6-6" })
   }
 );
 var SchematicSheetSelector = ({
@@ -3225,16 +3253,16 @@ var SchematicSheetSelector = ({
   selectedSheetId,
   onSelectSheet
 }) => {
-  const [open, setOpen] = useState10(false);
+  const [open, setOpen] = useState9(false);
   if (sheets.length <= 1) return null;
   const selectedSheet = sheets.find(
     (s) => s.schematic_sheet_id === selectedSheetId
   );
   const selectedLabel = selectedSheet?.name ?? "Select sheet";
   return /* @__PURE__ */ jsxs7(Fragment3, { children: [
-    /* @__PURE__ */ jsx13("style", { children: MENU_CSS }),
+    /* @__PURE__ */ jsx12("style", { children: MENU_CSS }),
     /* @__PURE__ */ jsxs7(DropdownMenu2.Root, { open, onOpenChange: setOpen, modal: false, children: [
-      /* @__PURE__ */ jsx13(DropdownMenu2.Trigger, { asChild: true, children: /* @__PURE__ */ jsxs7(
+      /* @__PURE__ */ jsx12(DropdownMenu2.Trigger, { asChild: true, children: /* @__PURE__ */ jsxs7(
         "button",
         {
           type: "button",
@@ -3261,13 +3289,13 @@ var SchematicSheetSelector = ({
             zIndex: zIndexMap.viewMenuIcon
           },
           children: [
-            /* @__PURE__ */ jsx13("span", { style: { color: "#888888", flexShrink: 0 }, children: "Sheet:" }),
-            /* @__PURE__ */ jsx13("span", { style: { ...ellipsisStyles, minWidth: 0 }, children: selectedLabel }),
-            /* @__PURE__ */ jsx13(ChevronDownIcon, { className: "sv-sheet-chevron" })
+            /* @__PURE__ */ jsx12("span", { style: { color: "#888888", flexShrink: 0 }, children: "Sheet:" }),
+            /* @__PURE__ */ jsx12("span", { style: { ...ellipsisStyles, minWidth: 0 }, children: selectedLabel }),
+            /* @__PURE__ */ jsx12(ChevronDownIcon, { className: "sv-sheet-chevron" })
           ]
         }
       ) }),
-      /* @__PURE__ */ jsx13(DropdownMenu2.Portal, { children: /* @__PURE__ */ jsx13(
+      /* @__PURE__ */ jsx12(DropdownMenu2.Portal, { children: /* @__PURE__ */ jsx12(
         DropdownMenu2.Content,
         {
           style: contentStyles2,
@@ -3289,8 +3317,8 @@ var SchematicSheetSelector = ({
                   setOpen(false);
                 },
                 children: [
-                  /* @__PURE__ */ jsx13("span", { style: iconSlotStyles2, children: selected && /* @__PURE__ */ jsx13(CheckIcon2, {}) }),
-                  /* @__PURE__ */ jsx13("span", { style: { ...ellipsisStyles, minWidth: 0 }, children: sheet.name })
+                  /* @__PURE__ */ jsx12("span", { style: iconSlotStyles2, children: selected && /* @__PURE__ */ jsx12(CheckIcon2, {}) }),
+                  /* @__PURE__ */ jsx12("span", { style: { ...ellipsisStyles, minWidth: 0 }, children: sheet.name })
                 ]
               },
               sheet.schematic_sheet_id
@@ -3303,7 +3331,7 @@ var SchematicSheetSelector = ({
 };
 
 // lib/hooks/useWireDrawing.ts
-import { useCallback as useCallback9, useEffect as useEffect18, useRef as useRef13, useState as useState11 } from "react";
+import { useCallback as useCallback8, useEffect as useEffect17, useRef as useRef12, useState as useState10 } from "react";
 import "transformation-matrix";
 
 // lib/utils/isMouseCaptureIgnoredTarget.ts
@@ -3387,15 +3415,15 @@ var useWireDrawing = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState11({
+  const [state, setState] = useState10({
     isDrawing: false,
     fromPortId: null,
     previewEnd: null,
     waypoints: []
   });
-  const stateRef = useRef13(state);
+  const stateRef = useRef12(state);
   stateRef.current = state;
-  const screenToReal = useCallback9(
+  const screenToReal = useCallback8(
     createScreenToReal(
       svgToScreenProjection,
       realToSvgProjection,
@@ -3403,7 +3431,7 @@ var useWireDrawing = ({
     ),
     [svgToScreenProjection, realToSvgProjection, containerRef]
   );
-  const getPortCenter = useCallback9(
+  const getPortCenter = useCallback8(
     (portId) => {
       const schematicPortId = resolveSchematicPortId(circuitJson, portId);
       if (!schematicPortId) return null;
@@ -3416,7 +3444,7 @@ var useWireDrawing = ({
     },
     [circuitJson, containerRef, screenToReal]
   );
-  const getPortAtScreen = useCallback9(
+  const getPortAtScreen = useCallback8(
     (screenX, screenY) => getSchematicPortAtScreen(
       containerRef.current,
       circuitJson,
@@ -3425,7 +3453,7 @@ var useWireDrawing = ({
     ),
     [circuitJson, containerRef]
   );
-  const beginWireAtPort = useCallback9(
+  const beginWireAtPort = useCallback8(
     (portId) => {
       const schematicPortId = resolveSchematicPortId(circuitJson, portId);
       if (!schematicPortId) return false;
@@ -3441,7 +3469,7 @@ var useWireDrawing = ({
     },
     [circuitJson, getPortCenter]
   );
-  const finishWireAtPort = useCallback9(
+  const finishWireAtPort = useCallback8(
     (portId) => {
       const current = stateRef.current;
       if (!current.isDrawing || !current.fromPortId) return false;
@@ -3471,7 +3499,7 @@ var useWireDrawing = ({
     },
     [circuitJson, getPortCenter, onEditEvent]
   );
-  const handlePortMouseDown = useCallback9(
+  const handlePortMouseDown = useCallback8(
     (portId, e) => {
       if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) {
         return;
@@ -3493,7 +3521,7 @@ var useWireDrawing = ({
     },
     [enabled, beginWireAtPort, finishWireAtPort, screenToReal]
   );
-  const handleMouseDown = useCallback9(
+  const handleMouseDown = useCallback8(
     (e) => {
       if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) {
         return;
@@ -3522,7 +3550,7 @@ var useWireDrawing = ({
     },
     [enabled, getPortAtScreen, beginWireAtPort, finishWireAtPort, screenToReal]
   );
-  const handleMouseMove = useCallback9(
+  const handleMouseMove = useCallback8(
     (e) => {
       if (!enabled || !stateRef.current.isDrawing) return;
       const realPos = screenToReal(e.clientX, e.clientY);
@@ -3530,7 +3558,7 @@ var useWireDrawing = ({
     },
     [enabled, screenToReal]
   );
-  const handleKeyDown = useCallback9((e) => {
+  const handleKeyDown = useCallback8((e) => {
     if (e.key === "Escape" && stateRef.current.isDrawing) {
       setState({
         isDrawing: false,
@@ -3540,7 +3568,7 @@ var useWireDrawing = ({
       });
     }
   }, []);
-  useEffect18(() => {
+  useEffect17(() => {
     if (!enabled) {
       setState({
         isDrawing: false,
@@ -3565,7 +3593,7 @@ var useWireDrawing = ({
 };
 
 // lib/hooks/useBusDrawing.ts
-import { useCallback as useCallback10, useEffect as useEffect19, useRef as useRef14, useState as useState12 } from "react";
+import { useCallback as useCallback9, useEffect as useEffect18, useRef as useRef13, useState as useState11 } from "react";
 import { compose as compose6 } from "transformation-matrix";
 var useBusDrawing = ({
   enabled,
@@ -3574,14 +3602,14 @@ var useBusDrawing = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState12({
+  const [state, setState] = useState11({
     isDrawing: false,
     previewEnd: null,
     waypoints: []
   });
-  const stateRef = useRef14(state);
+  const stateRef = useRef13(state);
   stateRef.current = state;
-  const screenToReal = useCallback10(
+  const screenToReal = useCallback9(
     (screenX, screenY) => {
       const container = containerRef.current;
       if (!container) return { x: 0, y: 0 };
@@ -3604,7 +3632,7 @@ var useBusDrawing = ({
     }
     return out;
   };
-  const finishBus = useCallback10(
+  const finishBus = useCallback9(
     (route) => {
       const cleaned = dedupeRoute(route);
       if (cleaned.length < 2) return false;
@@ -3621,7 +3649,7 @@ var useBusDrawing = ({
     },
     [onEditEvent]
   );
-  const handleMouseDown = useCallback10(
+  const handleMouseDown = useCallback9(
     (e) => {
       if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
         return;
@@ -3645,7 +3673,7 @@ var useBusDrawing = ({
     },
     [enabled, screenToReal]
   );
-  const handleDoubleClick = useCallback10(
+  const handleDoubleClick = useCallback9(
     (e) => {
       if (!enabled || !stateRef.current.isDrawing) return;
       const current = stateRef.current;
@@ -3658,7 +3686,7 @@ var useBusDrawing = ({
     },
     [enabled, screenToReal, finishBus]
   );
-  const handleMouseMove = useCallback10(
+  const handleMouseMove = useCallback9(
     (e) => {
       if (!enabled || !stateRef.current.isDrawing) return;
       const realPos = screenToReal(e.clientX, e.clientY);
@@ -3666,7 +3694,7 @@ var useBusDrawing = ({
     },
     [enabled, screenToReal]
   );
-  const handleKeyDown = useCallback10(
+  const handleKeyDown = useCallback9(
     (e) => {
       const target = e.target;
       if (target?.closest("input, textarea, select")) return;
@@ -3683,7 +3711,7 @@ var useBusDrawing = ({
     },
     [finishBus]
   );
-  useEffect19(() => {
+  useEffect18(() => {
     if (!enabled) {
       setState({ isDrawing: false, previewEnd: null, waypoints: [] });
       return;
@@ -3713,7 +3741,7 @@ var useBusDrawing = ({
 };
 
 // lib/hooks/useBusEntryPlacement.ts
-import { useCallback as useCallback11, useEffect as useEffect20, useState as useState13 } from "react";
+import { useCallback as useCallback10, useEffect as useEffect19, useState as useState12 } from "react";
 import { compose as compose7 } from "transformation-matrix";
 var BUS_ENTRY_STUB_LEN = 2.5;
 var useBusEntryPlacement = ({
@@ -3723,10 +3751,10 @@ var useBusEntryPlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [previewState, setPreviewState] = useState13({
+  const [previewState, setPreviewState] = useState12({
     anchor: null
   });
-  const screenToReal = useCallback11(
+  const screenToReal = useCallback10(
     (screenX, screenY) => {
       const container = containerRef.current;
       if (!container) return { x: 0, y: 0 };
@@ -3741,7 +3769,7 @@ var useBusEntryPlacement = ({
     },
     [svgToScreenProjection, realToSvgProjection, containerRef]
   );
-  const placeEntry = useCallback11(
+  const placeEntry = useCallback10(
     (anchor) => {
       const event = {
         edit_event_id: Math.random().toString(36).substr(2, 9),
@@ -3754,7 +3782,7 @@ var useBusEntryPlacement = ({
     },
     [onEditEvent]
   );
-  const handleMouseDown = useCallback11(
+  const handleMouseDown = useCallback10(
     (e) => {
       if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
         return;
@@ -3765,14 +3793,14 @@ var useBusEntryPlacement = ({
     },
     [enabled, screenToReal, placeEntry]
   );
-  const handleMouseMove = useCallback11(
+  const handleMouseMove = useCallback10(
     (e) => {
       if (!enabled) return;
       setPreviewState({ anchor: screenToReal(e.clientX, e.clientY) });
     },
     [enabled, screenToReal]
   );
-  useEffect20(() => {
+  useEffect19(() => {
     if (!enabled) {
       setPreviewState({ anchor: null });
       return;
@@ -3790,7 +3818,7 @@ var useBusEntryPlacement = ({
 };
 
 // lib/hooks/useNoConnectPlacement.ts
-import { useCallback as useCallback12, useEffect as useEffect21, useState as useState14 } from "react";
+import { useCallback as useCallback11, useEffect as useEffect20, useState as useState13 } from "react";
 import { compose as compose8 } from "transformation-matrix";
 var NO_CONNECT_HALF = 0.4;
 var PORT_HIT_RADIUS_PX = 36;
@@ -3802,10 +3830,10 @@ var useNoConnectPlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [previewState, setPreviewState] = useState14({
+  const [previewState, setPreviewState] = useState13({
     center: null
   });
-  const screenToReal = useCallback12(
+  const screenToReal = useCallback11(
     (screenX, screenY) => {
       const container = containerRef.current;
       if (!container) return { x: 0, y: 0 };
@@ -3820,7 +3848,7 @@ var useNoConnectPlacement = ({
     },
     [svgToScreenProjection, realToSvgProjection, containerRef]
   );
-  const resolveSchematicPortId2 = useCallback12(
+  const resolveSchematicPortId2 = useCallback11(
     (portId) => {
       const bySchematic = circuitJson.find(
         (el) => el.type === "schematic_port" && el.schematic_port_id === portId
@@ -3833,7 +3861,7 @@ var useNoConnectPlacement = ({
     },
     [circuitJson]
   );
-  const getPortCenter = useCallback12(
+  const getPortCenter = useCallback11(
     (portId) => {
       const schematicPortId = resolveSchematicPortId2(portId);
       if (!schematicPortId) return null;
@@ -3845,7 +3873,7 @@ var useNoConnectPlacement = ({
     },
     [circuitJson, resolveSchematicPortId2]
   );
-  const getPortAtScreen = useCallback12(
+  const getPortAtScreen = useCallback11(
     (screenX, screenY) => {
       const container = containerRef.current;
       if (!container) return null;
@@ -3866,7 +3894,7 @@ var useNoConnectPlacement = ({
     },
     [containerRef, resolveSchematicPortId2]
   );
-  const placeNoConnect = useCallback12(
+  const placeNoConnect = useCallback11(
     (center, schematicPortId) => {
       const event = {
         edit_event_id: Math.random().toString(36).substr(2, 9),
@@ -3880,7 +3908,7 @@ var useNoConnectPlacement = ({
     },
     [onEditEvent]
   );
-  const handleMouseDown = useCallback12(
+  const handleMouseDown = useCallback11(
     (e) => {
       if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
         return;
@@ -3898,7 +3926,7 @@ var useNoConnectPlacement = ({
     },
     [enabled, getPortAtScreen, getPortCenter, placeNoConnect, screenToReal]
   );
-  const handleMouseMove = useCallback12(
+  const handleMouseMove = useCallback11(
     (e) => {
       if (!enabled) return;
       const portId = getPortAtScreen(e.clientX, e.clientY);
@@ -3913,7 +3941,7 @@ var useNoConnectPlacement = ({
     },
     [enabled, getPortAtScreen, getPortCenter, screenToReal]
   );
-  useEffect21(() => {
+  useEffect20(() => {
     if (!enabled) {
       setPreviewState({ center: null });
       return;
@@ -3931,10 +3959,146 @@ var useNoConnectPlacement = ({
 };
 
 // lib/hooks/useNetLabelPlacement.ts
-import { useCallback as useCallback13, useEffect as useEffect22, useRef as useRef15, useState as useState15 } from "react";
+import { useCallback as useCallback12, useEffect as useEffect21, useRef as useRef14, useState as useState14 } from "react";
 import { compose as compose9 } from "transformation-matrix";
 var PORT_SNAP_RADIUS_PX = 32;
 var useNetLabelPlacement = ({
+  enabled,
+  circuitJson,
+  svgToScreenProjection,
+  realToSvgProjection,
+  containerRef,
+  onEditEvent
+}) => {
+  const [state, setState] = useState14({
+    previewPos: null,
+    pendingPos: null,
+    pendingPortId: null
+  });
+  const stateRef = useRef14(state);
+  stateRef.current = state;
+  const screenToReal = useCallback12(
+    (screenX, screenY) => {
+      const container = containerRef.current;
+      if (!container) return { x: 0, y: 0 };
+      const rect = container.getBoundingClientRect();
+      const localX = screenX - rect.left;
+      const localY = screenY - rect.top;
+      const realToScreen = compose9(svgToScreenProjection, realToSvgProjection);
+      return {
+        x: (localX - realToScreen.e) / realToScreen.a,
+        y: (localY - realToScreen.f) / realToScreen.d
+      };
+    },
+    [svgToScreenProjection, realToSvgProjection, containerRef]
+  );
+  const snapToPort = useCallback12(
+    (screenX, screenY) => {
+      const container = containerRef.current;
+      if (!container)
+        return { pos: screenToReal(screenX, screenY), portId: null };
+      let closest = null;
+      const portEls = container.querySelectorAll("[data-schematic-port-id]");
+      for (const node of Array.from(portEls)) {
+        const rect = node.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dist = Math.sqrt((cx - screenX) ** 2 + (cy - screenY) ** 2);
+        if (dist < PORT_SNAP_RADIUS_PX && (!closest || dist < closest.dist)) {
+          const id = node.getAttribute("data-schematic-port-id");
+          const portEl = circuitJson.find(
+            (el) => el.type === "schematic_port" && el.schematic_port_id === id
+          );
+          if (id && portEl?.center) {
+            closest = { id, dist, center: portEl.center };
+          }
+        }
+      }
+      if (closest) return { pos: closest.center, portId: closest.id };
+      return { pos: screenToReal(screenX, screenY), portId: null };
+    },
+    [containerRef, circuitJson, screenToReal]
+  );
+  const handleMouseMove = useCallback12(
+    (e) => {
+      if (!enabled || stateRef.current.pendingPos) return;
+      const { pos } = snapToPort(e.clientX, e.clientY);
+      setState((prev) => ({ ...prev, previewPos: pos }));
+    },
+    [enabled, snapToPort]
+  );
+  const handleMouseDown = useCallback12(
+    (e) => {
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return;
+      if (stateRef.current.pendingPos) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const { pos, portId } = snapToPort(e.clientX, e.clientY);
+      setState((prev) => ({
+        ...prev,
+        pendingPos: pos,
+        pendingPortId: portId,
+        previewPos: null
+      }));
+    },
+    [enabled, snapToPort]
+  );
+  const handleKeyDown = useCallback12((e) => {
+    if (e.key === "Escape") {
+      setState({
+        previewPos: null,
+        pendingPos: null,
+        pendingPortId: null
+      });
+    }
+  }, []);
+  const confirmPlacement = useCallback12(
+    (netName) => {
+      const current = stateRef.current;
+      if (!current.pendingPos || !netName.trim()) return;
+      const event = {
+        edit_event_id: Math.random().toString(36).substr(2, 9),
+        edit_event_type: "edit_schematic_net_label_add",
+        position: current.pendingPos,
+        net_name: netName.trim(),
+        schematic_port_id: current.pendingPortId ?? void 0,
+        anchor_side: "right",
+        created_at: Date.now(),
+        in_progress: false
+      };
+      onEditEvent?.(event);
+      setState({ previewPos: null, pendingPos: null, pendingPortId: null });
+    },
+    [onEditEvent]
+  );
+  const cancelPlacement = useCallback12(() => {
+    setState({ previewPos: null, pendingPos: null, pendingPortId: null });
+  }, []);
+  useEffect21(() => {
+    if (!enabled) {
+      setState({ previewPos: null, pendingPos: null, pendingPortId: null });
+      return;
+    }
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousedown", handleMouseDown, { capture: true });
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mousedown", handleMouseDown, {
+        capture: true
+      });
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [enabled, handleMouseMove, handleMouseDown, handleKeyDown]);
+  return { netLabelState: state, confirmPlacement, cancelPlacement };
+};
+
+// lib/hooks/useGlobalLabelPlacement.ts
+import { useCallback as useCallback13, useEffect as useEffect22, useRef as useRef15, useState as useState15 } from "react";
+import { compose as compose10 } from "transformation-matrix";
+var PORT_SNAP_RADIUS_PX2 = 32;
+var useGlobalLabelPlacement = ({
   enabled,
   circuitJson,
   svgToScreenProjection,
@@ -3956,7 +4120,7 @@ var useNetLabelPlacement = ({
       const rect = container.getBoundingClientRect();
       const localX = screenX - rect.left;
       const localY = screenY - rect.top;
-      const realToScreen = compose9(svgToScreenProjection, realToSvgProjection);
+      const realToScreen = compose10(svgToScreenProjection, realToSvgProjection);
       return {
         x: (localX - realToScreen.e) / realToScreen.a,
         y: (localY - realToScreen.f) / realToScreen.d
@@ -3976,7 +4140,7 @@ var useNetLabelPlacement = ({
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
         const dist = Math.sqrt((cx - screenX) ** 2 + (cy - screenY) ** 2);
-        if (dist < PORT_SNAP_RADIUS_PX && (!closest || dist < closest.dist)) {
+        if (dist < PORT_SNAP_RADIUS_PX2 && (!closest || dist < closest.dist)) {
           const id = node.getAttribute("data-schematic-port-id");
           const portEl = circuitJson.find(
             (el) => el.type === "schematic_port" && el.schematic_port_id === id
@@ -4031,7 +4195,7 @@ var useNetLabelPlacement = ({
       if (!current.pendingPos || !netName.trim()) return;
       const event = {
         edit_event_id: Math.random().toString(36).substr(2, 9),
-        edit_event_type: "edit_schematic_net_label_add",
+        edit_event_type: "edit_schematic_global_label_add",
         position: current.pendingPos,
         net_name: netName.trim(),
         schematic_port_id: current.pendingPortId ?? void 0,
@@ -4063,151 +4227,15 @@ var useNetLabelPlacement = ({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [enabled, handleMouseMove, handleMouseDown, handleKeyDown]);
-  return { netLabelState: state, confirmPlacement, cancelPlacement };
-};
-
-// lib/hooks/useGlobalLabelPlacement.ts
-import { useCallback as useCallback14, useEffect as useEffect23, useRef as useRef16, useState as useState16 } from "react";
-import { compose as compose10 } from "transformation-matrix";
-var PORT_SNAP_RADIUS_PX2 = 32;
-var useGlobalLabelPlacement = ({
-  enabled,
-  circuitJson,
-  svgToScreenProjection,
-  realToSvgProjection,
-  containerRef,
-  onEditEvent
-}) => {
-  const [state, setState] = useState16({
-    previewPos: null,
-    pendingPos: null,
-    pendingPortId: null
-  });
-  const stateRef = useRef16(state);
-  stateRef.current = state;
-  const screenToReal = useCallback14(
-    (screenX, screenY) => {
-      const container = containerRef.current;
-      if (!container) return { x: 0, y: 0 };
-      const rect = container.getBoundingClientRect();
-      const localX = screenX - rect.left;
-      const localY = screenY - rect.top;
-      const realToScreen = compose10(svgToScreenProjection, realToSvgProjection);
-      return {
-        x: (localX - realToScreen.e) / realToScreen.a,
-        y: (localY - realToScreen.f) / realToScreen.d
-      };
-    },
-    [svgToScreenProjection, realToSvgProjection, containerRef]
-  );
-  const snapToPort = useCallback14(
-    (screenX, screenY) => {
-      const container = containerRef.current;
-      if (!container)
-        return { pos: screenToReal(screenX, screenY), portId: null };
-      let closest = null;
-      const portEls = container.querySelectorAll("[data-schematic-port-id]");
-      for (const node of Array.from(portEls)) {
-        const rect = node.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dist = Math.sqrt((cx - screenX) ** 2 + (cy - screenY) ** 2);
-        if (dist < PORT_SNAP_RADIUS_PX2 && (!closest || dist < closest.dist)) {
-          const id = node.getAttribute("data-schematic-port-id");
-          const portEl = circuitJson.find(
-            (el) => el.type === "schematic_port" && el.schematic_port_id === id
-          );
-          if (id && portEl?.center) {
-            closest = { id, dist, center: portEl.center };
-          }
-        }
-      }
-      if (closest) return { pos: closest.center, portId: closest.id };
-      return { pos: screenToReal(screenX, screenY), portId: null };
-    },
-    [containerRef, circuitJson, screenToReal]
-  );
-  const handleMouseMove = useCallback14(
-    (e) => {
-      if (!enabled || stateRef.current.pendingPos) return;
-      const { pos } = snapToPort(e.clientX, e.clientY);
-      setState((prev) => ({ ...prev, previewPos: pos }));
-    },
-    [enabled, snapToPort]
-  );
-  const handleMouseDown = useCallback14(
-    (e) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
-        return;
-      if (stateRef.current.pendingPos) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const { pos, portId } = snapToPort(e.clientX, e.clientY);
-      setState((prev) => ({
-        ...prev,
-        pendingPos: pos,
-        pendingPortId: portId,
-        previewPos: null
-      }));
-    },
-    [enabled, snapToPort]
-  );
-  const handleKeyDown = useCallback14((e) => {
-    if (e.key === "Escape") {
-      setState({
-        previewPos: null,
-        pendingPos: null,
-        pendingPortId: null
-      });
-    }
-  }, []);
-  const confirmPlacement = useCallback14(
-    (netName) => {
-      const current = stateRef.current;
-      if (!current.pendingPos || !netName.trim()) return;
-      const event = {
-        edit_event_id: Math.random().toString(36).substr(2, 9),
-        edit_event_type: "edit_schematic_global_label_add",
-        position: current.pendingPos,
-        net_name: netName.trim(),
-        schematic_port_id: current.pendingPortId ?? void 0,
-        anchor_side: "right",
-        created_at: Date.now(),
-        in_progress: false
-      };
-      onEditEvent?.(event);
-      setState({ previewPos: null, pendingPos: null, pendingPortId: null });
-    },
-    [onEditEvent]
-  );
-  const cancelPlacement = useCallback14(() => {
-    setState({ previewPos: null, pendingPos: null, pendingPortId: null });
-  }, []);
-  useEffect23(() => {
-    if (!enabled) {
-      setState({ previewPos: null, pendingPos: null, pendingPortId: null });
-      return;
-    }
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mousedown", handleMouseDown, { capture: true });
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mousedown", handleMouseDown, {
-        capture: true
-      });
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [enabled, handleMouseMove, handleMouseDown, handleKeyDown]);
   return { globalLabelState: state, confirmPlacement, cancelPlacement };
 };
 
 // lib/hooks/useHierSheetPlacement.ts
-import { useCallback as useCallback15, useEffect as useEffect24, useRef as useRef17, useState as useState17 } from "react";
+import { useCallback as useCallback14, useEffect as useEffect23, useRef as useRef16, useState as useState16 } from "react";
 import {
-  applyToPoint as applyToPoint3,
+  applyToPoint as applyToPoint4,
   compose as compose11,
-  inverse
+  inverse as inverse2
 } from "transformation-matrix";
 var MIN_BOX_PX = 48;
 function normalizeScreenBox(a, b) {
@@ -4247,16 +4275,16 @@ var useHierSheetPlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState17({
+  const [state, setState] = useState16({
     isDrawing: false,
     anchorLocal: null,
     previewLocal: null,
     pendingBox: null,
     pendingScreenBox: null
   });
-  const stateRef = useRef17(state);
+  const stateRef = useRef16(state);
   stateRef.current = state;
-  const localFromMouse = useCallback15(
+  const localFromMouse = useCallback14(
     (clientX, clientY) => {
       const container = containerRef.current;
       if (!container) return { x: 0, y: 0 };
@@ -4265,14 +4293,14 @@ var useHierSheetPlacement = ({
     },
     [containerRef]
   );
-  const localToReal = useCallback15(
+  const localToReal = useCallback14(
     (localX, localY) => {
       const realToScreen = compose11(svgToScreenProjection, realToSvgProjection);
-      return applyToPoint3(inverse(realToScreen), { x: localX, y: localY });
+      return applyToPoint4(inverse2(realToScreen), { x: localX, y: localY });
     },
     [svgToScreenProjection, realToSvgProjection]
   );
-  const reset = useCallback15(() => {
+  const reset = useCallback14(() => {
     setState({
       isDrawing: false,
       anchorLocal: null,
@@ -4281,7 +4309,7 @@ var useHierSheetPlacement = ({
       pendingScreenBox: null
     });
   }, []);
-  const handleMouseMove = useCallback15(
+  const handleMouseMove = useCallback14(
     (e) => {
       if (!enabled || stateRef.current.pendingBox) return;
       const pos = localFromMouse(e.clientX, e.clientY);
@@ -4291,7 +4319,7 @@ var useHierSheetPlacement = ({
     },
     [enabled, localFromMouse]
   );
-  const handleMouseDown = useCallback15(
+  const handleMouseDown = useCallback14(
     (e) => {
       if (!enabled || e.button !== 0 || stateRef.current.pendingBox || isMouseCaptureIgnoredTarget(e.target))
         return;
@@ -4322,13 +4350,13 @@ var useHierSheetPlacement = ({
     },
     [enabled, localFromMouse, localToReal]
   );
-  const handleKeyDown = useCallback15(
+  const handleKeyDown = useCallback14(
     (e) => {
       if (e.key === "Escape") reset();
     },
     [reset]
   );
-  const confirmPlacement = useCallback15(
+  const confirmPlacement = useCallback14(
     (sheetName, targetSheetId) => {
       const box = stateRef.current.pendingBox;
       const screenBox = stateRef.current.pendingScreenBox;
@@ -4355,8 +4383,8 @@ var useHierSheetPlacement = ({
     },
     [onEditEvent, reset, localToReal]
   );
-  const cancelPlacement = useCallback15(() => reset(), [reset]);
-  useEffect24(() => {
+  const cancelPlacement = useCallback14(() => reset(), [reset]);
+  useEffect23(() => {
     if (!enabled) {
       reset();
       return;
@@ -4376,8 +4404,8 @@ var useHierSheetPlacement = ({
 };
 
 // lib/components/WirePreview.tsx
-import { applyToPoint as applyToPoint4, compose as compose12 } from "transformation-matrix";
-import { jsx as jsx14, jsxs as jsxs8 } from "react/jsx-runtime";
+import { applyToPoint as applyToPoint5, compose as compose12 } from "transformation-matrix";
+import { jsx as jsx13, jsxs as jsxs8 } from "react/jsx-runtime";
 var WirePreview = ({
   state,
   realToSvgProjection,
@@ -4391,7 +4419,7 @@ var WirePreview = ({
   if (!realToSvgProjection?.a || isNaN(realToSvgProjection.a) || !svgToScreenProjection?.a || isNaN(svgToScreenProjection.a))
     return null;
   const realToScreen = compose12(svgToScreenProjection, realToSvgProjection);
-  const toScreen = (pt) => applyToPoint4(realToScreen, pt);
+  const toScreen = (pt) => applyToPoint5(realToScreen, pt);
   const points = [...state.waypoints.map(toScreen), toScreen(state.previewEnd)];
   const d = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
   return /* @__PURE__ */ jsxs8(
@@ -4406,7 +4434,7 @@ var WirePreview = ({
         zIndex: 200
       },
       children: [
-        /* @__PURE__ */ jsx14(
+        /* @__PURE__ */ jsx13(
           "path",
           {
             d,
@@ -4418,7 +4446,7 @@ var WirePreview = ({
             strokeLinejoin: "round"
           }
         ),
-        /* @__PURE__ */ jsx14(
+        /* @__PURE__ */ jsx13(
           "circle",
           {
             cx: points[0].x,
@@ -4428,7 +4456,7 @@ var WirePreview = ({
             opacity: 0.8
           }
         ),
-        /* @__PURE__ */ jsx14(
+        /* @__PURE__ */ jsx13(
           "circle",
           {
             cx: points[points.length - 1].x,
@@ -4446,8 +4474,8 @@ var WirePreview = ({
 };
 
 // lib/components/BusPreview.tsx
-import { applyToPoint as applyToPoint5, compose as compose13 } from "transformation-matrix";
-import { jsx as jsx15 } from "react/jsx-runtime";
+import { applyToPoint as applyToPoint6, compose as compose13 } from "transformation-matrix";
+import { jsx as jsx14 } from "react/jsx-runtime";
 var BusPreview = ({
   state,
   realToSvgProjection,
@@ -4461,10 +4489,10 @@ var BusPreview = ({
   if (!realToSvgProjection?.a || isNaN(realToSvgProjection.a) || !svgToScreenProjection?.a || isNaN(svgToScreenProjection.a))
     return null;
   const realToScreen = compose13(svgToScreenProjection, realToSvgProjection);
-  const toScreen = (pt) => applyToPoint5(realToScreen, pt);
+  const toScreen = (pt) => applyToPoint6(realToScreen, pt);
   const points = [...state.waypoints.map(toScreen), toScreen(state.previewEnd)];
   const d = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  return /* @__PURE__ */ jsx15(
+  return /* @__PURE__ */ jsx14(
     "svg",
     {
       style: {
@@ -4475,7 +4503,7 @@ var BusPreview = ({
         pointerEvents: "none",
         zIndex: 200
       },
-      children: /* @__PURE__ */ jsx15(
+      children: /* @__PURE__ */ jsx14(
         "path",
         {
           d,
@@ -4492,8 +4520,8 @@ var BusPreview = ({
 };
 
 // lib/components/BusEntryPreview.tsx
-import { applyToPoint as applyToPoint6, compose as compose14 } from "transformation-matrix";
-import { jsx as jsx16 } from "react/jsx-runtime";
+import { applyToPoint as applyToPoint7, compose as compose14 } from "transformation-matrix";
+import { jsx as jsx15 } from "react/jsx-runtime";
 var BusEntryPreview = ({
   state,
   realToSvgProjection,
@@ -4503,13 +4531,13 @@ var BusEntryPreview = ({
   if (!state.anchor || !containerRef.current) return null;
   if (!realToSvgProjection?.a || !svgToScreenProjection?.a) return null;
   const realToScreen = compose14(svgToScreenProjection, realToSvgProjection);
-  const toScreen = (pt) => applyToPoint6(realToScreen, pt);
+  const toScreen = (pt) => applyToPoint7(realToScreen, pt);
   const p1 = toScreen(state.anchor);
   const p2 = toScreen({
     x: state.anchor.x + BUS_ENTRY_STUB_LEN,
     y: state.anchor.y + BUS_ENTRY_STUB_LEN
   });
-  return /* @__PURE__ */ jsx16(
+  return /* @__PURE__ */ jsx15(
     "svg",
     {
       style: {
@@ -4520,7 +4548,7 @@ var BusEntryPreview = ({
         pointerEvents: "none",
         zIndex: 200
       },
-      children: /* @__PURE__ */ jsx16(
+      children: /* @__PURE__ */ jsx15(
         "line",
         {
           x1: p1.x,
@@ -4538,8 +4566,8 @@ var BusEntryPreview = ({
 };
 
 // lib/components/NoConnectPreview.tsx
-import { applyToPoint as applyToPoint7, compose as compose15 } from "transformation-matrix";
-import { jsx as jsx17, jsxs as jsxs9 } from "react/jsx-runtime";
+import { applyToPoint as applyToPoint8, compose as compose15 } from "transformation-matrix";
+import { jsx as jsx16, jsxs as jsxs9 } from "react/jsx-runtime";
 var NoConnectPreview = ({
   state,
   realToSvgProjection,
@@ -4549,7 +4577,7 @@ var NoConnectPreview = ({
   if (!state.center || !containerRef.current) return null;
   if (!realToSvgProjection?.a || !svgToScreenProjection?.a) return null;
   const realToScreen = compose15(svgToScreenProjection, realToSvgProjection);
-  const toScreen = (pt) => applyToPoint7(realToScreen, pt);
+  const toScreen = (pt) => applyToPoint8(realToScreen, pt);
   const { x, y } = state.center;
   const d = NO_CONNECT_HALF;
   const a1 = toScreen({ x: x - d, y: y - d });
@@ -4568,7 +4596,7 @@ var NoConnectPreview = ({
         zIndex: 200
       },
       children: [
-        /* @__PURE__ */ jsx17(
+        /* @__PURE__ */ jsx16(
           "line",
           {
             x1: a1.x,
@@ -4581,7 +4609,7 @@ var NoConnectPreview = ({
             strokeLinecap: "round"
           }
         ),
-        /* @__PURE__ */ jsx17(
+        /* @__PURE__ */ jsx16(
           "line",
           {
             x1: b1.x,
@@ -4600,9 +4628,9 @@ var NoConnectPreview = ({
 };
 
 // lib/components/NetLabelPreview.tsx
-import { applyToPoint as applyToPoint8, compose as compose16 } from "transformation-matrix";
-import { useRef as useRef18, useEffect as useEffect25 } from "react";
-import { Fragment as Fragment4, jsx as jsx18, jsxs as jsxs10 } from "react/jsx-runtime";
+import { applyToPoint as applyToPoint9, compose as compose16 } from "transformation-matrix";
+import { useRef as useRef17, useEffect as useEffect24 } from "react";
+import { Fragment as Fragment4, jsx as jsx17, jsxs as jsxs10 } from "react/jsx-runtime";
 var NetLabelPreview = ({
   state,
   realToSvgProjection,
@@ -4611,8 +4639,8 @@ var NetLabelPreview = ({
   onConfirm,
   onCancel
 }) => {
-  const inputRef = useRef18(null);
-  useEffect25(() => {
+  const inputRef = useRef17(null);
+  useEffect24(() => {
     if (state.pendingPos && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.value = "";
@@ -4623,11 +4651,11 @@ var NetLabelPreview = ({
   if (!realToSvgProjection?.a || isNaN(realToSvgProjection.a) || !svgToScreenProjection?.a || isNaN(svgToScreenProjection.a))
     return null;
   const realToScreen = compose16(svgToScreenProjection, realToSvgProjection);
-  const toScreen = (pt) => applyToPoint8(realToScreen, pt);
+  const toScreen = (pt) => applyToPoint9(realToScreen, pt);
   const LabelShape = ({ pos }) => {
     const sp = toScreen(pos);
     return /* @__PURE__ */ jsxs10("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.8, children: [
-      /* @__PURE__ */ jsx18(
+      /* @__PURE__ */ jsx17(
         "polygon",
         {
           points: "0,-10 60,-10 70,0 60,10 0,10",
@@ -4637,12 +4665,12 @@ var NetLabelPreview = ({
           strokeDasharray: "4 2"
         }
       ),
-      /* @__PURE__ */ jsx18("text", { x: 5, y: 4, fontSize: 10, fill: "#00b4d8", fontFamily: "monospace", children: "NET" }),
-      /* @__PURE__ */ jsx18("circle", { cx: 0, cy: 0, r: 3, fill: "#00b4d8", opacity: 0.6 })
+      /* @__PURE__ */ jsx17("text", { x: 5, y: 4, fontSize: 10, fill: "#00b4d8", fontFamily: "monospace", children: "NET" }),
+      /* @__PURE__ */ jsx17("circle", { cx: 0, cy: 0, r: 3, fill: "#00b4d8", opacity: 0.6 })
     ] });
   };
   return /* @__PURE__ */ jsxs10(Fragment4, { children: [
-    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx18(
+    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx17(
       "svg",
       {
         style: {
@@ -4653,7 +4681,7 @@ var NetLabelPreview = ({
           pointerEvents: "none",
           zIndex: 50
         },
-        children: /* @__PURE__ */ jsx18(LabelShape, { pos: state.previewPos })
+        children: /* @__PURE__ */ jsx17(LabelShape, { pos: state.previewPos })
       }
     ),
     state.pendingPos && (() => {
@@ -4671,7 +4699,7 @@ var NetLabelPreview = ({
             gap: 4
           },
           children: [
-            /* @__PURE__ */ jsx18(
+            /* @__PURE__ */ jsx17(
               "input",
               {
                 ref: inputRef,
@@ -4698,7 +4726,7 @@ var NetLabelPreview = ({
                 }
               }
             ),
-            /* @__PURE__ */ jsx18(
+            /* @__PURE__ */ jsx17(
               "button",
               {
                 type: "button",
@@ -4726,9 +4754,9 @@ var NetLabelPreview = ({
 };
 
 // lib/components/GlobalLabelPreview.tsx
-import { applyToPoint as applyToPoint9, compose as compose17 } from "transformation-matrix";
-import { useRef as useRef19, useEffect as useEffect26 } from "react";
-import { Fragment as Fragment5, jsx as jsx19, jsxs as jsxs11 } from "react/jsx-runtime";
+import { applyToPoint as applyToPoint10, compose as compose17 } from "transformation-matrix";
+import { useRef as useRef18, useEffect as useEffect25 } from "react";
+import { Fragment as Fragment5, jsx as jsx18, jsxs as jsxs11 } from "react/jsx-runtime";
 var GLOBAL_COLOR = "#c1271c";
 var GlobalLabelPreview = ({
   state,
@@ -4738,8 +4766,8 @@ var GlobalLabelPreview = ({
   onConfirm,
   onCancel
 }) => {
-  const inputRef = useRef19(null);
-  useEffect26(() => {
+  const inputRef = useRef18(null);
+  useEffect25(() => {
     if (state.pendingPos && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.value = "";
@@ -4750,11 +4778,11 @@ var GlobalLabelPreview = ({
   if (!realToSvgProjection?.a || isNaN(realToSvgProjection.a) || !svgToScreenProjection?.a || isNaN(svgToScreenProjection.a))
     return null;
   const realToScreen = compose17(svgToScreenProjection, realToSvgProjection);
-  const toScreen = (pt) => applyToPoint9(realToScreen, pt);
+  const toScreen = (pt) => applyToPoint10(realToScreen, pt);
   const LabelShape = ({ pos }) => {
     const sp = toScreen(pos);
     return /* @__PURE__ */ jsxs11("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.85, children: [
-      /* @__PURE__ */ jsx19(
+      /* @__PURE__ */ jsx18(
         "polygon",
         {
           points: "0,-10 60,-10 70,0 60,10 0,10",
@@ -4764,7 +4792,7 @@ var GlobalLabelPreview = ({
           strokeDasharray: "4 2"
         }
       ),
-      /* @__PURE__ */ jsx19(
+      /* @__PURE__ */ jsx18(
         "text",
         {
           x: 5,
@@ -4775,11 +4803,11 @@ var GlobalLabelPreview = ({
           children: "GLOBAL"
         }
       ),
-      /* @__PURE__ */ jsx19("circle", { cx: 0, cy: 0, r: 3, fill: GLOBAL_COLOR, opacity: 0.6 })
+      /* @__PURE__ */ jsx18("circle", { cx: 0, cy: 0, r: 3, fill: GLOBAL_COLOR, opacity: 0.6 })
     ] });
   };
   return /* @__PURE__ */ jsxs11(Fragment5, { children: [
-    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx19(
+    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx18(
       "svg",
       {
         style: {
@@ -4790,7 +4818,7 @@ var GlobalLabelPreview = ({
           pointerEvents: "none",
           zIndex: 50
         },
-        children: /* @__PURE__ */ jsx19(LabelShape, { pos: state.previewPos })
+        children: /* @__PURE__ */ jsx18(LabelShape, { pos: state.previewPos })
       }
     ),
     state.pendingPos && (() => {
@@ -4808,7 +4836,7 @@ var GlobalLabelPreview = ({
             gap: 4
           },
           children: [
-            /* @__PURE__ */ jsx19(
+            /* @__PURE__ */ jsx18(
               "input",
               {
                 ref: inputRef,
@@ -4835,7 +4863,7 @@ var GlobalLabelPreview = ({
                 }
               }
             ),
-            /* @__PURE__ */ jsx19(
+            /* @__PURE__ */ jsx18(
               "button",
               {
                 type: "button",
@@ -4863,9 +4891,9 @@ var GlobalLabelPreview = ({
 };
 
 // lib/components/HierSheetPreview.tsx
-import { applyToPoint as applyToPoint10, compose as compose18 } from "transformation-matrix";
-import { useEffect as useEffect27, useMemo as useMemo5, useRef as useRef20, useState as useState18 } from "react";
-import { Fragment as Fragment6, jsx as jsx20, jsxs as jsxs12 } from "react/jsx-runtime";
+import { applyToPoint as applyToPoint11, compose as compose18 } from "transformation-matrix";
+import { useEffect as useEffect26, useMemo as useMemo5, useRef as useRef19, useState as useState17 } from "react";
+import { Fragment as Fragment6, jsx as jsx19, jsxs as jsxs12 } from "react/jsx-runtime";
 var SHEET_STROKE = "#0050d8";
 var SHEET_FILL = "rgba(234, 242, 255, 0.35)";
 var NAME_COLOR = "#006464";
@@ -4878,7 +4906,7 @@ var SheetSymbolShape = ({
   const pinLen = Math.min(10, width * 0.08);
   const midY = y + height / 2;
   return /* @__PURE__ */ jsxs12("g", { opacity: dashed ? 0.85 : 1, children: [
-    /* @__PURE__ */ jsx20(
+    /* @__PURE__ */ jsx19(
       "rect",
       {
         x,
@@ -4891,7 +4919,7 @@ var SheetSymbolShape = ({
         strokeDasharray: dashed ? "6 3" : void 0
       }
     ),
-    /* @__PURE__ */ jsx20(
+    /* @__PURE__ */ jsx19(
       "line",
       {
         x1: x - pinLen,
@@ -4902,7 +4930,7 @@ var SheetSymbolShape = ({
         strokeWidth: 1.4
       }
     ),
-    /* @__PURE__ */ jsx20(
+    /* @__PURE__ */ jsx19(
       "line",
       {
         x1: x - pinLen,
@@ -4913,7 +4941,7 @@ var SheetSymbolShape = ({
         strokeWidth: 1.4
       }
     ),
-    /* @__PURE__ */ jsx20(
+    /* @__PURE__ */ jsx19(
       "line",
       {
         x1: x + width,
@@ -4924,7 +4952,7 @@ var SheetSymbolShape = ({
         strokeWidth: 1.4
       }
     ),
-    /* @__PURE__ */ jsx20(
+    /* @__PURE__ */ jsx19(
       "text",
       {
         x: x + 6,
@@ -4936,7 +4964,7 @@ var SheetSymbolShape = ({
         children: "Sheet name"
       }
     ),
-    /* @__PURE__ */ jsx20(
+    /* @__PURE__ */ jsx19(
       "text",
       {
         x: x + 6,
@@ -4962,15 +4990,15 @@ var HierSheetPreview = ({
   onConfirm,
   onCancel
 }) => {
-  const [sheetName, setSheetName] = useState18("");
-  const [targetSheetId, setTargetSheetId] = useState18("");
-  const initializedKeyRef = useRef20(null);
-  const nameInputRef = useRef20(null);
+  const [sheetName, setSheetName] = useState17("");
+  const [targetSheetId, setTargetSheetId] = useState17("");
+  const initializedKeyRef = useRef19(null);
+  const nameInputRef = useRef19(null);
   const targets = useMemo5(
     () => sheetTargets.filter((t) => t.id !== activeSheetId),
     [sheetTargets, activeSheetId]
   );
-  useEffect27(() => {
+  useEffect26(() => {
     if (!state.pendingBox) {
       initializedKeyRef.current = null;
       setSheetName("");
@@ -4991,8 +5019,8 @@ var HierSheetPreview = ({
   }
   const realToScreen = compose18(svgToScreenProjection, realToSvgProjection);
   const boxToScreen = (box) => {
-    const p1 = applyToPoint10(realToScreen, { x: box.x, y: box.y });
-    const p2 = applyToPoint10(realToScreen, {
+    const p1 = applyToPoint11(realToScreen, { x: box.x, y: box.y });
+    const p2 = applyToPoint11(realToScreen, {
       x: box.x + box.width,
       y: box.y + box.height
     });
@@ -5011,7 +5039,7 @@ var HierSheetPreview = ({
     onConfirm(sheetName, targetSheetId);
   };
   return /* @__PURE__ */ jsxs12(Fragment6, { children: [
-    previewScreenBox && /* @__PURE__ */ jsx20(
+    previewScreenBox && /* @__PURE__ */ jsx19(
       "svg",
       {
         style: {
@@ -5022,10 +5050,10 @@ var HierSheetPreview = ({
           pointerEvents: "none",
           zIndex: 50
         },
-        children: /* @__PURE__ */ jsx20(SheetSymbolShape, { screenBox: previewScreenBox })
+        children: /* @__PURE__ */ jsx19(SheetSymbolShape, { screenBox: previewScreenBox })
       }
     ),
-    state.pendingBox && committedScreenBox && /* @__PURE__ */ jsx20(
+    state.pendingBox && committedScreenBox && /* @__PURE__ */ jsx19(
       "svg",
       {
         style: {
@@ -5036,7 +5064,7 @@ var HierSheetPreview = ({
           pointerEvents: "none",
           zIndex: 51
         },
-        children: /* @__PURE__ */ jsx20(SheetSymbolShape, { screenBox: committedScreenBox, dashed: false })
+        children: /* @__PURE__ */ jsx19(SheetSymbolShape, { screenBox: committedScreenBox, dashed: false })
       }
     ),
     state.pendingBox && dialogAnchor && /* @__PURE__ */ jsxs12(
@@ -5065,7 +5093,7 @@ var HierSheetPreview = ({
               style: { fontSize: 10, color: NAME_COLOR, fontFamily: "monospace" },
               children: [
                 "Sheet name",
-                /* @__PURE__ */ jsx20(
+                /* @__PURE__ */ jsx19(
                   "input",
                   {
                     ref: nameInputRef,
@@ -5105,7 +5133,7 @@ var HierSheetPreview = ({
               style: { fontSize: 10, color: FILE_COLOR, fontFamily: "monospace" },
               children: [
                 "Target sheet (file name)",
-                /* @__PURE__ */ jsx20(
+                /* @__PURE__ */ jsx19(
                   "select",
                   {
                     value: targetSheetId,
@@ -5124,7 +5152,7 @@ var HierSheetPreview = ({
                       fontSize: 12,
                       outline: "none"
                     },
-                    children: targets.length === 0 ? /* @__PURE__ */ jsx20("option", { value: "", children: "No other sheets" }) : targets.map((t) => /* @__PURE__ */ jsxs12("option", { value: t.id, children: [
+                    children: targets.length === 0 ? /* @__PURE__ */ jsx19("option", { value: "", children: "No other sheets" }) : targets.map((t) => /* @__PURE__ */ jsxs12("option", { value: t.id, children: [
                       t.title,
                       " (",
                       t.id,
@@ -5136,7 +5164,7 @@ var HierSheetPreview = ({
             }
           ),
           /* @__PURE__ */ jsxs12("div", { style: { display: "flex", gap: 6, justifyContent: "flex-end" }, children: [
-            /* @__PURE__ */ jsx20(
+            /* @__PURE__ */ jsx19(
               "button",
               {
                 type: "button",
@@ -5153,7 +5181,7 @@ var HierSheetPreview = ({
                 children: "Cancel"
               }
             ),
-            /* @__PURE__ */ jsx20(
+            /* @__PURE__ */ jsx19(
               "button",
               {
                 type: "button",
@@ -5181,10 +5209,294 @@ var HierSheetPreview = ({
 };
 
 // lib/hooks/usePowerPortPlacement.ts
-import { useCallback as useCallback16, useEffect as useEffect28, useRef as useRef21, useState as useState19 } from "react";
+import { useCallback as useCallback15, useEffect as useEffect27, useRef as useRef20, useState as useState18 } from "react";
 import { compose as compose19 } from "transformation-matrix";
 var PORT_SNAP_RADIUS_PX3 = 32;
 var usePowerPortPlacement = ({
+  enabled,
+  circuitJson,
+  svgToScreenProjection,
+  realToSvgProjection,
+  containerRef,
+  onEditEvent
+}) => {
+  const [state, setState] = useState18({
+    previewPos: null,
+    pendingPos: null,
+    pendingPortId: null
+  });
+  const stateRef = useRef20(state);
+  stateRef.current = state;
+  const screenToReal = useCallback15(
+    (screenX, screenY) => {
+      const container = containerRef.current;
+      if (!container) return { x: 0, y: 0 };
+      const rect = container.getBoundingClientRect();
+      const localX = screenX - rect.left;
+      const localY = screenY - rect.top;
+      const realToScreen = compose19(svgToScreenProjection, realToSvgProjection);
+      return {
+        x: (localX - realToScreen.e) / realToScreen.a,
+        y: (localY - realToScreen.f) / realToScreen.d
+      };
+    },
+    [svgToScreenProjection, realToSvgProjection, containerRef]
+  );
+  const snapToPort = useCallback15(
+    (screenX, screenY) => {
+      const container = containerRef.current;
+      if (!container)
+        return { pos: screenToReal(screenX, screenY), portId: null };
+      let closest = null;
+      const portEls = container.querySelectorAll("[data-schematic-port-id]");
+      for (const node of Array.from(portEls)) {
+        const rect = node.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dist = Math.sqrt((cx - screenX) ** 2 + (cy - screenY) ** 2);
+        if (dist < PORT_SNAP_RADIUS_PX3 && (!closest || dist < closest.dist)) {
+          const id = node.getAttribute("data-schematic-port-id");
+          const portEl = circuitJson.find(
+            (el) => el.type === "schematic_port" && el.schematic_port_id === id
+          );
+          if (id && portEl?.center) {
+            closest = { id, dist, center: portEl.center };
+          }
+        }
+      }
+      if (closest) return { pos: closest.center, portId: closest.id };
+      return { pos: screenToReal(screenX, screenY), portId: null };
+    },
+    [containerRef, circuitJson, screenToReal]
+  );
+  const handleMouseMove = useCallback15(
+    (e) => {
+      if (!enabled || stateRef.current.pendingPos) return;
+      const { pos } = snapToPort(e.clientX, e.clientY);
+      setState((prev) => ({ ...prev, previewPos: pos }));
+    },
+    [enabled, snapToPort]
+  );
+  const handleMouseDown = useCallback15(
+    (e) => {
+      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
+        return;
+      if (stateRef.current.pendingPos) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const { pos, portId } = snapToPort(e.clientX, e.clientY);
+      setState((prev) => ({
+        ...prev,
+        pendingPos: pos,
+        pendingPortId: portId,
+        previewPos: null
+      }));
+    },
+    [enabled, snapToPort]
+  );
+  const handleKeyDown = useCallback15((e) => {
+    if (e.key === "Escape") {
+      setState({
+        previewPos: null,
+        pendingPos: null,
+        pendingPortId: null
+      });
+    }
+  }, []);
+  const confirmPlacement = useCallback15(
+    (netName) => {
+      const current = stateRef.current;
+      if (!current.pendingPos || !netName.trim()) return;
+      const event = {
+        edit_event_id: Math.random().toString(36).substr(2, 9),
+        edit_event_type: "edit_schematic_power_port_add",
+        position: current.pendingPos,
+        net_name: netName.trim(),
+        schematic_port_id: current.pendingPortId ?? void 0,
+        anchor_side: "bottom",
+        created_at: Date.now(),
+        in_progress: false
+      };
+      onEditEvent?.(event);
+      setState({ previewPos: null, pendingPos: null, pendingPortId: null });
+    },
+    [onEditEvent]
+  );
+  const cancelPlacement = useCallback15(() => {
+    setState({ previewPos: null, pendingPos: null, pendingPortId: null });
+  }, []);
+  useEffect27(() => {
+    if (!enabled) {
+      setState({ previewPos: null, pendingPos: null, pendingPortId: null });
+      return;
+    }
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousedown", handleMouseDown, { capture: true });
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mousedown", handleMouseDown, {
+        capture: true
+      });
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [enabled, handleMouseMove, handleMouseDown, handleKeyDown]);
+  return { powerPortState: state, confirmPlacement, cancelPlacement };
+};
+
+// lib/components/PowerPortPreview.tsx
+import { applyToPoint as applyToPoint12, compose as compose20 } from "transformation-matrix";
+import { useRef as useRef21, useEffect as useEffect28 } from "react";
+import { Fragment as Fragment7, jsx as jsx20, jsxs as jsxs13 } from "react/jsx-runtime";
+var POWER_COLOR = "#c1271c";
+var PowerPortPreview = ({
+  state,
+  realToSvgProjection,
+  svgToScreenProjection,
+  containerRef,
+  onConfirm,
+  onCancel
+}) => {
+  const inputRef = useRef21(null);
+  useEffect28(() => {
+    if (state.pendingPos && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.value = "VCC";
+    }
+  }, [state.pendingPos]);
+  const container = containerRef.current;
+  if (!container) return null;
+  if (!realToSvgProjection?.a || isNaN(realToSvgProjection.a) || !svgToScreenProjection?.a || isNaN(svgToScreenProjection.a)) {
+    return null;
+  }
+  const realToScreen = compose20(svgToScreenProjection, realToSvgProjection);
+  const toScreen = (pt) => applyToPoint12(realToScreen, pt);
+  const PowerShape = ({ pos }) => {
+    const sp = toScreen(pos);
+    return /* @__PURE__ */ jsxs13("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.85, children: [
+      /* @__PURE__ */ jsx20(
+        "line",
+        {
+          x1: 0,
+          y1: 0,
+          x2: 0,
+          y2: 18,
+          stroke: POWER_COLOR,
+          strokeWidth: 1.5
+        }
+      ),
+      /* @__PURE__ */ jsx20(
+        "polygon",
+        {
+          points: "0,-14 -8,2 8,2",
+          fill: "none",
+          stroke: POWER_COLOR,
+          strokeWidth: 1.5
+        }
+      ),
+      /* @__PURE__ */ jsx20(
+        "text",
+        {
+          x: -10,
+          y: -18,
+          fontSize: 9,
+          fill: POWER_COLOR,
+          fontFamily: "monospace",
+          children: "PWR"
+        }
+      ),
+      /* @__PURE__ */ jsx20("circle", { cx: 0, cy: 0, r: 3, fill: POWER_COLOR, opacity: 0.6 })
+    ] });
+  };
+  return /* @__PURE__ */ jsxs13(Fragment7, { children: [
+    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx20(
+      "svg",
+      {
+        style: {
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
+          zIndex: 50
+        },
+        children: /* @__PURE__ */ jsx20(PowerShape, { pos: state.previewPos })
+      }
+    ),
+    state.pendingPos && (() => {
+      const sp = toScreen(state.pendingPos);
+      return /* @__PURE__ */ jsxs13(
+        "div",
+        {
+          style: {
+            position: "absolute",
+            left: sp.x + 4,
+            top: sp.y - 36,
+            zIndex: 60,
+            display: "flex",
+            alignItems: "center",
+            gap: 4
+          },
+          children: [
+            /* @__PURE__ */ jsx20(
+              "input",
+              {
+                ref: inputRef,
+                type: "text",
+                placeholder: "Net name (VCC, +3V3)\u2026",
+                style: {
+                  background: "#1a1a2e",
+                  border: `1.5px solid ${POWER_COLOR}`,
+                  color: "#fff",
+                  padding: "3px 8px",
+                  borderRadius: 4,
+                  fontFamily: "monospace",
+                  fontSize: 12,
+                  outline: "none",
+                  width: 140
+                },
+                onKeyDown: (e) => {
+                  if (e.key === "Enter") {
+                    onConfirm(e.target.value);
+                  } else if (e.key === "Escape") {
+                    onCancel();
+                  }
+                  e.stopPropagation();
+                }
+              }
+            ),
+            /* @__PURE__ */ jsx20(
+              "button",
+              {
+                type: "button",
+                style: {
+                  background: POWER_COLOR,
+                  border: "none",
+                  color: "#fff",
+                  padding: "3px 8px",
+                  borderRadius: 4,
+                  fontFamily: "monospace",
+                  fontSize: 11,
+                  cursor: "pointer"
+                },
+                onClick: () => {
+                  if (inputRef.current) onConfirm(inputRef.current.value);
+                },
+                children: "\u2713"
+              }
+            )
+          ]
+        }
+      );
+    })()
+  ] });
+};
+
+// lib/hooks/useGroundPortPlacement.ts
+import { useCallback as useCallback16, useEffect as useEffect29, useRef as useRef22, useState as useState19 } from "react";
+import { compose as compose21 } from "transformation-matrix";
+var PORT_SNAP_RADIUS_PX4 = 32;
+var useGroundPortPlacement = ({
   enabled,
   circuitJson,
   svgToScreenProjection,
@@ -5197,7 +5509,7 @@ var usePowerPortPlacement = ({
     pendingPos: null,
     pendingPortId: null
   });
-  const stateRef = useRef21(state);
+  const stateRef = useRef22(state);
   stateRef.current = state;
   const screenToReal = useCallback16(
     (screenX, screenY) => {
@@ -5206,7 +5518,7 @@ var usePowerPortPlacement = ({
       const rect = container.getBoundingClientRect();
       const localX = screenX - rect.left;
       const localY = screenY - rect.top;
-      const realToScreen = compose19(svgToScreenProjection, realToSvgProjection);
+      const realToScreen = compose21(svgToScreenProjection, realToSvgProjection);
       return {
         x: (localX - realToScreen.e) / realToScreen.a,
         y: (localY - realToScreen.f) / realToScreen.d
@@ -5226,7 +5538,7 @@ var usePowerPortPlacement = ({
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
         const dist = Math.sqrt((cx - screenX) ** 2 + (cy - screenY) ** 2);
-        if (dist < PORT_SNAP_RADIUS_PX3 && (!closest || dist < closest.dist)) {
+        if (dist < PORT_SNAP_RADIUS_PX4 && (!closest || dist < closest.dist)) {
           const id = node.getAttribute("data-schematic-port-id");
           const portEl = circuitJson.find(
             (el) => el.type === "schematic_port" && el.schematic_port_id === id
@@ -5281,290 +5593,6 @@ var usePowerPortPlacement = ({
       if (!current.pendingPos || !netName.trim()) return;
       const event = {
         edit_event_id: Math.random().toString(36).substr(2, 9),
-        edit_event_type: "edit_schematic_power_port_add",
-        position: current.pendingPos,
-        net_name: netName.trim(),
-        schematic_port_id: current.pendingPortId ?? void 0,
-        anchor_side: "bottom",
-        created_at: Date.now(),
-        in_progress: false
-      };
-      onEditEvent?.(event);
-      setState({ previewPos: null, pendingPos: null, pendingPortId: null });
-    },
-    [onEditEvent]
-  );
-  const cancelPlacement = useCallback16(() => {
-    setState({ previewPos: null, pendingPos: null, pendingPortId: null });
-  }, []);
-  useEffect28(() => {
-    if (!enabled) {
-      setState({ previewPos: null, pendingPos: null, pendingPortId: null });
-      return;
-    }
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mousedown", handleMouseDown, { capture: true });
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mousedown", handleMouseDown, {
-        capture: true
-      });
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [enabled, handleMouseMove, handleMouseDown, handleKeyDown]);
-  return { powerPortState: state, confirmPlacement, cancelPlacement };
-};
-
-// lib/components/PowerPortPreview.tsx
-import { applyToPoint as applyToPoint11, compose as compose20 } from "transformation-matrix";
-import { useRef as useRef22, useEffect as useEffect29 } from "react";
-import { Fragment as Fragment7, jsx as jsx21, jsxs as jsxs13 } from "react/jsx-runtime";
-var POWER_COLOR = "#c1271c";
-var PowerPortPreview = ({
-  state,
-  realToSvgProjection,
-  svgToScreenProjection,
-  containerRef,
-  onConfirm,
-  onCancel
-}) => {
-  const inputRef = useRef22(null);
-  useEffect29(() => {
-    if (state.pendingPos && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.value = "VCC";
-    }
-  }, [state.pendingPos]);
-  const container = containerRef.current;
-  if (!container) return null;
-  if (!realToSvgProjection?.a || isNaN(realToSvgProjection.a) || !svgToScreenProjection?.a || isNaN(svgToScreenProjection.a)) {
-    return null;
-  }
-  const realToScreen = compose20(svgToScreenProjection, realToSvgProjection);
-  const toScreen = (pt) => applyToPoint11(realToScreen, pt);
-  const PowerShape = ({ pos }) => {
-    const sp = toScreen(pos);
-    return /* @__PURE__ */ jsxs13("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.85, children: [
-      /* @__PURE__ */ jsx21(
-        "line",
-        {
-          x1: 0,
-          y1: 0,
-          x2: 0,
-          y2: 18,
-          stroke: POWER_COLOR,
-          strokeWidth: 1.5
-        }
-      ),
-      /* @__PURE__ */ jsx21(
-        "polygon",
-        {
-          points: "0,-14 -8,2 8,2",
-          fill: "none",
-          stroke: POWER_COLOR,
-          strokeWidth: 1.5
-        }
-      ),
-      /* @__PURE__ */ jsx21(
-        "text",
-        {
-          x: -10,
-          y: -18,
-          fontSize: 9,
-          fill: POWER_COLOR,
-          fontFamily: "monospace",
-          children: "PWR"
-        }
-      ),
-      /* @__PURE__ */ jsx21("circle", { cx: 0, cy: 0, r: 3, fill: POWER_COLOR, opacity: 0.6 })
-    ] });
-  };
-  return /* @__PURE__ */ jsxs13(Fragment7, { children: [
-    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx21(
-      "svg",
-      {
-        style: {
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          pointerEvents: "none",
-          zIndex: 50
-        },
-        children: /* @__PURE__ */ jsx21(PowerShape, { pos: state.previewPos })
-      }
-    ),
-    state.pendingPos && (() => {
-      const sp = toScreen(state.pendingPos);
-      return /* @__PURE__ */ jsxs13(
-        "div",
-        {
-          style: {
-            position: "absolute",
-            left: sp.x + 4,
-            top: sp.y - 36,
-            zIndex: 60,
-            display: "flex",
-            alignItems: "center",
-            gap: 4
-          },
-          children: [
-            /* @__PURE__ */ jsx21(
-              "input",
-              {
-                ref: inputRef,
-                type: "text",
-                placeholder: "Net name (VCC, +3V3)\u2026",
-                style: {
-                  background: "#1a1a2e",
-                  border: `1.5px solid ${POWER_COLOR}`,
-                  color: "#fff",
-                  padding: "3px 8px",
-                  borderRadius: 4,
-                  fontFamily: "monospace",
-                  fontSize: 12,
-                  outline: "none",
-                  width: 140
-                },
-                onKeyDown: (e) => {
-                  if (e.key === "Enter") {
-                    onConfirm(e.target.value);
-                  } else if (e.key === "Escape") {
-                    onCancel();
-                  }
-                  e.stopPropagation();
-                }
-              }
-            ),
-            /* @__PURE__ */ jsx21(
-              "button",
-              {
-                type: "button",
-                style: {
-                  background: POWER_COLOR,
-                  border: "none",
-                  color: "#fff",
-                  padding: "3px 8px",
-                  borderRadius: 4,
-                  fontFamily: "monospace",
-                  fontSize: 11,
-                  cursor: "pointer"
-                },
-                onClick: () => {
-                  if (inputRef.current) onConfirm(inputRef.current.value);
-                },
-                children: "\u2713"
-              }
-            )
-          ]
-        }
-      );
-    })()
-  ] });
-};
-
-// lib/hooks/useGroundPortPlacement.ts
-import { useCallback as useCallback17, useEffect as useEffect30, useRef as useRef23, useState as useState20 } from "react";
-import { compose as compose21 } from "transformation-matrix";
-var PORT_SNAP_RADIUS_PX4 = 32;
-var useGroundPortPlacement = ({
-  enabled,
-  circuitJson,
-  svgToScreenProjection,
-  realToSvgProjection,
-  containerRef,
-  onEditEvent
-}) => {
-  const [state, setState] = useState20({
-    previewPos: null,
-    pendingPos: null,
-    pendingPortId: null
-  });
-  const stateRef = useRef23(state);
-  stateRef.current = state;
-  const screenToReal = useCallback17(
-    (screenX, screenY) => {
-      const container = containerRef.current;
-      if (!container) return { x: 0, y: 0 };
-      const rect = container.getBoundingClientRect();
-      const localX = screenX - rect.left;
-      const localY = screenY - rect.top;
-      const realToScreen = compose21(svgToScreenProjection, realToSvgProjection);
-      return {
-        x: (localX - realToScreen.e) / realToScreen.a,
-        y: (localY - realToScreen.f) / realToScreen.d
-      };
-    },
-    [svgToScreenProjection, realToSvgProjection, containerRef]
-  );
-  const snapToPort = useCallback17(
-    (screenX, screenY) => {
-      const container = containerRef.current;
-      if (!container)
-        return { pos: screenToReal(screenX, screenY), portId: null };
-      let closest = null;
-      const portEls = container.querySelectorAll("[data-schematic-port-id]");
-      for (const node of Array.from(portEls)) {
-        const rect = node.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dist = Math.sqrt((cx - screenX) ** 2 + (cy - screenY) ** 2);
-        if (dist < PORT_SNAP_RADIUS_PX4 && (!closest || dist < closest.dist)) {
-          const id = node.getAttribute("data-schematic-port-id");
-          const portEl = circuitJson.find(
-            (el) => el.type === "schematic_port" && el.schematic_port_id === id
-          );
-          if (id && portEl?.center) {
-            closest = { id, dist, center: portEl.center };
-          }
-        }
-      }
-      if (closest) return { pos: closest.center, portId: closest.id };
-      return { pos: screenToReal(screenX, screenY), portId: null };
-    },
-    [containerRef, circuitJson, screenToReal]
-  );
-  const handleMouseMove = useCallback17(
-    (e) => {
-      if (!enabled || stateRef.current.pendingPos) return;
-      const { pos } = snapToPort(e.clientX, e.clientY);
-      setState((prev) => ({ ...prev, previewPos: pos }));
-    },
-    [enabled, snapToPort]
-  );
-  const handleMouseDown = useCallback17(
-    (e) => {
-      if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
-        return;
-      if (stateRef.current.pendingPos) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const { pos, portId } = snapToPort(e.clientX, e.clientY);
-      setState((prev) => ({
-        ...prev,
-        pendingPos: pos,
-        pendingPortId: portId,
-        previewPos: null
-      }));
-    },
-    [enabled, snapToPort]
-  );
-  const handleKeyDown = useCallback17((e) => {
-    if (e.key === "Escape") {
-      setState({
-        previewPos: null,
-        pendingPos: null,
-        pendingPortId: null
-      });
-    }
-  }, []);
-  const confirmPlacement = useCallback17(
-    (netName) => {
-      const current = stateRef.current;
-      if (!current.pendingPos || !netName.trim()) return;
-      const event = {
-        edit_event_id: Math.random().toString(36).substr(2, 9),
         edit_event_type: "edit_schematic_ground_port_add",
         position: current.pendingPos,
         net_name: netName.trim(),
@@ -5578,10 +5606,10 @@ var useGroundPortPlacement = ({
     },
     [onEditEvent]
   );
-  const cancelPlacement = useCallback17(() => {
+  const cancelPlacement = useCallback16(() => {
     setState({ previewPos: null, pendingPos: null, pendingPortId: null });
   }, []);
-  useEffect30(() => {
+  useEffect29(() => {
     if (!enabled) {
       setState({ previewPos: null, pendingPos: null, pendingPortId: null });
       return;
@@ -5601,9 +5629,9 @@ var useGroundPortPlacement = ({
 };
 
 // lib/components/GroundPortPreview.tsx
-import { applyToPoint as applyToPoint12, compose as compose22 } from "transformation-matrix";
-import { useRef as useRef24, useEffect as useEffect31 } from "react";
-import { Fragment as Fragment8, jsx as jsx22, jsxs as jsxs14 } from "react/jsx-runtime";
+import { applyToPoint as applyToPoint13, compose as compose22 } from "transformation-matrix";
+import { useRef as useRef23, useEffect as useEffect30 } from "react";
+import { Fragment as Fragment8, jsx as jsx21, jsxs as jsxs14 } from "react/jsx-runtime";
 var GND_COLOR = "#5c5c5c";
 var GroundPortPreview = ({
   state,
@@ -5613,8 +5641,8 @@ var GroundPortPreview = ({
   onConfirm,
   onCancel
 }) => {
-  const inputRef = useRef24(null);
-  useEffect31(() => {
+  const inputRef = useRef23(null);
+  useEffect30(() => {
     if (state.pendingPos && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.value = "GND";
@@ -5626,11 +5654,11 @@ var GroundPortPreview = ({
     return null;
   }
   const realToScreen = compose22(svgToScreenProjection, realToSvgProjection);
-  const toScreen = (pt) => applyToPoint12(realToScreen, pt);
+  const toScreen = (pt) => applyToPoint13(realToScreen, pt);
   const GroundShape = ({ pos }) => {
     const sp = toScreen(pos);
     return /* @__PURE__ */ jsxs14("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.85, children: [
-      /* @__PURE__ */ jsx22(
+      /* @__PURE__ */ jsx21(
         "line",
         {
           x1: 0,
@@ -5641,7 +5669,7 @@ var GroundPortPreview = ({
           strokeWidth: 1.5
         }
       ),
-      /* @__PURE__ */ jsx22(
+      /* @__PURE__ */ jsx21(
         "polygon",
         {
           points: "0,32 -8,16 8,16",
@@ -5650,7 +5678,7 @@ var GroundPortPreview = ({
           strokeWidth: 1.5
         }
       ),
-      /* @__PURE__ */ jsx22(
+      /* @__PURE__ */ jsx21(
         "text",
         {
           x: -10,
@@ -5661,11 +5689,11 @@ var GroundPortPreview = ({
           children: "GND"
         }
       ),
-      /* @__PURE__ */ jsx22("circle", { cx: 0, cy: 0, r: 3, fill: GND_COLOR, opacity: 0.6 })
+      /* @__PURE__ */ jsx21("circle", { cx: 0, cy: 0, r: 3, fill: GND_COLOR, opacity: 0.6 })
     ] });
   };
   return /* @__PURE__ */ jsxs14(Fragment8, { children: [
-    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx22(
+    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx21(
       "svg",
       {
         style: {
@@ -5676,7 +5704,7 @@ var GroundPortPreview = ({
           pointerEvents: "none",
           zIndex: 50
         },
-        children: /* @__PURE__ */ jsx22(GroundShape, { pos: state.previewPos })
+        children: /* @__PURE__ */ jsx21(GroundShape, { pos: state.previewPos })
       }
     ),
     state.pendingPos && (() => {
@@ -5694,7 +5722,7 @@ var GroundPortPreview = ({
             gap: 4
           },
           children: [
-            /* @__PURE__ */ jsx22(
+            /* @__PURE__ */ jsx21(
               "input",
               {
                 ref: inputRef,
@@ -5721,7 +5749,7 @@ var GroundPortPreview = ({
                 }
               }
             ),
-            /* @__PURE__ */ jsx22(
+            /* @__PURE__ */ jsx21(
               "button",
               {
                 type: "button",
@@ -5749,7 +5777,7 @@ var GroundPortPreview = ({
 };
 
 // lib/hooks/useTextNotePlacement.ts
-import { useCallback as useCallback18, useEffect as useEffect32, useRef as useRef25, useState as useState21 } from "react";
+import { useCallback as useCallback17, useEffect as useEffect31, useRef as useRef24, useState as useState20 } from "react";
 import { compose as compose23 } from "transformation-matrix";
 var useTextNotePlacement = ({
   enabled,
@@ -5758,13 +5786,13 @@ var useTextNotePlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState21({
+  const [state, setState] = useState20({
     previewPos: null,
     pendingPos: null
   });
-  const stateRef = useRef25(state);
+  const stateRef = useRef24(state);
   stateRef.current = state;
-  const screenToReal = useCallback18(
+  const screenToReal = useCallback17(
     (screenX, screenY) => {
       const container = containerRef.current;
       if (!container) return { x: 0, y: 0 };
@@ -5779,7 +5807,7 @@ var useTextNotePlacement = ({
     },
     [svgToScreenProjection, realToSvgProjection, containerRef]
   );
-  const handleMouseMove = useCallback18(
+  const handleMouseMove = useCallback17(
     (e) => {
       if (!enabled || stateRef.current.pendingPos) return;
       setState((prev) => ({
@@ -5789,7 +5817,7 @@ var useTextNotePlacement = ({
     },
     [enabled, screenToReal]
   );
-  const handleMouseDown = useCallback18(
+  const handleMouseDown = useCallback17(
     (e) => {
       if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
         return;
@@ -5804,12 +5832,12 @@ var useTextNotePlacement = ({
     },
     [enabled, screenToReal]
   );
-  const handleKeyDown = useCallback18((e) => {
+  const handleKeyDown = useCallback17((e) => {
     if (e.key === "Escape") {
       setState({ previewPos: null, pendingPos: null });
     }
   }, []);
-  const confirmPlacement = useCallback18(
+  const confirmPlacement = useCallback17(
     (text) => {
       const current = stateRef.current;
       if (!current.pendingPos || !text.trim()) return;
@@ -5829,10 +5857,10 @@ var useTextNotePlacement = ({
     },
     [onEditEvent]
   );
-  const cancelPlacement = useCallback18(() => {
+  const cancelPlacement = useCallback17(() => {
     setState({ previewPos: null, pendingPos: null });
   }, []);
-  useEffect32(() => {
+  useEffect31(() => {
     if (!enabled) {
       setState({ previewPos: null, pendingPos: null });
       return;
@@ -5852,9 +5880,9 @@ var useTextNotePlacement = ({
 };
 
 // lib/components/TextNotePreview.tsx
-import { applyToPoint as applyToPoint13, compose as compose24 } from "transformation-matrix";
-import { useRef as useRef26, useEffect as useEffect33 } from "react";
-import { Fragment as Fragment9, jsx as jsx23, jsxs as jsxs15 } from "react/jsx-runtime";
+import { applyToPoint as applyToPoint14, compose as compose24 } from "transformation-matrix";
+import { useRef as useRef25, useEffect as useEffect32 } from "react";
+import { Fragment as Fragment9, jsx as jsx22, jsxs as jsxs15 } from "react/jsx-runtime";
 var NOTE_COLOR = "#1a1612";
 var TextNotePreview = ({
   state,
@@ -5864,8 +5892,8 @@ var TextNotePreview = ({
   onConfirm,
   onCancel
 }) => {
-  const inputRef = useRef26(null);
-  useEffect33(() => {
+  const inputRef = useRef25(null);
+  useEffect32(() => {
     if (state.pendingPos && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.value = "";
@@ -5877,11 +5905,11 @@ var TextNotePreview = ({
     return null;
   }
   const realToScreen = compose24(svgToScreenProjection, realToSvgProjection);
-  const toScreen = (pt) => applyToPoint13(realToScreen, pt);
+  const toScreen = (pt) => applyToPoint14(realToScreen, pt);
   const NoteShape = ({ pos }) => {
     const sp = toScreen(pos);
     return /* @__PURE__ */ jsxs15("g", { transform: `translate(${sp.x}, ${sp.y})`, opacity: 0.75, children: [
-      /* @__PURE__ */ jsx23(
+      /* @__PURE__ */ jsx22(
         "text",
         {
           x: 0,
@@ -5893,11 +5921,11 @@ var TextNotePreview = ({
           children: "Text"
         }
       ),
-      /* @__PURE__ */ jsx23("circle", { cx: 0, cy: 0, r: 3, fill: NOTE_COLOR, opacity: 0.4 })
+      /* @__PURE__ */ jsx22("circle", { cx: 0, cy: 0, r: 3, fill: NOTE_COLOR, opacity: 0.4 })
     ] });
   };
   return /* @__PURE__ */ jsxs15(Fragment9, { children: [
-    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx23(
+    state.previewPos && !state.pendingPos && /* @__PURE__ */ jsx22(
       "svg",
       {
         style: {
@@ -5908,7 +5936,7 @@ var TextNotePreview = ({
           pointerEvents: "none",
           zIndex: 50
         },
-        children: /* @__PURE__ */ jsx23(NoteShape, { pos: state.previewPos })
+        children: /* @__PURE__ */ jsx22(NoteShape, { pos: state.previewPos })
       }
     ),
     state.pendingPos && (() => {
@@ -5926,7 +5954,7 @@ var TextNotePreview = ({
             gap: 4
           },
           children: [
-            /* @__PURE__ */ jsx23(
+            /* @__PURE__ */ jsx22(
               "input",
               {
                 ref: inputRef,
@@ -5953,7 +5981,7 @@ var TextNotePreview = ({
                 }
               }
             ),
-            /* @__PURE__ */ jsx23(
+            /* @__PURE__ */ jsx22(
               "button",
               {
                 type: "button",
@@ -5981,7 +6009,7 @@ var TextNotePreview = ({
 };
 
 // lib/hooks/useTraceDrawing.ts
-import { useCallback as useCallback19, useEffect as useEffect34, useRef as useRef27, useState as useState22 } from "react";
+import { useCallback as useCallback18, useEffect as useEffect33, useRef as useRef26, useState as useState21 } from "react";
 import "transformation-matrix";
 var useTraceDrawing = ({
   enabled,
@@ -5991,15 +6019,15 @@ var useTraceDrawing = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState22({
+  const [state, setState] = useState21({
     isDrawing: false,
     fromPortId: null,
     previewEnd: null,
     previewRoute: []
   });
-  const stateRef = useRef27(state);
+  const stateRef = useRef26(state);
   stateRef.current = state;
-  const screenToReal = useCallback19(
+  const screenToReal = useCallback18(
     createScreenToReal(
       svgToScreenProjection,
       realToSvgProjection,
@@ -6007,7 +6035,7 @@ var useTraceDrawing = ({
     ),
     [svgToScreenProjection, realToSvgProjection, containerRef]
   );
-  const getPortCenter = useCallback19(
+  const getPortCenter = useCallback18(
     (portId) => {
       const schematicPortId = resolveSchematicPortId(circuitJson, portId);
       if (!schematicPortId) return null;
@@ -6020,7 +6048,7 @@ var useTraceDrawing = ({
     },
     [circuitJson, containerRef, screenToReal]
   );
-  const getPortAtScreen = useCallback19(
+  const getPortAtScreen = useCallback18(
     (screenX, screenY) => getSchematicPortAtScreen(
       containerRef.current,
       circuitJson,
@@ -6029,7 +6057,7 @@ var useTraceDrawing = ({
     ),
     [circuitJson, containerRef]
   );
-  const beginTraceAtPort = useCallback19(
+  const beginTraceAtPort = useCallback18(
     (portId) => {
       const schematicPortId = resolveSchematicPortId(circuitJson, portId);
       if (!schematicPortId) return false;
@@ -6045,7 +6073,7 @@ var useTraceDrawing = ({
     },
     [circuitJson, getPortCenter]
   );
-  const finishTraceAtPort = useCallback19(
+  const finishTraceAtPort = useCallback18(
     (portId) => {
       const current = stateRef.current;
       if (!current.isDrawing || !current.fromPortId) return false;
@@ -6077,7 +6105,7 @@ var useTraceDrawing = ({
     },
     [circuitJson, getPortCenter, onEditEvent]
   );
-  const handlePortMouseDown = useCallback19(
+  const handlePortMouseDown = useCallback18(
     (portId, e) => {
       if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) {
         return;
@@ -6093,7 +6121,7 @@ var useTraceDrawing = ({
     },
     [enabled, beginTraceAtPort, finishTraceAtPort]
   );
-  const handleMouseDown = useCallback19(
+  const handleMouseDown = useCallback18(
     (e) => {
       if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target)) {
         return;
@@ -6114,7 +6142,7 @@ var useTraceDrawing = ({
     },
     [enabled, getPortAtScreen, beginTraceAtPort, finishTraceAtPort]
   );
-  const handleMouseMove = useCallback19(
+  const handleMouseMove = useCallback18(
     (e) => {
       if (!enabled || !stateRef.current.isDrawing || !stateRef.current.fromPortId) {
         return;
@@ -6130,7 +6158,7 @@ var useTraceDrawing = ({
     },
     [enabled, getPortCenter, screenToReal]
   );
-  const handleKeyDown = useCallback19((e) => {
+  const handleKeyDown = useCallback18((e) => {
     if (e.key === "Escape" && stateRef.current.isDrawing) {
       setState({
         isDrawing: false,
@@ -6140,7 +6168,7 @@ var useTraceDrawing = ({
       });
     }
   }, []);
-  useEffect34(() => {
+  useEffect33(() => {
     if (!enabled) {
       setState({
         isDrawing: false,
@@ -6171,7 +6199,7 @@ var useTraceDrawing = ({
 };
 
 // lib/hooks/useComponentPlacement.ts
-import { useCallback as useCallback20, useEffect as useEffect35, useRef as useRef28, useState as useState23 } from "react";
+import { useCallback as useCallback19, useEffect as useEffect34, useRef as useRef27, useState as useState22 } from "react";
 import { compose as compose25 } from "transformation-matrix";
 var useComponentPlacement = ({
   enabled,
@@ -6181,15 +6209,15 @@ var useComponentPlacement = ({
   containerRef,
   onEditEvent
 }) => {
-  const [state, setState] = useState23({
+  const [state, setState] = useState22({
     previewPos: null,
     rotation: 0
   });
-  const stateRef = useRef28(state);
+  const stateRef = useRef27(state);
   stateRef.current = state;
-  const kindRef = useRef28(componentKind);
+  const kindRef = useRef27(componentKind);
   kindRef.current = componentKind;
-  const screenToReal = useCallback20(
+  const screenToReal = useCallback19(
     (screenX, screenY) => {
       const container = containerRef.current;
       if (!container) return { x: 0, y: 0 };
@@ -6204,7 +6232,7 @@ var useComponentPlacement = ({
     },
     [svgToScreenProjection, realToSvgProjection, containerRef]
   );
-  const placeAt = useCallback20(
+  const placeAt = useCallback19(
     (position) => {
       const event = {
         edit_event_id: Math.random().toString(36).substr(2, 9),
@@ -6219,7 +6247,7 @@ var useComponentPlacement = ({
     },
     [onEditEvent]
   );
-  const handleMouseMove = useCallback20(
+  const handleMouseMove = useCallback19(
     (e) => {
       if (!enabled) return;
       setState((prev) => ({
@@ -6229,7 +6257,7 @@ var useComponentPlacement = ({
     },
     [enabled, screenToReal]
   );
-  const handleMouseDown = useCallback20(
+  const handleMouseDown = useCallback19(
     (e) => {
       if (!enabled || e.button !== 0 || isMouseCaptureIgnoredTarget(e.target))
         return;
@@ -6239,7 +6267,7 @@ var useComponentPlacement = ({
     },
     [enabled, screenToReal, placeAt]
   );
-  const handleKeyDown = useCallback20(
+  const handleKeyDown = useCallback19(
     (e) => {
       if (!enabled) return;
       if (e.key === "r" || e.key === "R") {
@@ -6253,7 +6281,7 @@ var useComponentPlacement = ({
     },
     [enabled]
   );
-  useEffect35(() => {
+  useEffect34(() => {
     if (!enabled) {
       setState({ previewPos: null, rotation: 0 });
       return;
@@ -6273,7 +6301,7 @@ var useComponentPlacement = ({
 };
 
 // lib/components/ComponentPlacementPreview.tsx
-import { jsx as jsx24 } from "react/jsx-runtime";
+import { jsx as jsx23 } from "react/jsx-runtime";
 var KIND_LABEL = {
   resistor: "R",
   capacitor: "C",
@@ -6298,7 +6326,7 @@ function ComponentPlacementPreview({
   const sx = state.previewPos.x * realToScreen.a + realToScreen.e;
   const sy = state.previewPos.y * realToScreen.d + realToScreen.f;
   const label = KIND_LABEL[componentKind] ?? "?";
-  return /* @__PURE__ */ jsx24(
+  return /* @__PURE__ */ jsx23(
     "div",
     {
       className: "pointer-events-none absolute z-20",
@@ -6307,7 +6335,7 @@ function ComponentPlacementPreview({
         top: sy,
         transform: `translate(-50%, -50%) rotate(${state.rotation}deg)`
       },
-      children: /* @__PURE__ */ jsx24(
+      children: /* @__PURE__ */ jsx23(
         "div",
         {
           className: "rounded border border-dashed px-2 py-1 font-mono text-[11px]",
@@ -6324,7 +6352,7 @@ function ComponentPlacementPreview({
 }
 
 // lib/components/SchematicViewer.tsx
-import { jsx as jsx25, jsxs as jsxs16 } from "react/jsx-runtime";
+import { jsx as jsx24, jsxs as jsxs16 } from "react/jsx-runtime";
 var SchematicViewer = ({
   circuitJson,
   containerStyle,
@@ -6367,8 +6395,8 @@ var SchematicViewer = ({
   if (debug3) {
     enableDebug();
   }
-  const [showSpiceOverlay, setShowSpiceOverlay] = useState24(false);
-  const [spiceSimOptions, setSpiceSimOptions] = useState24({
+  const [showSpiceOverlay, setShowSpiceOverlay] = useState23(false);
+  const [spiceSimOptions, setSpiceSimOptions] = useState23({
     showVoltage: true,
     showCurrent: false,
     startTime: 0,
@@ -6393,7 +6421,7 @@ var SchematicViewer = ({
   }, [circuitJsonKey]);
   const hasMultipleSheets = schematicSheets.length > 1;
   const defaultSheetId = schematicSheets[0]?.schematic_sheet_id;
-  const [selectedSheetId, setSelectedSheetId] = useState24(
+  const [selectedSheetId, setSelectedSheetId] = useState23(
     () => {
       const stored = getStoredString(STORAGE_KEYS.SELECTED_SCHEMATIC_SHEET);
       if (stored && schematicSheets.some((s) => s.schematic_sheet_id === stored)) {
@@ -6402,14 +6430,14 @@ var SchematicViewer = ({
       return defaultSheetId;
     }
   );
-  useEffect36(() => {
+  useEffect35(() => {
     const stillExists = selectedSheetId !== void 0 && schematicSheets.some((s) => s.schematic_sheet_id === selectedSheetId);
     if (!stillExists) {
       setSelectedSheetId(defaultSheetId);
     }
   }, [circuitJsonKey]);
   const selectedSchematicSheetId = hasMultipleSheets ? selectedSheetId ?? defaultSheetId : void 0;
-  const handleSelectSheet = useCallback21(
+  const handleSelectSheet = useCallback20(
     (sheetId) => {
       setSelectedSheetId(sheetId);
       setStoredString(STORAGE_KEYS.SELECTED_SCHEMATIC_SHEET, sheetId);
@@ -6431,11 +6459,11 @@ var SchematicViewer = ({
     spiceSimOptions.startTime,
     spiceSimOptions.duration
   ]);
-  const [hasSpiceSimRun, setHasSpiceSimRun] = useState24(false);
-  useEffect36(() => {
+  const [hasSpiceSimRun, setHasSpiceSimRun] = useState23(false);
+  useEffect35(() => {
     setHasSpiceSimRun(false);
   }, [circuitJsonKey]);
-  useEffect36(() => {
+  useEffect35(() => {
     const onKeyDown = (e) => {
       if (e.code !== "Space") return;
       const t = e.target;
@@ -6460,9 +6488,9 @@ var SchematicViewer = ({
     isLoading: isSpiceSimLoading,
     error: spiceSimError
   } = useSpiceSimulation(hasSpiceSimRun ? spiceString : null);
-  const [editModeEnabled, setEditModeEnabled] = useState24(defaultEditMode);
+  const [editModeEnabled, setEditModeEnabled] = useState23(defaultEditMode);
   const effectiveEditMode = toolMode === "select" && editModeEnabled;
-  useEffect36(() => {
+  useEffect35(() => {
     if (toolMode === "draw_wire" || toolMode === "draw_bus" || toolMode === "draw_bus_entry" || toolMode === "draw_no_connect" || toolMode === "draw_net_label" || toolMode === "draw_global_label" || toolMode === "draw_hier_sheet" || toolMode === "draw_power_port" || toolMode === "draw_ground_port" || toolMode === "draw_text_note") {
       setEditModeEnabled(false);
     } else if (toolMode === "select" && defaultEditMode) {
@@ -6471,20 +6499,20 @@ var SchematicViewer = ({
       setEditModeEnabled(false);
     }
   }, [toolMode, defaultEditMode]);
-  const [snapToGrid, setSnapToGrid] = useState24(true);
-  const [showGridInternal, setShowGridInternal] = useState24(false);
+  const [snapToGrid, setSnapToGrid] = useState23(true);
+  const [showGridInternal, setShowGridInternal] = useState23(false);
   const showGrid = debugGrid || showGridInternal;
-  const [isInteractionEnabled, setIsInteractionEnabled] = useState24(
+  const [isInteractionEnabled, setIsInteractionEnabled] = useState23(
     !clickToInteractEnabled
   );
-  const [showViewMenu, setShowViewMenu] = useState24(false);
-  const [showSchematicGroups, setShowSchematicGroups] = useState24(() => {
+  const [showViewMenu, setShowViewMenu] = useState23(false);
+  const [showSchematicGroups, setShowSchematicGroups] = useState23(() => {
     if (disableGroups) return false;
     return getStoredBoolean("schematic_viewer_show_groups", false);
   });
-  const [isHoveringClickableComponent, setIsHoveringClickableComponent] = useState24(false);
-  const hoveringComponentsRef = useRef29(/* @__PURE__ */ new Set());
-  const handleComponentHoverChange = useCallback21(
+  const [isHoveringClickableComponent, setIsHoveringClickableComponent] = useState23(false);
+  const hoveringComponentsRef = useRef28(/* @__PURE__ */ new Set());
+  const handleComponentHoverChange = useCallback20(
     (componentId, isHovering) => {
       if (isHovering) {
         hoveringComponentsRef.current.add(componentId);
@@ -6495,9 +6523,9 @@ var SchematicViewer = ({
     },
     []
   );
-  const [isHoveringClickablePort, setIsHoveringClickablePort] = useState24(false);
-  const hoveringPortsRef = useRef29(/* @__PURE__ */ new Set());
-  const handlePortHoverChange = useCallback21(
+  const [isHoveringClickablePort, setIsHoveringClickablePort] = useState23(false);
+  const hoveringPortsRef = useRef28(/* @__PURE__ */ new Set());
+  const handlePortHoverChange = useCallback20(
     (portId, isHovering) => {
       if (isHovering) {
         hoveringPortsRef.current.add(portId);
@@ -6508,8 +6536,8 @@ var SchematicViewer = ({
     },
     []
   );
-  const svgDivRef = useRef29(null);
-  const touchStartRef = useRef29(null);
+  const svgDivRef = useRef28(null);
+  const touchStartRef = useRef28(null);
   const schematicComponentIds = useMemo6(() => {
     try {
       const components = su10(circuitJson).schematic_component?.list() ?? [];
@@ -6521,16 +6549,6 @@ var SchematicViewer = ({
       return [];
     }
   }, [circuitJsonKey, circuitJson, selectedSchematicSheetId]);
-  const schematicTraceIds = useMemo6(() => {
-    try {
-      const traces = (su10(circuitJson).schematic_trace?.list() ?? []).filter(
-        (trace) => !selectedSchematicSheetId || trace.schematic_sheet_id === selectedSchematicSheetId
-      );
-      return traces.map((t) => t.schematic_trace_id);
-    } catch {
-      return [];
-    }
-  }, [circuitJson, selectedSchematicSheetId]);
   const schematicPortsInfo = useMemo6(() => {
     if (!showSchematicPorts) return [];
     try {
@@ -6576,9 +6594,9 @@ var SchematicViewer = ({
     }
     touchStartRef.current = null;
   };
-  const [internalEditEvents, setInternalEditEvents] = useState24([]);
-  const circuitJsonRef = useRef29(circuitJson);
-  useEffect36(() => {
+  const [internalEditEvents, setInternalEditEvents] = useState23([]);
+  const circuitJsonRef = useRef28(circuitJson);
+  useEffect35(() => {
     const circuitHash = getCircuitHash(circuitJson);
     const circuitHashRef = getCircuitHash(circuitJsonRef.current);
     if (circuitHash !== circuitHashRef) {
@@ -6586,16 +6604,16 @@ var SchematicViewer = ({
       circuitJsonRef.current = circuitJson;
     }
   }, [circuitJson]);
-  const panPolicyRef = useRef29({ toolMode, allowComponentEdit, allowCanvasPan });
+  const panPolicyRef = useRef28({ toolMode, allowComponentEdit, allowCanvasPan });
   panPolicyRef.current = { toolMode, allowComponentEdit, allowCanvasPan };
-  const onSetSvgTransform = useCallback21(
+  const onSetSvgTransform = useCallback20(
     (transform) => {
       if (!svgDivRef.current) return;
       svgDivRef.current.style.transform = transformToString(transform);
     },
     []
   );
-  const shouldDrag = useCallback21((e) => {
+  const shouldDrag = useCallback20((e) => {
     if (e.type === "wheel") return true;
     if (e.type === "mousemove" || e.type === "mouseup" || e.type === "mouseout") {
       return true;
@@ -6706,13 +6724,14 @@ var SchematicViewer = ({
     getBlockedScreenRegions
   });
   const {
-    handleMouseDown: handleTraceDragMouseDown,
+    tryHandleMouseDown: tryHandleTraceDragMouseDown,
     activeEditEvent: activeTraceDragEvent
   } = useSchematicTraceDragging({
     onEditEvent: handleEditEvent,
     cancelDrag,
     realToSvgProjection,
     svgToScreenProjection,
+    svgDivRef,
     circuitJson,
     editEvents: editEventsWithUnappliedEditEvents,
     enabled: allowComponentEdit && isInteractionEnabled && !showSpiceOverlay && toolMode === "select",
@@ -6892,12 +6911,12 @@ var SchematicViewer = ({
     circuitJsonKey: `${circuitJsonKey}_${selectedSchematicSheetId ?? ""}`,
     enabled: netHoverHighlightEnabled
   });
-  const handleComponentTouchStartRef = useRef29(handleComponentTouchStart);
-  useEffect36(() => {
+  const handleComponentTouchStartRef = useRef28(handleComponentTouchStart);
+  useEffect35(() => {
     handleComponentTouchStartRef.current = handleComponentTouchStart;
   }, [handleComponentTouchStart]);
   const svgDiv = useMemo6(
-    () => /* @__PURE__ */ jsx25(
+    () => /* @__PURE__ */ jsx24(
       "div",
       {
         ref: svgDivRef,
@@ -6923,10 +6942,11 @@ var SchematicViewer = ({
     ]
   );
   return /* @__PURE__ */ jsxs16(MouseTracker, { children: [
-    netHoverHighlightEnabled && /* @__PURE__ */ jsx25("style", { children: `.sch-net-faded { opacity: 0.35; }
+    netHoverHighlightEnabled && /* @__PURE__ */ jsx24("style", { children: `.sch-net-faded { opacity: 0.35; }
             svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id]) { transition: opacity 0.12s ease-in-out; }` }),
-    onSchematicComponentClicked && /* @__PURE__ */ jsx25("style", { children: `.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }` }),
-    onSchematicPortClicked && /* @__PURE__ */ jsx25("style", { children: `[data-schematic-port-id]:hover { cursor: pointer !important; }` }),
+    allowComponentEdit && toolMode === "select" && /* @__PURE__ */ jsx24("style", { children: `svg g.trace, svg g.trace-overlays { cursor: move; }` }),
+    onSchematicComponentClicked && /* @__PURE__ */ jsx24("style", { children: `.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }` }),
+    onSchematicPortClicked && /* @__PURE__ */ jsx24("style", { children: `[data-schematic-port-id]:hover { cursor: pointer !important; }` }),
     /* @__PURE__ */ jsxs16(
       "div",
       {
@@ -6950,6 +6970,7 @@ var SchematicViewer = ({
             e.stopPropagation();
             return;
           }
+          if (tryHandleTraceDragMouseDown(e)) return;
           if (allowComponentEdit) {
             handleMouseDown(e);
           }
@@ -6970,7 +6991,7 @@ var SchematicViewer = ({
           handleTouchEnd(e);
         },
         children: [
-          !isInteractionEnabled && clickToInteractEnabled && /* @__PURE__ */ jsx25(
+          !isInteractionEnabled && clickToInteractEnabled && /* @__PURE__ */ jsx24(
             "div",
             {
               onClick: (e) => {
@@ -6989,7 +7010,7 @@ var SchematicViewer = ({
                 pointerEvents: "all",
                 touchAction: "pan-x pan-y pinch-zoom"
               },
-              children: /* @__PURE__ */ jsx25(
+              children: /* @__PURE__ */ jsx24(
                 "div",
                 {
                   style: {
@@ -7006,21 +7027,21 @@ var SchematicViewer = ({
               )
             }
           ),
-          editingEnabled && /* @__PURE__ */ jsx25(
+          editingEnabled && /* @__PURE__ */ jsx24(
             EditIcon,
             {
               active: editModeEnabled,
               onClick: () => setEditModeEnabled(!editModeEnabled)
             }
           ),
-          editingEnabled && editModeEnabled && /* @__PURE__ */ jsx25(
+          editingEnabled && editModeEnabled && /* @__PURE__ */ jsx24(
             GridIcon,
             {
               active: snapToGrid,
               onClick: () => setSnapToGrid(!snapToGrid)
             }
           ),
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             ViewMenu,
             {
               circuitJson,
@@ -7038,7 +7059,7 @@ var SchematicViewer = ({
               onToggleGrid: setShowGridInternal
             }
           ),
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             SchematicSheetSelector,
             {
               sheets: schematicSheets,
@@ -7046,8 +7067,8 @@ var SchematicViewer = ({
               onSelectSheet: handleSelectSheet
             }
           ),
-          spiceSimulationEnabled && /* @__PURE__ */ jsx25(SpiceSimulationIcon, { onClick: () => setShowSpiceOverlay(true) }),
-          showSpiceOverlay && /* @__PURE__ */ jsx25(
+          spiceSimulationEnabled && /* @__PURE__ */ jsx24(SpiceSimulationIcon, { onClick: () => setShowSpiceOverlay(true) }),
+          showSpiceOverlay && /* @__PURE__ */ jsx24(
             SpiceSimulationOverlay,
             {
               spiceString,
@@ -7064,7 +7085,7 @@ var SchematicViewer = ({
               hasRun: hasSpiceSimRun
             }
           ),
-          onSchematicComponentClicked && schematicComponentIds.map((componentId) => /* @__PURE__ */ jsx25(
+          onSchematicComponentClicked && schematicComponentIds.map((componentId) => /* @__PURE__ */ jsx24(
             SchematicComponentMouseTarget,
             {
               componentId,
@@ -7083,7 +7104,7 @@ var SchematicViewer = ({
             componentId
           )),
           svgDiv,
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             WirePreview,
             {
               state: activeWirePreviewState,
@@ -7092,7 +7113,7 @@ var SchematicViewer = ({
               containerRef
             }
           ),
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             ComponentPlacementPreview,
             {
               state: componentPlacementState,
@@ -7102,7 +7123,7 @@ var SchematicViewer = ({
               componentKind: placementComponentKind
             }
           ),
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             BusPreview,
             {
               state: busDrawingState,
@@ -7111,7 +7132,7 @@ var SchematicViewer = ({
               containerRef
             }
           ),
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             BusEntryPreview,
             {
               state: busEntryPreviewState,
@@ -7120,7 +7141,7 @@ var SchematicViewer = ({
               containerRef
             }
           ),
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             NoConnectPreview,
             {
               state: noConnectPreviewState,
@@ -7129,7 +7150,7 @@ var SchematicViewer = ({
               containerRef
             }
           ),
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             NetLabelPreview,
             {
               state: netLabelState,
@@ -7140,7 +7161,7 @@ var SchematicViewer = ({
               onCancel: cancelPlacement
             }
           ),
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             GlobalLabelPreview,
             {
               state: globalLabelState,
@@ -7151,7 +7172,7 @@ var SchematicViewer = ({
               onCancel: cancelGlobalPlacement
             }
           ),
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             PowerPortPreview,
             {
               state: powerPortState,
@@ -7162,7 +7183,7 @@ var SchematicViewer = ({
               onCancel: cancelPowerPlacement
             }
           ),
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             GroundPortPreview,
             {
               state: groundPortState,
@@ -7173,7 +7194,7 @@ var SchematicViewer = ({
               onCancel: cancelGroundPlacement
             }
           ),
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             TextNotePreview,
             {
               state: textNoteState,
@@ -7184,7 +7205,7 @@ var SchematicViewer = ({
               onCancel: cancelTextNotePlacement
             }
           ),
-          /* @__PURE__ */ jsx25(
+          /* @__PURE__ */ jsx24(
             HierSheetPreview,
             {
               state: hierSheetState,
@@ -7197,7 +7218,7 @@ var SchematicViewer = ({
               onCancel: cancelHierSheetPlacement
             }
           ),
-          showSchematicPorts && schematicPortsInfo.map(({ portId, label }) => /* @__PURE__ */ jsx25(
+          showSchematicPorts && schematicPortsInfo.map(({ portId, label }) => /* @__PURE__ */ jsx24(
             SchematicPortMouseTarget,
             {
               portId,
@@ -7218,18 +7239,6 @@ var SchematicViewer = ({
               } : void 0
             },
             portId
-          )),
-          allowComponentEdit && toolMode === "select" && schematicTraceIds.map((traceId) => /* @__PURE__ */ jsx25(
-            SchematicTraceMouseTarget,
-            {
-              traceId,
-              svgDivRef,
-              containerRef,
-              circuitJsonKey,
-              interactive: isInteractionEnabled && !showSpiceOverlay,
-              onTraceMouseDown: handleTraceDragMouseDown
-            },
-            traceId
           ))
         ]
       }
@@ -7241,10 +7250,10 @@ var SchematicViewer = ({
 import {
   convertCircuitJsonToSchematicSimulationSvg
 } from "circuit-to-svg";
-import { useEffect as useEffect37, useState as useState25, useMemo as useMemo7, useRef as useRef30 } from "react";
+import { useEffect as useEffect36, useState as useState24, useMemo as useMemo7, useRef as useRef29 } from "react";
 import { useMouseMatrixTransform as useMouseMatrixTransform2 } from "use-mouse-matrix-transform";
 import { toString as transformToString2 } from "transformation-matrix";
-import { jsx as jsx26, jsxs as jsxs17 } from "react/jsx-runtime";
+import { jsx as jsx25, jsxs as jsxs17 } from "react/jsx-runtime";
 var DEFAULT_RENDER_WIDTH = 1200;
 var DEFAULT_RENDER_ASPECT_RATIO = 1;
 var AnalogSimulationViewer = ({
@@ -7255,16 +7264,16 @@ var AnalogSimulationViewer = ({
   height,
   className
 }) => {
-  const [circuitJson, setCircuitJson] = useState25(null);
-  const [isLoading, setIsLoading] = useState25(true);
-  const [error, setError] = useState25(null);
-  const [svgObjectUrl, setSvgObjectUrl] = useState25(null);
-  const containerRef = useRef30(null);
-  const imgRef = useRef30(null);
+  const [circuitJson, setCircuitJson] = useState24(null);
+  const [isLoading, setIsLoading] = useState24(true);
+  const [error, setError] = useState24(null);
+  const [svgObjectUrl, setSvgObjectUrl] = useState24(null);
+  const containerRef = useRef29(null);
+  const imgRef = useRef29(null);
   const { containerWidth } = useResizeHandling(
     containerRef
   );
-  const [isDragging, setIsDragging] = useState25(false);
+  const [isDragging, setIsDragging] = useState24(false);
   const {
     ref: transformRef,
     cancelDrag: _cancelDrag,
@@ -7279,7 +7288,7 @@ var AnalogSimulationViewer = ({
   const renderAspectRatio = width && height ? width / height : DEFAULT_RENDER_ASPECT_RATIO;
   const effectiveWidth = width || (height ? height * renderAspectRatio : containerWidth) || DEFAULT_RENDER_WIDTH;
   const effectiveHeight = height || effectiveWidth / renderAspectRatio;
-  useEffect37(() => {
+  useEffect36(() => {
     setIsLoading(true);
     setError(null);
     setCircuitJson(inputCircuitJson);
@@ -7326,7 +7335,7 @@ var AnalogSimulationViewer = ({
     simulationCurrentGraphIds,
     simulationVoltageGraphIds
   ]);
-  useEffect37(() => {
+  useEffect36(() => {
     if (!simulationSvg) {
       setSvgObjectUrl(null);
       return;
@@ -7356,7 +7365,7 @@ var AnalogSimulationViewer = ({
   const handleTouchStart = (_e) => {
     setIsDragging(true);
   };
-  useEffect37(() => {
+  useEffect36(() => {
     const handleMouseUp = () => {
       setIsDragging(false);
     };
@@ -7371,7 +7380,7 @@ var AnalogSimulationViewer = ({
     };
   }, []);
   if (isLoading) {
-    return /* @__PURE__ */ jsx26(
+    return /* @__PURE__ */ jsx25(
       "div",
       {
         style: {
@@ -7391,7 +7400,7 @@ var AnalogSimulationViewer = ({
     );
   }
   if (error) {
-    return /* @__PURE__ */ jsx26(
+    return /* @__PURE__ */ jsx25(
       "div",
       {
         style: {
@@ -7407,8 +7416,8 @@ var AnalogSimulationViewer = ({
         },
         className,
         children: /* @__PURE__ */ jsxs17("div", { style: { textAlign: "center", padding: "20px" }, children: [
-          /* @__PURE__ */ jsx26("div", { style: { fontWeight: "bold", marginBottom: "8px" }, children: "Circuit Conversion Error" }),
-          /* @__PURE__ */ jsx26("div", { style: { fontSize: "14px" }, children: error })
+          /* @__PURE__ */ jsx25("div", { style: { fontWeight: "bold", marginBottom: "8px" }, children: "Circuit Conversion Error" }),
+          /* @__PURE__ */ jsx25("div", { style: { fontSize: "14px" }, children: error })
         ] })
       }
     );
@@ -7430,11 +7439,11 @@ var AnalogSimulationViewer = ({
         },
         className,
         children: [
-          /* @__PURE__ */ jsx26("div", { style: { fontSize: "16px", color: "#475569", fontWeight: 500 }, children: "No Simulation Found" }),
+          /* @__PURE__ */ jsx25("div", { style: { fontSize: "16px", color: "#475569", fontWeight: 500 }, children: "No Simulation Found" }),
           /* @__PURE__ */ jsxs17("div", { style: { fontSize: "14px", color: "#64748b" }, children: [
             "Use",
             " ",
-            /* @__PURE__ */ jsx26(
+            /* @__PURE__ */ jsx25(
               "code",
               {
                 style: {
@@ -7454,7 +7463,7 @@ var AnalogSimulationViewer = ({
       }
     );
   }
-  return /* @__PURE__ */ jsx26(
+  return /* @__PURE__ */ jsx25(
     "div",
     {
       ref: (node) => {
@@ -7472,7 +7481,7 @@ var AnalogSimulationViewer = ({
       className,
       onMouseDown: handleMouseDown,
       onTouchStart: handleTouchStart,
-      children: svgObjectUrl ? /* @__PURE__ */ jsx26(
+      children: svgObjectUrl ? /* @__PURE__ */ jsx25(
         "img",
         {
           ref: imgRef,
@@ -7486,7 +7495,7 @@ var AnalogSimulationViewer = ({
             objectFit: "contain"
           }
         }
-      ) : /* @__PURE__ */ jsx26(
+      ) : /* @__PURE__ */ jsx25(
         "div",
         {
           style: {
