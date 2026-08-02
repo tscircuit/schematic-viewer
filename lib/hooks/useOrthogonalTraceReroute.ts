@@ -268,7 +268,18 @@ export const useOrthogonalTraceReroute = ({
 
         const customRoute = customRoutes.get(traceId)
         if (customRoute && customRoute.length >= 2) {
-          applyPathD(trace, routeToSvgD(customRoute, realToSvgProjection))
+          // Keep manually reshaped middle segments, but always re-pin ends to
+          // moved component pins so the wire never floats off the element.
+          let route = customRoute
+          if (movedPorts.length > 0) {
+            const edges: Array<{ from: Pt; to: Pt }> = []
+            for (let i = 0; i < customRoute.length - 1; i++) {
+              edges.push({ from: customRoute[i]!, to: customRoute[i + 1]! })
+            }
+            const shifted = shiftEdgesOrthogonally(edges, movedPorts)
+            if (shifted) route = shifted
+          }
+          applyPathD(trace, routeToSvgD(route, realToSvgProjection))
           continue
         }
 

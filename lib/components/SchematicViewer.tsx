@@ -7,7 +7,6 @@ import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSc
 import { useChangeSchematicPortLocationsInSvg } from "lib/hooks/useChangeSchematicPortLocationsInSvg"
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useOrthogonalTraceReroute } from "lib/hooks/useOrthogonalTraceReroute"
-import { useSchematicPortDragging } from "lib/hooks/useSchematicPortDragging"
 import { useSchematicTraceDragging } from "lib/hooks/useSchematicTraceDragging"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { useSchematicNetHover } from "lib/hooks/useSchematicNetHover"
@@ -528,12 +527,10 @@ export const SchematicViewer = ({
 
     if (allowEdit) {
       const target = e.target as Element
-      // Never pan when the user is grabbing a movable schematic element.
+      // Never pan when grabbing a component or reshaping a wire (Altium-style).
       if (
         target.closest('[data-circuit-json-type="schematic_component"]') ||
-        target.closest('[data-circuit-json-type="schematic_trace"]') ||
-        target.closest("[data-schematic-port-id]") ||
-        target.closest(".schematic-port-hover")
+        target.closest('[data-circuit-json-type="schematic_trace"]')
       ) {
         return false
       }
@@ -656,28 +653,9 @@ export const SchematicViewer = ({
     snapToGrid,
   })
 
-  const {
-    handleMouseDown: handlePortDragMouseDown,
-    tryHandleMouseDown: tryHandlePortDragMouseDown,
-    activeEditEvent: activePortDragEvent,
-  } = useSchematicPortDragging({
-    // The port event isn't in the base ManualEditEvent union yet — cast so the
-    // existing handler (which forwards to the host app) can carry it through.
-    onEditEvent: handleEditEvent as any,
-    cancelDrag,
-    realToSvgProjection,
-    svgToScreenProjection,
-    svgDivRef,
-    circuitJson,
-    editEvents: editEventsWithUnappliedEditEvents,
-    enabled:
-      allowComponentEdit &&
-      isInteractionEnabled &&
-      !showSpiceOverlay &&
-      toolMode === "select",
-    snapToGrid,
-    getBlockedScreenRegions,
-  })
+  // IC pins stay fixed on the component (Altium). Only whole components,
+  // power/gnd/port symbols, and wire routes are movable in select mode.
+  const activePortDragEvent = null as null
 
   const isProjectionReady =
     svgToScreenProjection?.a != null &&
@@ -1009,8 +987,7 @@ export const SchematicViewer = ({
             e.stopPropagation()
             return
           }
-          // Port → trace → component (most specific hit-target first).
-          if (tryHandlePortDragMouseDown(e)) return
+          // Trace reshape first, then component move (pins are not draggable).
           if (tryHandleTraceDragMouseDown(e)) return
           if (allowComponentEdit) {
             handleMouseDown(e)
@@ -1229,22 +1206,12 @@ export const SchematicViewer = ({
               portLabel={label}
               svgDivRef={svgDivRef}
               containerRef={containerRef}
-              // Select keeps the native pin-circle look; orange outline is only
-              // for draw tools where ports are placement targets.
-              showOutline={toolMode !== "select"}
+              showOutline={true}
               interactive={
-                toolMode === "draw_wire" ||
-                toolMode === "draw_trace" ||
-                (toolMode === "select" && allowComponentEdit)
+                toolMode === "draw_wire" || toolMode === "draw_trace"
               }
-              hitPaddingPx={
-                toolMode === "draw_trace" ? 12 : toolMode === "select" ? 14 : 4
-              }
-              onPortMouseDown={
-                toolMode === "select" && allowComponentEdit
-                  ? handlePortDragMouseDown
-                  : portMouseDownHandler
-              }
+              hitPaddingPx={toolMode === "draw_trace" ? 12 : 4}
+              onPortMouseDown={portMouseDownHandler}
               circuitJsonKey={circuitJsonKey}
               onHoverChange={handlePortHoverChange}
               onPortClick={
