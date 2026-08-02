@@ -2,7 +2,7 @@
 import {
   convertCircuitJsonToSchematicSvg
 } from "circuit-to-svg";
-import { su as su10 } from "@tscircuit/soup-util";
+import { su as su11 } from "@tscircuit/soup-util";
 
 // lib/hooks/useChangeSchematicComponentLocationsInSvg.ts
 import "@tscircuit/soup-util";
@@ -104,6 +104,7 @@ var useChangeSchematicComponentLocationsInSvg = ({
 };
 
 // lib/hooks/useChangeSchematicPortLocationsInSvg.ts
+import { su as su2 } from "@tscircuit/soup-util";
 import { useEffect as useEffect2, useRef as useRef2 } from "react";
 import "transformation-matrix";
 function collectOffsets(editEvents, activeEditEvent) {
@@ -129,8 +130,15 @@ function collectOffsets(editEvents, activeEditEvent) {
   }
   return offsets;
 }
+function resolveOffset(attrId, offsets, sourceToSch) {
+  if (offsets.has(attrId)) return offsets.get(attrId);
+  const schId = sourceToSch.get(attrId);
+  if (schId && offsets.has(schId)) return offsets.get(schId);
+  return void 0;
+}
 var useChangeSchematicPortLocationsInSvg = ({
   svgDivRef,
+  circuitJson,
   realToSvgProjection,
   editEvents,
   activeEditEvent
@@ -139,6 +147,10 @@ var useChangeSchematicPortLocationsInSvg = ({
   useEffect2(() => {
     const svg = svgDivRef.current;
     if (!svg) return;
+    const sourceToSch = /* @__PURE__ */ new Map();
+    for (const p of su2(circuitJson).schematic_port.list()) {
+      if (p.source_port_id) sourceToSch.set(p.source_port_id, p.schematic_port_id);
+    }
     const apply = () => {
       const offsets = collectOffsets(editEvents, activeEditEvent);
       const targets = svg.querySelectorAll(
@@ -147,7 +159,7 @@ var useChangeSchematicPortLocationsInSvg = ({
       for (const el of Array.from(targets)) {
         const id = el.getAttribute("data-schematic-port-id");
         if (!id) continue;
-        const off = offsets.get(id);
+        const off = resolveOffset(id, offsets, sourceToSch);
         if (!off) {
           if (el.style.transform.includes("port-drag")) {
             el.style.transform = "";
@@ -171,12 +183,18 @@ var useChangeSchematicPortLocationsInSvg = ({
     observer.observe(svg, { childList: true, subtree: true });
     apply();
     return () => observer.disconnect();
-  }, [svgDivRef, realToSvgProjection, editEvents, activeEditEvent]);
+  }, [
+    svgDivRef,
+    circuitJson,
+    realToSvgProjection,
+    editEvents,
+    activeEditEvent
+  ]);
 };
 
 // lib/hooks/useChangeSchematicTracesForMovedComponents.ts
 import { useEffect as useEffect3, useRef as useRef3 } from "react";
-import { su as su2 } from "@tscircuit/soup-util";
+import { su as su3 } from "@tscircuit/soup-util";
 var useChangeSchematicTracesForMovedComponents = ({
   svgDivRef,
   circuitJson,
@@ -200,15 +218,15 @@ var useChangeSchematicTracesForMovedComponents = ({
         ...activeEditEvent ? [activeEditEvent] : []
       ]) {
         if ("schematic_component_id" in editEvent && editEvent.edit_event_type === "edit_schematic_component_location") {
-          const sch_component = su2(circuitJson).schematic_component.get(
+          const sch_component = su3(circuitJson).schematic_component.get(
             editEvent.schematic_component_id
           );
           if (!sch_component) return;
-          const src_ports = su2(circuitJson).source_port.list({
+          const src_ports = su3(circuitJson).source_port.list({
             source_component_id: sch_component.source_component_id
           });
           const src_port_ids = new Set(src_ports.map((sp) => sp.source_port_id));
-          const src_traces = su2(circuitJson).source_trace.list().filter(
+          const src_traces = su3(circuitJson).source_trace.list().filter(
             (st) => st.connected_source_port_ids?.some(
               (spi) => src_port_ids.has(spi)
             )
@@ -216,7 +234,7 @@ var useChangeSchematicTracesForMovedComponents = ({
           const src_trace_ids = new Set(
             src_traces.map((st) => st.source_trace_id)
           );
-          const schematic_traces = su2(circuitJson).schematic_trace.list().filter((st) => src_trace_ids.has(st.source_trace_id));
+          const schematic_traces = su3(circuitJson).schematic_trace.list().filter((st) => src_trace_ids.has(st.source_trace_id));
           schematic_traces.forEach((trace) => {
             const traceElements = svg.querySelectorAll(
               `[data-schematic-trace-id="${trace.schematic_trace_id}"] path`
@@ -265,7 +283,7 @@ var useChangeSchematicTracesForMovedComponents = ({
 };
 
 // lib/hooks/useOrthogonalTraceReroute.ts
-import { su as su3 } from "@tscircuit/soup-util";
+import { su as su4 } from "@tscircuit/soup-util";
 import { useEffect as useEffect4, useRef as useRef4 } from "react";
 import { applyToPoint as applyToPoint2 } from "transformation-matrix";
 
@@ -283,6 +301,7 @@ function computeTraceRoute(from, to) {
 }
 
 // lib/hooks/useOrthogonalTraceReroute.ts
+var EPS = 1e-3;
 function collectCustomRoutes(editEvents, active) {
   const routes = /* @__PURE__ */ new Map();
   for (const ev of editEvents) {
@@ -304,7 +323,7 @@ function collectCustomRoutes(editEvents, active) {
 function collectPortOffsets(circuitJson, editEvents, activeComponent, activePort) {
   const offsets = /* @__PURE__ */ new Map();
   const applyComponentDelta = (componentId, dx, dy) => {
-    const ports = su3(circuitJson).schematic_port.list({
+    const ports = su4(circuitJson).schematic_port.list({
       schematic_component_id: componentId
     });
     for (const p of ports) {
@@ -343,6 +362,9 @@ function applyPathD(traceEl, d) {
     path.setAttribute("d", d);
   }
 }
+function near(a, b) {
+  return Math.abs(a.x - b.x) < EPS && Math.abs(a.y - b.y) < EPS;
+}
 var useOrthogonalTraceReroute = ({
   svgDivRef,
   circuitJson,
@@ -366,9 +388,20 @@ var useOrthogonalTraceReroute = ({
       const customRoutes = collectCustomRoutes(editEvents, activeTraceEditEvent);
       if (offsets.size === 0 && customRoutes.size === 0) return;
       const portById = /* @__PURE__ */ new Map();
-      for (const p of su3(circuitJson).schematic_port.list()) {
-        portById.set(p.schematic_port_id, { center: p.center });
+      const portsAtPoint = [];
+      for (const p of su4(circuitJson).schematic_port.list()) {
+        portById.set(p.schematic_port_id, {
+          center: p.center,
+          schematic_port_id: p.schematic_port_id
+        });
+        portsAtPoint.push({ center: p.center, id: p.schematic_port_id });
       }
+      const findPortIdAt = (pt) => {
+        for (const p of portsAtPoint) {
+          if (near(p.center, pt)) return p.id;
+        }
+        return void 0;
+      };
       const traces = svg.querySelectorAll(
         '[data-circuit-json-type="schematic_trace"]'
       );
@@ -384,9 +417,15 @@ var useOrthogonalTraceReroute = ({
           applyPathD(trace, d2);
           continue;
         }
-        const sch_trace = su3(circuitJson).schematic_trace.get(traceId);
-        const fromId = sch_trace?.from_schematic_port_id;
-        const toId = sch_trace?.to_schematic_port_id;
+        const sch_trace = su4(circuitJson).schematic_trace.get(traceId);
+        let fromId = sch_trace?.from_schematic_port_id;
+        let toId = sch_trace?.to_schematic_port_id;
+        if ((!fromId || !toId) && sch_trace?.edges?.length) {
+          const first = sch_trace.edges[0]?.from;
+          const last = sch_trace.edges[sch_trace.edges.length - 1]?.to;
+          if (first && !fromId) fromId = findPortIdAt(first);
+          if (last && !toId) toId = findPortIdAt(last);
+        }
         if (!fromId || !toId) continue;
         const fromMoved = offsets.has(fromId);
         const toMoved = offsets.has(toId);
@@ -434,7 +473,7 @@ var useOrthogonalTraceReroute = ({
 };
 
 // lib/hooks/useSchematicPortDragging.ts
-import { su as su4 } from "@tscircuit/soup-util";
+import { su as su5 } from "@tscircuit/soup-util";
 import { useCallback, useEffect as useEffect5, useRef as useRef5, useState } from "react";
 import { compose as compose2 } from "transformation-matrix";
 
@@ -484,9 +523,9 @@ function latestPortCenter(events, portId) {
   return null;
 }
 function resolvePort(circuitJson, attrId) {
-  const bySch = su4(circuitJson).schematic_port.get(attrId);
+  const bySch = su5(circuitJson).schematic_port.get(attrId);
   if (bySch?.center) return bySch;
-  const all = su4(circuitJson).schematic_port.list();
+  const all = su5(circuitJson).schematic_port.list();
   return all.find((p) => p.source_port_id === attrId && p.center);
 }
 var useSchematicPortDragging = ({
@@ -649,7 +688,7 @@ var useSchematicPortDragging = ({
 };
 
 // lib/hooks/useSchematicTraceDragging.ts
-import { su as su5 } from "@tscircuit/soup-util";
+import { su as su6 } from "@tscircuit/soup-util";
 import { useCallback as useCallback2, useEffect as useEffect6, useRef as useRef6, useState as useState2 } from "react";
 import { compose as compose3, inverse, applyToPoint as applyToPoint3 } from "transformation-matrix";
 function latestTraceRoute(events, traceId) {
@@ -675,10 +714,10 @@ function routeFromEdges(edges) {
 }
 function endpointsFromTrace(circuitJson, trace) {
   if (trace.from_schematic_port_id && trace.to_schematic_port_id) {
-    const fromPort = su5(circuitJson).schematic_port.get(
+    const fromPort = su6(circuitJson).schematic_port.get(
       trace.from_schematic_port_id
     );
-    const toPort = su5(circuitJson).schematic_port.get(
+    const toPort = su6(circuitJson).schematic_port.get(
       trace.to_schematic_port_id
     );
     if (fromPort?.center && toPort?.center) {
@@ -737,9 +776,9 @@ var useSchematicTraceDragging = ({
   const startDrag = useCallback2(
     (traceId, clientX, clientY, target) => {
       if (!enabled) return false;
-      let trace = su5(circuitJson).schematic_trace.get(traceId);
+      let trace = su6(circuitJson).schematic_trace.get(traceId);
       if (!trace) {
-        trace = su5(circuitJson).schematic_trace.list().find(
+        trace = su6(circuitJson).schematic_trace.list().find(
           (t) => t.schematic_trace_id === traceId
         );
       }
@@ -929,7 +968,7 @@ var useSchematicTraceDragging = ({
 
 // lib/hooks/useSchematicGroupsOverlay.ts
 import { useEffect as useEffect7 } from "react";
-import { su as su6 } from "@tscircuit/soup-util";
+import { su as su7 } from "@tscircuit/soup-util";
 var GROUP_COLORS = [
   "#8B0000",
   // Dark Red
@@ -973,8 +1012,8 @@ var useSchematicGroupsOverlay = (options) => {
       const existingOverlays = svg.querySelectorAll(".schematic-group-overlay");
       existingOverlays.forEach((overlay) => overlay.remove());
       try {
-        const sourceGroups = su6(circuitJson).source_group?.list().filter((x) => !!!x.is_subcircuit) || [];
-        const schematicComponents = su6(circuitJson).schematic_component?.list() || [];
+        const sourceGroups = su7(circuitJson).source_group?.list().filter((x) => !!!x.is_subcircuit) || [];
+        const schematicComponents = su7(circuitJson).schematic_component?.list() || [];
         const sourceGroupHierarchy = /* @__PURE__ */ new Map();
         sourceGroups.forEach((group) => {
           const groupWithParent = group;
@@ -1012,7 +1051,7 @@ var useSchematicGroupsOverlay = (options) => {
         if (hasMeaningfulGroups) {
           const groupMap = /* @__PURE__ */ new Map();
           for (const comp of schematicComponents) {
-            const sourceComp = su6(circuitJson).source_component.get(
+            const sourceComp = su7(circuitJson).source_component.get(
               comp.source_component_id
             );
             if (sourceComp?.source_group_id) {
@@ -1196,7 +1235,7 @@ function calculateGroupBounds(components, svg) {
 }
 
 // lib/hooks/useSchematicNetHover.ts
-import { su as su7 } from "@tscircuit/soup-util";
+import { su as su8 } from "@tscircuit/soup-util";
 import { useEffect as useEffect8 } from "react";
 var FADED_CLASS = "sch-net-faded";
 var TRACE_SELECTOR = "g.trace[data-subcircuit-connectivity-map-key], g.trace-overlays[data-subcircuit-connectivity-map-key]";
@@ -1283,7 +1322,7 @@ var useSchematicNetHover = ({
   }, [svgDivRef, circuitJsonKey, enabled]);
 };
 function buildNetRegistry(circuitJson) {
-  const cju = su7(circuitJson);
+  const cju = su8(circuitJson);
   const srcCompToSchComp = /* @__PURE__ */ new Map();
   for (const c of cju.schematic_component.list()) {
     if (c.source_component_id) {
@@ -1356,7 +1395,7 @@ var useResizeHandling = (containerRef) => {
 };
 
 // lib/hooks/useComponentDragging.ts
-import { su as su8 } from "@tscircuit/soup-util";
+import { su as su9 } from "@tscircuit/soup-util";
 import { useCallback as useCallback3, useEffect as useEffect10, useRef as useRef7, useState as useState4 } from "react";
 import { compose as compose4 } from "transformation-matrix";
 var debug2 = debug_default.extend("useComponentDragging");
@@ -1403,7 +1442,7 @@ var useComponentDragging = ({
       );
       if (!schematic_component_id) return false;
       if (cancelDrag) cancelDrag();
-      const schematic_component = su8(circuitJson).schematic_component.get(
+      const schematic_component = su9(circuitJson).schematic_component.get(
         schematic_component_id
       );
       if (!schematic_component) return false;
@@ -1663,7 +1702,7 @@ var GridIcon = ({
 
 // lib/components/ViewMenu.tsx
 import { useMemo } from "react";
-import { su as su9 } from "@tscircuit/soup-util";
+import { su as su10 } from "@tscircuit/soup-util";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
 // package.json
@@ -1843,13 +1882,13 @@ var ViewMenu = ({
   const hasGroups = useMemo(() => {
     if (!circuitJson || circuitJson.length === 0) return false;
     try {
-      const sourceGroups = su9(circuitJson).source_group?.list() || [];
+      const sourceGroups = su10(circuitJson).source_group?.list() || [];
       if (sourceGroups.length > 0) return true;
-      const schematicComponents = su9(circuitJson).schematic_component?.list() || [];
+      const schematicComponents = su10(circuitJson).schematic_component?.list() || [];
       if (schematicComponents.length > 1) {
         const componentTypes = /* @__PURE__ */ new Set();
         for (const comp of schematicComponents) {
-          const sourceComp = su9(circuitJson).source_component.get(
+          const sourceComp = su10(circuitJson).source_component.get(
             comp.source_component_id
           );
           if (sourceComp?.ftype) {
@@ -3056,6 +3095,7 @@ var areMeasurementsEqual2 = (a, b) => {
 };
 var SchematicPortMouseTarget = ({
   portId,
+  sourcePortId,
   portLabel,
   svgDivRef,
   containerRef,
@@ -3077,7 +3117,9 @@ var SchematicPortMouseTarget = ({
       setMeasurement((prev) => prev ? null : prev);
       return;
     }
-    const element = svgDiv.querySelector(
+    const element = (sourcePortId ? svgDiv.querySelector(
+      `[data-schematic-port-id="${sourcePortId}"]`
+    ) : null) ?? svgDiv.querySelector(
       `[data-schematic-port-id="${portId}"]`
     );
     if (!element) {
@@ -3086,25 +3128,25 @@ var SchematicPortMouseTarget = ({
     }
     const elementRect = element.getBoundingClientRect();
     const containerRect = container.getBoundingClientRect();
-    const padding = hitPaddingPx;
+    const pad = hitPaddingPx;
     const nextMeasurement = {
       bounds: {
-        minX: elementRect.left - padding,
-        maxX: elementRect.right + padding,
-        minY: elementRect.top - padding,
-        maxY: elementRect.bottom + padding
+        minX: elementRect.left - pad,
+        maxX: elementRect.right + pad,
+        minY: elementRect.top - pad,
+        maxY: elementRect.bottom + pad
       },
       rect: {
-        left: elementRect.left - containerRect.left - padding,
-        top: elementRect.top - containerRect.top - padding,
-        width: elementRect.width + padding * 2,
-        height: elementRect.height + padding * 2
+        left: elementRect.left - containerRect.left - pad,
+        top: elementRect.top - containerRect.top - pad,
+        width: elementRect.width + pad * 2,
+        height: elementRect.height + pad * 2
       }
     };
     setMeasurement(
       (prev) => areMeasurementsEqual2(prev, nextMeasurement) ? prev : nextMeasurement
     );
-  }, [portId, containerRef, svgDivRef, hitPaddingPx]);
+  }, [portId, sourcePortId, containerRef, svgDivRef, hitPaddingPx]);
   const scheduleMeasure = useCallback7(() => {
     if (frameRef.current !== null) return;
     frameRef.current = window.requestAnimationFrame(measure);
@@ -3162,7 +3204,7 @@ var SchematicPortMouseTarget = ({
       onHoverChange(portId, hovering);
     }
   }, [hovering, portId, onHoverChange]);
-  if (!measurement || !showOutline) {
+  if (!measurement || !showOutline && !interactive) {
     return null;
   }
   const rect = measurement.rect;
@@ -3181,17 +3223,17 @@ var SchematicPortMouseTarget = ({
           top: rect.top,
           width: rect.width,
           height: rect.height,
-          border: hovering ? "1.5px solid rgba(255, 153, 51, 0.9)" : "1.5px solid rgba(255, 153, 51, 0.3)",
-          backgroundColor: hovering ? "rgba(255, 153, 51, 0.15)" : "rgba(255, 153, 51, 0.05)",
+          border: showOutline ? hovering ? "1.5px solid rgba(255, 153, 51, 0.9)" : "1.5px solid rgba(255, 153, 51, 0.3)" : "none",
+          backgroundColor: showOutline ? hovering ? "rgba(255, 153, 51, 0.15)" : "rgba(255, 153, 51, 0.05)" : "transparent",
           borderRadius: "50%",
           pointerEvents: interactive ? "auto" : "none",
-          cursor: interactive ? "crosshair" : void 0,
+          cursor: interactive ? showOutline ? "crosshair" : "move" : void 0,
           zIndex: zIndexMap.schematicPortHoverOutline,
-          transition: "border-color 0.15s, background-color 0.15s"
+          transition: showOutline ? "border-color 0.15s, background-color 0.15s" : void 0
         }
       }
     ),
-    hovering && portLabel && /* @__PURE__ */ jsx11(
+    showOutline && hovering && portLabel && /* @__PURE__ */ jsx11(
       "div",
       {
         style: {
@@ -6592,7 +6634,7 @@ var SchematicViewer = ({
   const touchStartRef = useRef28(null);
   const schematicComponentIds = useMemo6(() => {
     try {
-      const components = su10(circuitJson).schematic_component?.list() ?? [];
+      const components = su11(circuitJson).schematic_component?.list() ?? [];
       return components.filter(
         (component) => !selectedSchematicSheetId || component.schematic_sheet_id === selectedSchematicSheetId
       ).map((component) => component.schematic_component_id);
@@ -6604,16 +6646,17 @@ var SchematicViewer = ({
   const schematicPortsInfo = useMemo6(() => {
     if (!showSchematicPorts) return [];
     try {
-      const ports = (su10(circuitJson).schematic_port?.list() ?? []).filter(
+      const ports = (su11(circuitJson).schematic_port?.list() ?? []).filter(
         (port) => !selectedSchematicSheetId || port.schematic_sheet_id === selectedSchematicSheetId
       );
       return ports.map((port) => {
-        const sourcePort = su10(circuitJson).source_port.get(port.source_port_id);
-        const sourceComponent = sourcePort?.source_component_id ? su10(circuitJson).source_component.get(sourcePort.source_component_id) : null;
+        const sourcePort = su11(circuitJson).source_port.get(port.source_port_id);
+        const sourceComponent = sourcePort?.source_component_id ? su11(circuitJson).source_component.get(sourcePort.source_component_id) : null;
         const componentName = sourceComponent?.name ?? "?";
         const pinLabel = port.display_pin_label ?? sourcePort?.pin_number ?? sourcePort?.name ?? "?";
         return {
           portId: port.schematic_port_id,
+          sourcePortId: port.source_port_id,
           label: `${componentName}.${pinLabel}`
         };
       });
@@ -6934,6 +6977,7 @@ var SchematicViewer = ({
   });
   useChangeSchematicPortLocationsInSvg({
     svgDivRef,
+    circuitJson,
     realToSvgProjection,
     editEvents: editEventsWithUnappliedEditEvents,
     activeEditEvent: activePortDragEvent
@@ -7273,14 +7317,15 @@ var SchematicViewer = ({
               onCancel: cancelHierSheetPlacement
             }
           ),
-          showSchematicPorts && schematicPortsInfo.map(({ portId, label }) => /* @__PURE__ */ jsx24(
+          showSchematicPorts && schematicPortsInfo.map(({ portId, sourcePortId, label }) => /* @__PURE__ */ jsx24(
             SchematicPortMouseTarget,
             {
               portId,
+              sourcePortId,
               portLabel: label,
               svgDivRef,
               containerRef,
-              showOutline: true,
+              showOutline: toolMode !== "select",
               interactive: toolMode === "draw_wire" || toolMode === "draw_trace" || toolMode === "select" && allowComponentEdit,
               hitPaddingPx: toolMode === "draw_trace" ? 12 : toolMode === "select" ? 10 : 4,
               onPortMouseDown: toolMode === "select" && allowComponentEdit ? handlePortDragMouseDown : portMouseDownHandler,

@@ -420,6 +420,7 @@ export const SchematicViewer = ({
           "?"
         return {
           portId: port.schematic_port_id as string,
+          sourcePortId: port.source_port_id as string | undefined,
           label: `${componentName}.${pinLabel}`,
         }
       })
@@ -857,6 +858,7 @@ export const SchematicViewer = ({
 
   useChangeSchematicPortLocationsInSvg({
     svgDivRef,
+    circuitJson,
     realToSvgProjection,
     editEvents: editEventsWithUnappliedEditEvents,
     activeEditEvent: activePortDragEvent,
@@ -1219,14 +1221,17 @@ export const SchematicViewer = ({
           onCancel={cancelHierSheetPlacement}
         />
         {showSchematicPorts &&
-          schematicPortsInfo.map(({ portId, label }) => (
+          schematicPortsInfo.map(({ portId, sourcePortId, label }) => (
             <SchematicPortMouseTarget
               key={portId}
               portId={portId}
+              sourcePortId={sourcePortId}
               portLabel={label}
               svgDivRef={svgDivRef}
               containerRef={containerRef}
-              showOutline={true}
+              // Select keeps the native pin-circle look; orange outline is only
+              // for draw tools where ports are placement targets.
+              showOutline={toolMode !== "select"}
               interactive={
                 toolMode === "draw_wire" ||
                 toolMode === "draw_trace" ||

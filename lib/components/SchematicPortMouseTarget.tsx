@@ -32,6 +32,8 @@ const areMeasurementsEqual = (a: Measurement | null, b: Measurement | null) => {
 
 interface Props {
   portId: string
+  /** circuit-to-svg pin groups use source_port_id on data-schematic-port-id. */
+  sourcePortId?: string
   portLabel?: string
   svgDivRef: React.RefObject<HTMLDivElement | null>
   containerRef: React.RefObject<HTMLDivElement | null>
@@ -46,6 +48,7 @@ interface Props {
 
 export const SchematicPortMouseTarget = ({
   portId,
+  sourcePortId,
   portLabel,
   svgDivRef,
   containerRef,
@@ -68,9 +71,17 @@ export const SchematicPortMouseTarget = ({
       setMeasurement((prev) => (prev ? null : prev))
       return
     }
-    const element = svgDiv.querySelector<SVGGraphicsElement | HTMLElement>(
-      `[data-schematic-port-id="${portId}"]`,
-    )
+    // Prefer the pin group stamped with source_port_id (always present on
+    // box components); fall back to schematic_port_id (drawPorts indicators).
+    const element =
+      (sourcePortId
+        ? svgDiv.querySelector<SVGGraphicsElement | HTMLElement>(
+            `[data-schematic-port-id="${sourcePortId}"]`,
+          )
+        : null) ??
+      svgDiv.querySelector<SVGGraphicsElement | HTMLElement>(
+        `[data-schematic-port-id="${portId}"]`,
+      )
     if (!element) {
       setMeasurement((prev) => (prev ? null : prev))
       return
@@ -78,29 +89,27 @@ export const SchematicPortMouseTarget = ({
 
     const elementRect = element.getBoundingClientRect()
     const containerRect = container.getBoundingClientRect()
-
-    // Add some padding around the port for easier interaction.
-    const padding = hitPaddingPx
+    const pad = hitPaddingPx
 
     const nextMeasurement: Measurement = {
       bounds: {
-        minX: elementRect.left - padding,
-        maxX: elementRect.right + padding,
-        minY: elementRect.top - padding,
-        maxY: elementRect.bottom + padding,
+        minX: elementRect.left - pad,
+        maxX: elementRect.right + pad,
+        minY: elementRect.top - pad,
+        maxY: elementRect.bottom + pad,
       },
       rect: {
-        left: elementRect.left - containerRect.left - padding,
-        top: elementRect.top - containerRect.top - padding,
-        width: elementRect.width + padding * 2,
-        height: elementRect.height + padding * 2,
+        left: elementRect.left - containerRect.left - pad,
+        top: elementRect.top - containerRect.top - pad,
+        width: elementRect.width + pad * 2,
+        height: elementRect.height + pad * 2,
       },
     }
 
     setMeasurement((prev) =>
       areMeasurementsEqual(prev, nextMeasurement) ? prev : nextMeasurement,
     )
-  }, [portId, containerRef, svgDivRef, hitPaddingPx])
+  }, [portId, sourcePortId, containerRef, svgDivRef, hitPaddingPx])
 
   const scheduleMeasure = useCallback(() => {
     if (frameRef.current !== null) return
@@ -170,14 +179,15 @@ export const SchematicPortMouseTarget = ({
     onClick: onPortClick ? handleClick : undefined,
   })
 
-  // Notify parent of hover state changes
   useEffect(() => {
     if (onHoverChange) {
       onHoverChange(portId, hovering)
     }
   }, [hovering, portId, onHoverChange])
 
-  if (!measurement || !showOutline) {
+  // Need either a visible outline (draw tools) or an invisible hit target
+  // (select-mode port drag) — otherwise return nothing.
+  if (!measurement || (!showOutline && !interactive)) {
     return null
   }
 
@@ -201,20 +211,26 @@ export const SchematicPortMouseTarget = ({
           top: rect.top,
           width: rect.width,
           height: rect.height,
-          border: hovering
-            ? "1.5px solid rgba(255, 153, 51, 0.9)"
-            : "1.5px solid rgba(255, 153, 51, 0.3)",
-          backgroundColor: hovering
-            ? "rgba(255, 153, 51, 0.15)"
-            : "rgba(255, 153, 51, 0.05)",
+          border: showOutline
+            ? hovering
+              ? "1.5px solid rgba(255, 153, 51, 0.9)"
+              : "1.5px solid rgba(255, 153, 51, 0.3)"
+            : "none",
+          backgroundColor: showOutline
+            ? hovering
+              ? "rgba(255, 153, 51, 0.15)"
+              : "rgba(255, 153, 51, 0.05)"
+            : "transparent",
           borderRadius: "50%",
           pointerEvents: interactive ? "auto" : "none",
-          cursor: interactive ? "crosshair" : undefined,
+          cursor: interactive ? (showOutline ? "crosshair" : "move") : undefined,
           zIndex: zIndexMap.schematicPortHoverOutline,
-          transition: "border-color 0.15s, background-color 0.15s",
+          transition: showOutline
+            ? "border-color 0.15s, background-color 0.15s"
+            : undefined,
         }}
       />
-      {hovering && portLabel && (
+      {showOutline && hovering && portLabel && (
         <div
           style={{
             position: "absolute",

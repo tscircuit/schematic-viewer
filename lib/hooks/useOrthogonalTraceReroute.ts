@@ -22,6 +22,8 @@ interface Args {
 
 type Pt = { x: number; y: number }
 
+const EPS = 1e-3
+
 function collectCustomRoutes(
   editEvents: ExtendedManualEditEvent[],
   active: EditSchematicTraceMoveEventWithElement | null,
@@ -99,16 +101,22 @@ function collectPortOffsets(
 function applyPathD(traceEl: Element, d: string) {
   const paths = traceEl.querySelectorAll("path")
   for (const path of Array.from(paths)) {
-    // Skip crossing arcs — they are not the main polyline.
     const cls = path.getAttribute("class") ?? ""
     if (cls.includes("crossing")) continue
     path.setAttribute("d", d)
   }
 }
 
+function near(a: Pt, b: Pt): boolean {
+  return Math.abs(a.x - b.x) < EPS && Math.abs(a.y - b.y) < EPS
+}
+
 /**
  * Rewrites SVG trace paths to stay orthogonal while components/ports move,
  * and to honour in-progress / committed manual trace reshape events.
+ *
+ * Backend traces often omit from/to port ids — in that case we match edge
+ * endpoints against port centers so wires still follow a dragged pin.
  */
 export const useOrthogonalTraceReroute = ({
   svgDivRef,
@@ -135,12 +143,27 @@ export const useOrthogonalTraceReroute = ({
       const customRoutes = collectCustomRoutes(editEvents, activeTraceEditEvent)
       if (offsets.size === 0 && customRoutes.size === 0) return
 
-      const portById = new Map<string, { center: Pt }>()
+      const portById = new Map<
+        string,
+        { center: Pt; schematic_port_id: string }
+      >()
+      const portsAtPoint: Array<{ center: Pt; id: string }> = []
       for (const p of su(circuitJson).schematic_port.list() as {
         schematic_port_id: string
         center: Pt
       }[]) {
-        portById.set(p.schematic_port_id, { center: p.center })
+        portById.set(p.schematic_port_id, {
+          center: p.center,
+          schematic_port_id: p.schematic_port_id,
+        })
+        portsAtPoint.push({ center: p.center, id: p.schematic_port_id })
+      }
+
+      const findPortIdAt = (pt: Pt): string | undefined => {
+        for (const p of portsAtPoint) {
+          if (near(p.center, pt)) return p.id
+        }
+        return undefined
       }
 
       const traces = svg.querySelectorAll(
@@ -167,10 +190,21 @@ export const useOrthogonalTraceReroute = ({
           | {
               from_schematic_port_id?: string
               to_schematic_port_id?: string
+              edges?: { from: Pt; to: Pt }[]
             }
           | undefined
-        const fromId = sch_trace?.from_schematic_port_id
-        const toId = sch_trace?.to_schematic_port_id
+
+        let fromId = sch_trace?.from_schematic_port_id
+        let toId = sch_trace?.to_schematic_port_id
+
+        // Fallback: infer ports from edge endpoints (common for backend JSON).
+        if ((!fromId || !toId) && sch_trace?.edges?.length) {
+          const first = sch_trace.edges[0]?.from
+          const last = sch_trace.edges[sch_trace.edges.length - 1]?.to
+          if (first && !fromId) fromId = findPortIdAt(first)
+          if (last && !toId) toId = findPortIdAt(last)
+        }
+
         if (!fromId || !toId) continue
 
         const fromMoved = offsets.has(fromId)
