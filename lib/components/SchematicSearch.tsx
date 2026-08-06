@@ -1,5 +1,5 @@
 import { CornerDownLeft, Cpu, GitBranch, Search, X } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type RefObject } from "react"
 import type { SchematicSearchResult } from "../utils/get-schematic-search-results"
 import { zIndexMap } from "../utils/z-index-map"
 
@@ -48,13 +48,16 @@ export const SchematicSearch = ({
   onCancel,
   results,
   onSelect,
+  viewerContainerRef,
 }: {
   query: string
   onQueryChange: (query: string) => void
   onCancel: () => void
   results: SchematicSearchResult[]
   onSelect: (result: SchematicSearchResult) => void
+  viewerContainerRef: RefObject<HTMLElement | null>
 }) => {
+  const [isOpen, setIsOpen] = useState(false)
   const [activeResultId, setActiveResultId] = useState<string | null>(null)
   const [hoveredResultId, setHoveredResultId] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -89,10 +92,12 @@ export const SchematicSearch = ({
       if (!event.metaKey && !event.ctrlKey) {
         return
       }
+      if (!viewerContainerRef.current?.matches(":hover")) return
 
       event.preventDefault()
       event.stopPropagation()
       event.stopImmediatePropagation()
+      setIsOpen(true)
       requestAnimationFrame(() => {
         inputRef.current?.focus()
         inputRef.current?.select()
@@ -120,10 +125,11 @@ export const SchematicSearch = ({
         }),
       )
     }
-  }, [])
+  }, [viewerContainerRef])
 
   const cancelSearch = () => {
     onCancel()
+    setIsOpen(false)
     inputRef.current?.blur()
   }
 
@@ -315,129 +321,156 @@ export const SchematicSearch = ({
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       }}
     >
-      <div
-        onKeyDown={handleSearchKeyDown}
-        style={{
-          width: "min(280px, calc(100vw - 32px))",
-          overflow: "hidden",
-          border: "none",
-          borderRadius: "4px",
-          backgroundColor: "#ffffff",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-        }}
-      >
-        <div
+      {!isOpen ? (
+        <button
+          type="button"
+          title="Search schematic"
+          aria-label="Search schematic"
+          onClick={() => {
+            setIsOpen(true)
+            requestAnimationFrame(() => inputRef.current?.focus())
+          }}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
+            width: "32px",
             height: "32px",
-            boxSizing: "border-box",
-            padding: "0 12px",
-            borderBottom: searchHeaderBorder,
+            display: "grid",
+            placeItems: "center",
+            padding: 0,
+            border: "none",
+            borderRadius: "4px",
+            backgroundColor: "#ffffff",
+            color: "#000000",
+            cursor: "pointer",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
         >
-          <Search size={15} strokeWidth={2} aria-hidden="true" />
-          <input
-            ref={inputRef}
-            value={query}
-            aria-label="Search components and nets"
-            placeholder="Search..."
-            onChange={(event) => onQueryChange(event.target.value)}
-            style={{
-              minWidth: 0,
-              flex: 1,
-              border: "none",
-              outline: "none",
-              fontSize: "13px",
-              color: "#222222",
-              background: "transparent",
-            }}
-          />
-          {query && results.length > 0 ? (
-            <span
-              style={{
-                flexShrink: 0,
-                color: "#888888",
-                fontSize: "12px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {resultCountLabel}
-            </span>
-          ) : (
-            <kbd
-              style={{
-                flexShrink: 0,
-                padding: "2px 5px",
-                border: "1px solid #dddddd",
-                borderRadius: "4px",
-                backgroundColor: "#f7f7f7",
-                color: "#777777",
-                fontFamily: "inherit",
-                fontSize: "10px",
-                lineHeight: 1.2,
-              }}
-            >
-              {shortcutLabel}
-            </kbd>
-          )}
-          {query && (
-            <button
-              type="button"
-              aria-label="Clear search"
-              onClick={cancelSearch}
-              style={{
-                border: "none",
-                background: "transparent",
-                color: "#777777",
-                cursor: "pointer",
-                width: "20px",
-                height: "20px",
-                display: "grid",
-                placeItems: "center",
-                padding: 0,
-                lineHeight: 1,
-              }}
-            >
-              <X size={16} strokeWidth={2} aria-hidden="true" />
-            </button>
-          )}
-        </div>
-        {query && (
+          <Search size={16} strokeWidth={2} aria-hidden="true" />
+        </button>
+      ) : (
+        <div
+          onKeyDown={handleSearchKeyDown}
+          style={{
+            width: "min(280px, calc(100vw - 32px))",
+            overflow: "hidden",
+            border: "none",
+            borderRadius: "4px",
+            backgroundColor: "#ffffff",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          }}
+        >
           <div
-            ref={resultsListRef}
             style={{
-              maxHeight: "240px",
-              overflowX: "hidden",
-              overflowY: "auto",
-              overscrollBehavior: "contain",
-              scrollBehavior: "smooth",
-              touchAction: "pan-y",
-              WebkitOverflowScrolling: "touch",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              height: "32px",
+              boxSizing: "border-box",
+              padding: "0 12px",
+              borderBottom: searchHeaderBorder,
             }}
-            onWheel={(event) => event.stopPropagation()}
-            onTouchMove={(event) => event.stopPropagation()}
           >
-            {results.length === 0 ? (
-              <div
+            <Search size={15} strokeWidth={2} aria-hidden="true" />
+            <input
+              ref={inputRef}
+              value={query}
+              aria-label="Search components and nets"
+              placeholder="Search..."
+              onChange={(event) => onQueryChange(event.target.value)}
+              style={{
+                minWidth: 0,
+                flex: 1,
+                border: "none",
+                outline: "none",
+                fontSize: "13px",
+                color: "#222222",
+                background: "transparent",
+              }}
+            />
+            {query && results.length > 0 ? (
+              <span
                 style={{
-                  padding: "12px",
-                  color: "#777777",
-                  fontSize: "13px",
+                  flexShrink: 0,
+                  color: "#888888",
+                  fontSize: "12px",
+                  whiteSpace: "nowrap",
                 }}
               >
-                No matching components or nets
-              </div>
+                {resultCountLabel}
+              </span>
             ) : (
-              <>
-                {renderResultSection("components", componentResults)}
-                {renderResultSection("nets", netResults)}
-              </>
+              <kbd
+                style={{
+                  flexShrink: 0,
+                  padding: "2px 5px",
+                  border: "1px solid #dddddd",
+                  borderRadius: "4px",
+                  backgroundColor: "#f7f7f7",
+                  color: "#777777",
+                  fontFamily: "inherit",
+                  fontSize: "10px",
+                  lineHeight: 1.2,
+                }}
+              >
+                {shortcutLabel}
+              </kbd>
+            )}
+            {isOpen && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={cancelSearch}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "#777777",
+                  cursor: "pointer",
+                  width: "20px",
+                  height: "20px",
+                  display: "grid",
+                  placeItems: "center",
+                  padding: 0,
+                  lineHeight: 1,
+                }}
+              >
+                <X size={16} strokeWidth={2} aria-hidden="true" />
+              </button>
             )}
           </div>
-        )}
-      </div>
+          {query && (
+            <div
+              ref={resultsListRef}
+              style={{
+                maxHeight: "240px",
+                overflowX: "hidden",
+                overflowY: "auto",
+                overscrollBehavior: "contain",
+                scrollBehavior: "smooth",
+                touchAction: "pan-y",
+                WebkitOverflowScrolling: "touch",
+              }}
+              onWheel={(event) => event.stopPropagation()}
+              onTouchMove={(event) => event.stopPropagation()}
+            >
+              {results.length === 0 ? (
+                <div
+                  style={{
+                    padding: "12px",
+                    color: "#777777",
+                    fontSize: "13px",
+                  }}
+                >
+                  No matching components or nets
+                </div>
+              ) : (
+                <>
+                  {renderResultSection("components", componentResults)}
+                  {renderResultSection("nets", netResults)}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

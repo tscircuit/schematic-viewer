@@ -625,6 +625,7 @@ export const SchematicViewer = ({
               onCancel={handleCancelSearch}
               results={searchResults}
               onSelect={handleSearchResultSelect}
+              viewerContainerRef={containerRef}
             />
           )}
           <SchematicSheetSelector
