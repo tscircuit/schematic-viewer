@@ -618,6 +618,11 @@ export const SchematicViewer = ({
             zIndex: zIndexMap.schematicSearch,
           }}
         >
+          <SchematicSheetSelector
+            sheets={schematicSheets}
+            selectedSheetId={activeSheetId}
+            onSelectSheet={handleSelectSheet}
+          />
           {searchEnabled && (
             <SchematicSearch
               query={searchQuery}
@@ -628,11 +633,6 @@ export const SchematicViewer = ({
               viewerContainerRef={containerRef}
             />
           )}
-          <SchematicSheetSelector
-            sheets={schematicSheets}
-            selectedSheetId={activeSheetId}
-            onSelectSheet={handleSelectSheet}
-          />
         </div>
         {onSchematicComponentClicked &&
           schematicComponentIds.map((componentId) => (
