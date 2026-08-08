@@ -142,6 +142,11 @@ export const SchematicSearch = ({
     inputRef.current?.blur()
   }
 
+  const openSearch = () => {
+    setIsOpen(true)
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }
+
   const componentResults = results.filter(
     (result) => result.kind === "component",
   )
@@ -351,10 +356,10 @@ export const SchematicSearch = ({
           type="button"
           title="Search schematic"
           aria-label="Search schematic"
-          onClick={() => {
-            setIsOpen(true)
-            requestAnimationFrame(() => inputRef.current?.focus())
+          onPointerUp={(event) => {
+            if (event.pointerType !== "mouse") openSearch()
           }}
+          onClick={openSearch}
           style={{
             width: "32px",
             height: "32px",
