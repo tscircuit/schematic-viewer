@@ -458,7 +458,12 @@ export const SchematicSearch = ({
               <button
                 type="button"
                 aria-label="Clear search"
-                onClick={cancelSearch}
+                onPointerUp={(event) => {
+                  if (event.button === 0) cancelSearch()
+                }}
+                onClick={(event) => {
+                  if (event.detail === 0) cancelSearch()
+                }}
                 style={{
                   border: "none",
                   background: "transparent",
