@@ -542,6 +542,12 @@ export const SchematicViewer = ({
           handleMouseDown(e)
         }}
         onMouseDownCapture={(e) => {
+          if (
+            e.target instanceof Element &&
+            e.target.closest("[data-schematic-search]")
+          ) {
+            return
+          }
           if (clickToInteractEnabled && !isInteractionEnabled) {
             e.preventDefault()
             e.stopPropagation()
