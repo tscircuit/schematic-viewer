@@ -234,14 +234,20 @@ export const SchematicSearch = ({
           if (result.kind === "component") {
             resultIcon = <Cpu size={15} strokeWidth={1.8} aria-hidden="true" />
           }
+          const selectResult = () => {
+            setActiveResultId(result.target.id)
+            onSelect(result)
+          }
           return (
             <button
               type="button"
               key={result.target.id}
               data-search-result-id={result.target.id}
-              onClick={() => {
-                setActiveResultId(result.target.id)
-                onSelect(result)
+              onPointerUp={(event) => {
+                if (event.button === 0) selectResult()
+              }}
+              onClick={(event) => {
+                if (event.detail === 0) selectResult()
               }}
               onMouseEnter={() => setHoveredResultId(result.target.id)}
               onMouseLeave={() => setHoveredResultId(null)}
