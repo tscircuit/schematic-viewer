@@ -237,6 +237,7 @@ export const SchematicSearch = ({
             resultIcon = <Cpu size={15} strokeWidth={1.8} aria-hidden="true" />
           }
           const selectResult = () => {
+            inputRef.current?.blur()
             setActiveResultId(result.target.id)
             onSelect(result)
           }
