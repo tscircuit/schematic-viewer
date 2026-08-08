@@ -7,5 +7,5 @@ export const zIndexMap = {
   clickToInteractOverlay: 100,
   schematicComponentHoverOutline: 47,
   schematicPortHoverOutline: 48,
-  schematicSearch: 56,
+  schematicSearch: 101,
 }
