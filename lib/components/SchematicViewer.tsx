@@ -494,6 +494,14 @@ export const SchematicViewer = ({
             .schematic-search-match [stroke]:not(text):not([stroke="none"]),
             [stroke]:not(text):not([stroke="none"]).schematic-search-match {
               stroke: #ff00d4 !important;
+            }
+            .schematic-viewer-toolbar {
+              flex-direction: row;
+            }
+            @media (max-width: 640px) {
+              .schematic-viewer-toolbar {
+                flex-direction: column;
+              }
             }`}
         </style>
       )}
@@ -608,6 +616,9 @@ export const SchematicViewer = ({
           onToggleGrid={setShowGridInternal}
         />
         <div
+          className="schematic-viewer-toolbar"
+          onTouchStart={(event) => event.stopPropagation()}
+          onTouchEnd={(event) => event.stopPropagation()}
           style={{
             position: "absolute",
             top: "16px",
