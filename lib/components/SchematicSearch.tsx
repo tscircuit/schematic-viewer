@@ -85,7 +85,16 @@ export const SchematicSearch = ({
   }, [activeResultId])
 
   useEffect(() => {
-    const handleFindShortcut = (event: KeyboardEvent) => {
+    const handleSearchShortcut = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isOpen) {
+        event.preventDefault()
+        event.stopPropagation()
+        event.stopImmediatePropagation()
+        onCancel()
+        setIsOpen(false)
+        inputRef.current?.blur()
+        return
+      }
       if (event.code !== "KeyF" && event.key.toLocaleLowerCase() !== "f") {
         return
       }
@@ -114,18 +123,18 @@ export const SchematicSearch = ({
     }
 
     shortcutWindows.forEach((targetWindow) =>
-      targetWindow.addEventListener("keydown", handleFindShortcut, {
+      targetWindow.addEventListener("keydown", handleSearchShortcut, {
         capture: true,
       }),
     )
     return () => {
       shortcutWindows.forEach((targetWindow) =>
-        targetWindow.removeEventListener("keydown", handleFindShortcut, {
+        targetWindow.removeEventListener("keydown", handleSearchShortcut, {
           capture: true,
         }),
       )
     }
-  }, [viewerContainerRef])
+  }, [isOpen, onCancel, viewerContainerRef])
 
   const cancelSearch = () => {
     onCancel()
@@ -287,6 +296,22 @@ export const SchematicSearch = ({
                     }}
                   >
                     {result.detail}
+                  </span>
+                )}
+                {result.schematicSheetName && (
+                  <span
+                    style={{
+                      display: "block",
+                      overflow: "hidden",
+                      marginTop: "2px",
+                      color: "#777777",
+                      fontSize: "11px",
+                      lineHeight: 1.2,
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Sheet: {result.schematicSheetName}
                   </span>
                 )}
               </span>

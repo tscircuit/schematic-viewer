@@ -6,6 +6,7 @@ import type {
   SourceComponentBase,
   SourcePort,
   SourceTrace,
+  SchematicSheet,
 } from "circuit-json"
 
 type SearchableSourceComponent = SourceComponentBase & {
@@ -21,6 +22,7 @@ export type SchematicSearchResult = {
   detail?: string
   kind: "component" | "net"
   schematicSheetId?: string
+  schematicSheetName?: string
   target:
     | { type: "schematic_component"; id: string }
     | { type: "schematic_net_label"; id: string }
@@ -109,6 +111,23 @@ const isSchematicNetLabel = (
   element: CircuitJson[number],
 ): element is SchematicNetLabel => element.type === "schematic_net_label"
 
+const isSchematicSheet = (
+  element: CircuitJson[number],
+): element is SchematicSheet => element.type === "schematic_sheet"
+
+const getSchematicSheetName = ({
+  schematicSheets,
+  schematicSheetId,
+}: {
+  schematicSheets: SchematicSheet[]
+  schematicSheetId?: string
+}) => {
+  if (schematicSheets.length <= 1 || !schematicSheetId) return undefined
+  return schematicSheets.find(
+    (sheet) => sheet.schematic_sheet_id === schematicSheetId,
+  )?.name
+}
+
 export const getSchematicSearchResults = (
   circuitJson: CircuitJson,
   query: string,
@@ -128,6 +147,7 @@ export const getSchematicSearchResults = (
   )
   const schematicPorts = circuitJson.filter(isSchematicPort)
   const sourceTraces = circuitJson.filter(isSourceTrace)
+  const schematicSheets = circuitJson.filter(isSchematicSheet)
   const results: SchematicSearchResult[] = []
   const resultScores = new Map<SchematicSearchResult, number>()
 
@@ -145,6 +165,10 @@ export const getSchematicSearchResults = (
         detail: getComponentDetail(sourceComponent, component, primaryLabel),
         kind: "component",
         schematicSheetId: component.schematic_sheet_id,
+        schematicSheetName: getSchematicSheetName({
+          schematicSheets,
+          schematicSheetId: component.schematic_sheet_id,
+        }),
         target: {
           type: "schematic_component",
           id: component.schematic_component_id,
@@ -203,6 +227,10 @@ export const getSchematicSearchResults = (
       detail: connectionLabel,
       kind: "net",
       schematicSheetId: netLabel.schematic_sheet_id,
+      schematicSheetName: getSchematicSheetName({
+        schematicSheets,
+        schematicSheetId: netLabel.schematic_sheet_id,
+      }),
       target: {
         type: "schematic_net_label",
         id: netLabel.schematic_net_label_id,

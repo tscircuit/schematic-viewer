@@ -43,6 +43,50 @@ test("finds net labels case-insensitively", () => {
   expect(results[0]?.target.type).toBe("schematic_net_label")
 })
 
+test("identifies matching net labels on different schematic sheets", () => {
+  const circuitWithMatchingNetsAcrossSheets = [
+    {
+      type: "schematic_sheet",
+      schematic_sheet_id: "sheet_power",
+      name: "Power",
+      sheet_index: 0,
+    },
+    {
+      type: "schematic_sheet",
+      schematic_sheet_id: "sheet_sensors",
+      name: "Sensors",
+      sheet_index: 1,
+    },
+    {
+      type: "schematic_net_label",
+      schematic_net_label_id: "vcc_power",
+      schematic_sheet_id: "sheet_power",
+      source_net_id: "source_net_vcc",
+      text: "VCC",
+      center: { x: 0, y: 0 },
+    },
+    {
+      type: "schematic_net_label",
+      schematic_net_label_id: "vcc_sensors",
+      schematic_sheet_id: "sheet_sensors",
+      source_net_id: "source_net_vcc",
+      text: "VCC",
+      center: { x: 0, y: 0 },
+    },
+  ] as CircuitJson
+
+  const results = getSchematicSearchResults(
+    circuitWithMatchingNetsAcrossSheets,
+    "VCC",
+  )
+
+  expect(results).toHaveLength(2)
+  expect(results.map((result) => result.schematicSheetName)).toEqual([
+    "Power",
+    "Sensors",
+  ])
+})
+
 test("does not include component pin labels", () => {
   const results = getSchematicSearchResults(circuitJson, "D-")
 
