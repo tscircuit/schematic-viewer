@@ -415,6 +415,7 @@ export const SchematicSearch = ({
               value={query}
               aria-label="Search components and nets"
               placeholder="Search..."
+              onPointerUp={(event) => event.currentTarget.focus()}
               onChange={(event) => onQueryChange(event.target.value)}
               style={{
                 minWidth: 0,
