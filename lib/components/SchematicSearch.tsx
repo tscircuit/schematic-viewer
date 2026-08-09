@@ -354,6 +354,8 @@ export const SchematicSearch = ({
       data-schematic-search
       onPointerDown={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
+      onTouchStart={(event) => event.stopPropagation()}
+      onTouchEnd={(event) => event.stopPropagation()}
       style={{
         position: "relative",
         zIndex: zIndexMap.schematicSearch,
@@ -365,8 +367,14 @@ export const SchematicSearch = ({
           type="button"
           title="Search schematic"
           aria-label="Search schematic"
+          onPointerDown={(event) => {
+            event.stopPropagation()
+            if (event.pointerType !== "mouse") openSearch(false)
+          }}
           onPointerUp={(event) => {
-            if (event.button === 0) openSearch(event.pointerType === "mouse")
+            if (event.pointerType === "mouse" && event.button === 0) {
+              openSearch(true)
+            }
           }}
           onClick={(event) => {
             if (event.detail === 0) openSearch(true)
