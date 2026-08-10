@@ -25,6 +25,21 @@ export type EditSchematicPortLocationEventWithElement =
     _element: SVGElement
   }
 
+// Emitted while / after dragging a net-label, power or ground symbol. These are
+// the movable "ports" on a sheet — unlike IC pins, they are not anchored to a
+// component.
+export interface EditSchematicNetLabelLocationEvent extends BaseManualEditEvent {
+  edit_event_type: "edit_schematic_net_label_location"
+  schematic_net_label_id: string
+  original_center: { x: number; y: number }
+  new_center: { x: number; y: number }
+}
+
+export type EditSchematicNetLabelLocationEventWithElement =
+  EditSchematicNetLabelLocationEvent & {
+    _element: SVGElement
+  }
+
 // Emitted when a user drags a schematic trace to reshape it. Endpoints stay
 // pinned to their ports; only the middle corner (or waypoints) moves so the
 // wire remains orthogonal.
@@ -124,6 +139,7 @@ export interface EditSchematicComponentAddEvent extends BaseManualEditEvent {
 export type ExtendedManualEditEvent =
   | ManualEditEvent
   | EditSchematicPortLocationEvent
+  | EditSchematicNetLabelLocationEvent
   | EditSchematicTraceMoveEvent
   | EditSchematicWireAddEvent
   | EditSchematicBusAddEvent

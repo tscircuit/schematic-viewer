@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import { type Matrix, applyToPoint } from "transformation-matrix"
 import type {
   EditSchematicComponentLocationEventWithElement,
+  EditSchematicNetLabelLocationEventWithElement,
   EditSchematicPortLocationEventWithElement,
   EditSchematicTraceMoveEventWithElement,
   ExtendedManualEditEvent,
@@ -17,6 +18,7 @@ interface Args {
   activeComponentEditEvent: EditSchematicComponentLocationEventWithElement | null
   activePortEditEvent: EditSchematicPortLocationEventWithElement | null
   activeTraceEditEvent: EditSchematicTraceMoveEventWithElement | null
+  activeNetLabelEditEvent: EditSchematicNetLabelLocationEventWithElement | null
 }
 
 type Pt = { x: number; y: number }
@@ -53,6 +55,42 @@ function collectCustomRoutes(
 }
 
 /** Port original centers + net delta after component/port drags. */
+/** Net-label anchors that moved, in the same shape as movedPorts. */
+function collectMovedNetLabels(
+  circuitJson: CircuitJson,
+  editEvents: ExtendedManualEditEvent[],
+  active: EditSchematicNetLabelLocationEventWithElement | null,
+): Array<{ x: number; y: number; dx: number; dy: number }> {
+  const offsetById = new Map<string, Pt>()
+  for (const ev of [...editEvents, ...(active ? [active] : [])]) {
+    if (!("edit_event_type" in ev)) continue
+    if (ev.edit_event_type !== "edit_schematic_net_label_location") continue
+    const dx = ev.new_center.x - ev.original_center.x
+    const dy = ev.new_center.y - ev.original_center.y
+    if (!dx && !dy) continue
+    const prev = offsetById.get(ev.schematic_net_label_id) ?? { x: 0, y: 0 }
+    offsetById.set(ev.schematic_net_label_id, {
+      x: prev.x + dx,
+      y: prev.y + dy,
+    })
+  }
+  if (offsetById.size === 0) return []
+
+  const moved: Array<{ x: number; y: number; dx: number; dy: number }> = []
+  for (const l of su(circuitJson).schematic_net_label.list() as {
+    schematic_net_label_id: string
+    center?: Pt
+    anchor_position?: Pt
+  }[]) {
+    const o = offsetById.get(l.schematic_net_label_id)
+    if (!o) continue
+    for (const c of [l.anchor_position, l.center]) {
+      if (c) moved.push({ x: c.x, y: c.y, dx: o.x, dy: o.y })
+    }
+  }
+  return moved
+}
+
 function collectMovedPorts(
   circuitJson: CircuitJson,
   editEvents: ExtendedManualEditEvent[],
@@ -241,6 +279,7 @@ export const useOrthogonalTraceReroute = ({
   activeComponentEditEvent,
   activePortEditEvent,
   activeTraceEditEvent,
+  activeNetLabelEditEvent,
 }: Args) => {
   const lastSvgContentRef = useRef<string | null>(null)
 
@@ -250,12 +289,15 @@ export const useOrthogonalTraceReroute = ({
 
     const apply = () => {
       const customRoutes = collectCustomRoutes(editEvents, activeTraceEditEvent)
-      const movedPorts = collectMovedPorts(
-        circuitJson,
-        editEvents,
-        activeComponentEditEvent,
-        activePortEditEvent,
-      )
+      const movedPorts = [
+        ...collectMovedPorts(
+          circuitJson,
+          editEvents,
+          activeComponentEditEvent,
+          activePortEditEvent,
+        ),
+        ...collectMovedNetLabels(circuitJson, editEvents, activeNetLabelEditEvent),
+      ]
       if (customRoutes.size === 0 && movedPorts.length === 0) return
 
       const traces = svg.querySelectorAll(
@@ -315,5 +357,6 @@ export const useOrthogonalTraceReroute = ({
     activeComponentEditEvent,
     activePortEditEvent,
     activeTraceEditEvent,
+    activeNetLabelEditEvent,
   ])
 }

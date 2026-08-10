@@ -8,6 +8,8 @@ import { useChangeSchematicPortLocationsInSvg } from "lib/hooks/useChangeSchemat
 import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useOrthogonalTraceReroute } from "lib/hooks/useOrthogonalTraceReroute"
 import { useSchematicTraceDragging } from "lib/hooks/useSchematicTraceDragging"
+import { useSchematicNetLabelDragging } from "lib/hooks/useSchematicNetLabelDragging"
+import { useChangeSchematicNetLabelLocationsInSvg } from "lib/hooks/useChangeSchematicNetLabelLocationsInSvg"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { useSchematicNetHover } from "lib/hooks/useSchematicNetHover"
 import { enableDebug } from "lib/utils/debug"
@@ -97,6 +99,8 @@ interface Props {
   disableGroups?: boolean
   /** Fade unrelated nets/chips when hovering a wire or net label. Default true. */
   netHoverHighlightEnabled?: boolean
+  /** Stroke colour for the wire under the cursor. */
+  traceHoverColor?: string
   css?: string
   className?: string
   onSchematicComponentClicked?: (options: {
@@ -163,6 +167,7 @@ export const SchematicViewer = ({
   spiceSimulationEnabled = false,
   disableGroups = false,
   netHoverHighlightEnabled = true,
+  traceHoverColor = "#a855f7",
   onSchematicComponentClicked,
   showSchematicPorts = false,
   onSchematicPortClicked,
@@ -607,7 +612,17 @@ export const SchematicViewer = ({
   }, [svgString])
 
   const handleEditEvent = (event: ManualEditEvent) => {
-    setInternalEditEvents((prev) => [...prev, event])
+    // When a parent `onEditEvent` handler exists it will apply the edit to
+    // `circuitJson` (e.g. via applySchematicEdits).  If we also keep the
+    // completed event in `internalEditEvents`, `useOrthogonalTraceReroute`
+    // would re-apply the same delta to the already-shifted circuit-json,
+    // double-shifting trace endpoints.  Clear accumulated events on drop so
+    // the reroute hook only operates during in-progress drags.
+    if ((event as any).in_progress) {
+      setInternalEditEvents((prev) => [...prev, event])
+    } else {
+      setInternalEditEvents([])
+    }
     if (onEditEvent) {
       onEditEvent(event)
     }
@@ -653,8 +668,27 @@ export const SchematicViewer = ({
     snapToGrid,
   })
 
-  // IC pins stay fixed on the component (Altium). Only whole components,
-  // power/gnd/port symbols, and wire routes are movable in select mode.
+  // Net-label / power / ground symbols are the movable "ports" on a sheet.
+  const {
+    tryHandleMouseDown: tryHandleNetLabelDragMouseDown,
+    activeEditEvent: activeNetLabelDragEvent,
+  } = useSchematicNetLabelDragging({
+    onEditEvent: handleEditEvent as any,
+    cancelDrag,
+    realToSvgProjection,
+    svgToScreenProjection,
+    circuitJson,
+    editEvents: editEventsWithUnappliedEditEvents,
+    enabled:
+      allowComponentEdit &&
+      isInteractionEnabled &&
+      !showSpiceOverlay &&
+      toolMode === "select",
+    snapToGrid,
+    getBlockedScreenRegions,
+  })
+
+  // IC pins stay fixed on their component (Altium), so they are never dragged.
   const activePortDragEvent = null as null
 
   const isProjectionReady =
@@ -859,6 +893,13 @@ export const SchematicViewer = ({
     activeComponentEditEvent: activeEditEvent,
     activePortEditEvent: activePortDragEvent,
     activeTraceEditEvent: activeTraceDragEvent,
+    activeNetLabelEditEvent: activeNetLabelDragEvent,
+  })
+
+  useChangeSchematicNetLabelLocationsInSvg({
+    svgDivRef,
+    realToSvgProjection,
+    activeEditEvent: activeNetLabelDragEvent,
   })
 
   // Add group overlays when enabled. The key includes the active sheet so
@@ -928,6 +969,18 @@ export const SchematicViewer = ({
             svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id]) { transition: opacity 0.12s ease-in-out; }`}
         </style>
       )}
+      {netHoverHighlightEnabled && (
+        <style>
+          {`svg g.trace:hover path:not(.sch-trace-hitbox),
+            svg g.trace-overlays:hover path:not(.sch-trace-hitbox) {
+              stroke: ${traceHoverColor};
+            }
+            svg g.trace:hover circle.sch-trace-junction,
+            svg g.trace-overlays:hover circle.sch-trace-junction {
+              fill: ${traceHoverColor};
+            }`}
+        </style>
+      )}
       {allowComponentEdit && toolMode === "select" && (
         <style>
           {`svg g.trace, svg g.trace-overlays { cursor: move; }`}
@@ -987,7 +1040,9 @@ export const SchematicViewer = ({
             e.stopPropagation()
             return
           }
-          // Trace reshape first, then component move (pins are not draggable).
+          // Labels sit on top of their wire end, so they claim the click first;
+          // then trace reshape, then component move (pins are not draggable).
+          if (tryHandleNetLabelDragMouseDown(e)) return
           if (tryHandleTraceDragMouseDown(e)) return
           if (allowComponentEdit) {
             handleMouseDown(e)

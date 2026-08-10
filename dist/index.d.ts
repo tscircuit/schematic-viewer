@@ -136,6 +136,8 @@ interface Props$1 {
     disableGroups?: boolean;
     /** Fade unrelated nets/chips when hovering a wire or net label. Default true. */
     netHoverHighlightEnabled?: boolean;
+    /** Stroke colour for the wire under the cursor. */
+    traceHoverColor?: string;
     css?: string;
     className?: string;
     onSchematicComponentClicked?: (options: {
@@ -174,7 +176,7 @@ interface Props$1 {
     getBlockedScreenRegions?: () => DOMRect[] | undefined;
     allowCanvasPan?: boolean;
 }
-declare const SchematicViewer: ({ circuitJson, containerStyle, editEvents: unappliedEditEvents, onEditEvent, defaultEditMode, debugGrid, editingEnabled, debug, clickToInteractEnabled, colorOverrides, spiceSimulationEnabled, disableGroups, netHoverHighlightEnabled, onSchematicComponentClicked, showSchematicPorts, onSchematicPortClicked, onSchematicSheetChange, css, className, toolMode, onWireAdded, onBusAdded, onBusEntryAdded, onNoConnectAdded, onNetLabelAdded, onGlobalLabelAdded, onHierSheetAdded, onPowerPortAdded, onGroundPortAdded, onTextNoteAdded, onComponentAdded, placementComponentKind, hierSheetTargets, activeSheetId, allowComponentEdit, getBlockedScreenRegions, allowCanvasPan, }: Props$1) => react.JSX.Element;
+declare const SchematicViewer: ({ circuitJson, containerStyle, editEvents: unappliedEditEvents, onEditEvent, defaultEditMode, debugGrid, editingEnabled, debug, clickToInteractEnabled, colorOverrides, spiceSimulationEnabled, disableGroups, netHoverHighlightEnabled, traceHoverColor, onSchematicComponentClicked, showSchematicPorts, onSchematicPortClicked, onSchematicSheetChange, css, className, toolMode, onWireAdded, onBusAdded, onBusEntryAdded, onNoConnectAdded, onNetLabelAdded, onGlobalLabelAdded, onHierSheetAdded, onPowerPortAdded, onGroundPortAdded, onTextNoteAdded, onComponentAdded, placementComponentKind, hierSheetTargets, activeSheetId, allowComponentEdit, getBlockedScreenRegions, allowCanvasPan, }: Props$1) => react.JSX.Element;
 
 interface BoundingBoxBounds {
     minX: number;

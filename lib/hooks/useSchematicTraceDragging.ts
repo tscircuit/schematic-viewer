@@ -185,23 +185,9 @@ export const useSchematicTraceDragging = ({
         route = [{ ...ends.from }, ...route.slice(1, -1), { ...ends.to }]
       }
 
-      // Straight wire → insert a corner so the user has something to drag.
-      if (route.length === 2) {
-        const mid = {
-          x: (route[0].x + route[1].x) / 2,
-          y: (route[0].y + route[1].y) / 2,
-        }
-        // Prefer the L orientation implied by a slight mouse bias later; start
-        // with a classic HV corner.
-        route = [route[0], { x: route[1].x, y: route[0].y }, route[1]]
-        // If that collapsed (axis-aligned already), use mid as free point.
-        if (
-          Math.abs(route[0].x - route[1].x) < 1e-6 &&
-          Math.abs(route[0].y - route[1].y) < 1e-6
-        ) {
-          route = [{ ...route[0] }, mid, { ...route[route.length - 1] }]
-        }
-      }
+      // A straight wire keeps its two points here; updateDrag grows it into a
+      // staple on first movement, which is the only shape that gives a
+      // collinear wire a movable segment on both axes.
 
       // Map click to real-mm to pick the nearest segment.
       let clickMm: Pt = {
@@ -284,8 +270,40 @@ export const useSchematicTraceDragging = ({
         mmDelta = { x: snap(mmDelta.x), y: snap(mmDelta.y) }
       }
 
-      const initial = initialRouteRef.current
-      const seg = segmentIndexRef.current
+      let initial = initialRouteRef.current
+      let seg = segmentIndexRef.current
+
+      // Straight wire: bow it into a staple so the grabbed axis has something
+      // to move. The two risers stay orthogonal and remain draggable after drop.
+      if (initial.length === 2) {
+        const p0 = initial[0]
+        const p1 = initial[1]
+        const collinearY = Math.abs(p0.y - p1.y) < 1e-6
+        const collinearX = Math.abs(p0.x - p1.x) < 1e-6
+        if (collinearY) {
+          const y = p0.y + mmDelta.y
+          initial = [p0, { x: p0.x, y }, { x: p1.x, y }, p1]
+          seg = 1
+        } else if (collinearX) {
+          const x = p0.x + mmDelta.x
+          initial = [p0, { x, y: p0.y }, { x, y: p1.y }, p1]
+          seg = 1
+        } else {
+          initial = [p0, { x: p1.x, y: p0.y }, p1]
+          seg = 0
+        }
+        initialRouteRef.current = initial.map((p) => ({ ...p }))
+        segmentIndexRef.current = seg
+        // The staple already consumed this frame's delta.
+        if (collinearY || collinearX) {
+          const staple = initial.map((p) => ({ ...p }))
+          const event = { ...activeRef.current, route: staple }
+          activeRef.current = event
+          setActiveEvent(event)
+          return
+        }
+      }
+
       const a = initial[seg]
       const b = initial[seg + 1]
       if (!a || !b) return
