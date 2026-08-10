@@ -47,6 +47,31 @@ function latestTraceRoute(
   return null
 }
 
+/**
+ * Merges collinear edges into one segment. Backends split a straight wire at
+ * junctions and waypoints; without this the user grabs the line and only one
+ * piece of it moves, tearing the wire in half.
+ */
+function simplifyRoute(route: Pt[]): Pt[] {
+  if (route.length < 3) return route
+  const out: Pt[] = [route[0]]
+  for (let i = 1; i < route.length - 1; i++) {
+    const prev = out[out.length - 1]
+    const cur = route[i]
+    const next = route[i + 1]
+    const collinearH =
+      Math.abs(prev.y - cur.y) < 1e-6 && Math.abs(cur.y - next.y) < 1e-6
+    const collinearV =
+      Math.abs(prev.x - cur.x) < 1e-6 && Math.abs(cur.x - next.x) < 1e-6
+    const duplicate =
+      Math.abs(prev.x - cur.x) < 1e-6 && Math.abs(prev.y - cur.y) < 1e-6
+    if (collinearH || collinearV || duplicate) continue
+    out.push(cur)
+  }
+  out.push(route[route.length - 1])
+  return out
+}
+
 function routeFromEdges(
   edges: { from: Pt; to: Pt }[] | undefined,
 ): Pt[] | null {
@@ -185,6 +210,8 @@ export const useSchematicTraceDragging = ({
         route = [{ ...ends.from }, ...route.slice(1, -1), { ...ends.to }]
       }
 
+      route = simplifyRoute(route)
+
       // A straight wire keeps its two points here; updateDrag grows it into a
       // staple on first movement, which is the only shape that gives a
       // collinear wire a movable segment on both axes.
@@ -308,47 +335,36 @@ export const useSchematicTraceDragging = ({
       const b = initial[seg + 1]
       if (!a || !b) return
 
-      const next = initial.map((p) => ({ ...p }))
       const horizontal = Math.abs(a.y - b.y) < 1e-6
       const vertical = Math.abs(a.x - b.x) < 1e-6
 
-      // Translate the grabbed segment perpendicular to itself. Pin the route
-      // endpoints (index 0 and last) so the wire stays attached to ports.
+      let moved0: Pt
+      let moved1: Pt
       if (horizontal) {
-        const newY = a.y + mmDelta.y
-        if (seg > 0) next[seg] = { ...next[seg], y: newY }
-        if (seg + 1 < next.length - 1) next[seg + 1] = { ...next[seg + 1], y: newY }
-        // If the segment includes an endpoint, only the free vertex moves —
-        // promote to a 3-point L if we started with a stub.
-        if (seg === 0 && next.length >= 3) {
-          next[1] = { ...next[1], y: newY }
-        }
-        if (seg === next.length - 2 && next.length >= 3) {
-          next[next.length - 2] = { ...next[next.length - 2], y: newY }
-        }
+        const y = a.y + mmDelta.y
+        moved0 = { x: a.x, y }
+        moved1 = { x: b.x, y }
       } else if (vertical) {
-        const newX = a.x + mmDelta.x
-        if (seg > 0) next[seg] = { ...next[seg], x: newX }
-        if (seg + 1 < next.length - 1) next[seg + 1] = { ...next[seg + 1], x: newX }
-        if (seg === 0 && next.length >= 3) {
-          next[1] = { ...next[1], x: newX }
-        }
-        if (seg === next.length - 2 && next.length >= 3) {
-          next[next.length - 2] = { ...next[next.length - 2], x: newX }
-        }
+        const x = a.x + mmDelta.x
+        moved0 = { x, y: a.y }
+        moved1 = { x, y: b.y }
       } else {
-        // Non-orthogonal legacy segment — snap by moving the middle corner.
-        if (next.length >= 3) {
-          next[1] = {
-            x: initial[1].x + mmDelta.x,
-            y: initial[1].y + mmDelta.y,
-          }
-        }
+        // Legacy diagonal segment — translate it wholesale.
+        moved0 = { x: a.x + mmDelta.x, y: a.y + mmDelta.y }
+        moved1 = { x: b.x + mmDelta.x, y: b.y + mmDelta.y }
       }
 
-      // Keep true endpoints fixed.
-      next[0] = { ...initial[0] }
-      next[next.length - 1] = { ...initial[initial.length - 1] }
+      // A grabbed segment touching a pinned end grows a riser rather than
+      // dragging that end, so the wire never goes diagonal.
+      const next: Pt[] = []
+      for (let i = 0; i < seg; i++) next.push({ ...initial[i] })
+      if (seg === 0) next.push({ ...initial[0] })
+      next.push(moved0, moved1)
+      if (seg + 1 === initial.length - 1) {
+        next.push({ ...initial[initial.length - 1] })
+      } else {
+        for (let i = seg + 2; i < initial.length; i++) next.push({ ...initial[i] })
+      }
 
       const event = { ...activeRef.current, route: next }
       activeRef.current = event

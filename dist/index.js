@@ -538,6 +538,22 @@ function latestTraceRoute(events, traceId) {
   }
   return null;
 }
+function simplifyRoute(route) {
+  if (route.length < 3) return route;
+  const out = [route[0]];
+  for (let i = 1; i < route.length - 1; i++) {
+    const prev = out[out.length - 1];
+    const cur = route[i];
+    const next = route[i + 1];
+    const collinearH = Math.abs(prev.y - cur.y) < 1e-6 && Math.abs(cur.y - next.y) < 1e-6;
+    const collinearV = Math.abs(prev.x - cur.x) < 1e-6 && Math.abs(cur.x - next.x) < 1e-6;
+    const duplicate = Math.abs(prev.x - cur.x) < 1e-6 && Math.abs(prev.y - cur.y) < 1e-6;
+    if (collinearH || collinearV || duplicate) continue;
+    out.push(cur);
+  }
+  out.push(route[route.length - 1]);
+  return out;
+}
 function routeFromEdges(edges) {
   if (!edges || edges.length === 0) return null;
   const route = [{ ...edges[0].from }];
@@ -633,6 +649,7 @@ var useSchematicTraceDragging = ({
       if (ends) {
         route = [{ ...ends.from }, ...route.slice(1, -1), { ...ends.to }];
       }
+      route = simplifyRoute(route);
       let clickMm = {
         x: (route[0].x + route[route.length - 1].x) / 2,
         y: (route[0].y + route[route.length - 1].y) / 2
@@ -737,39 +754,31 @@ var useSchematicTraceDragging = ({
       const a = initial[seg];
       const b = initial[seg + 1];
       if (!a || !b) return;
-      const next = initial.map((p) => ({ ...p }));
       const horizontal = Math.abs(a.y - b.y) < 1e-6;
       const vertical = Math.abs(a.x - b.x) < 1e-6;
+      let moved0;
+      let moved1;
       if (horizontal) {
-        const newY = a.y + mmDelta.y;
-        if (seg > 0) next[seg] = { ...next[seg], y: newY };
-        if (seg + 1 < next.length - 1) next[seg + 1] = { ...next[seg + 1], y: newY };
-        if (seg === 0 && next.length >= 3) {
-          next[1] = { ...next[1], y: newY };
-        }
-        if (seg === next.length - 2 && next.length >= 3) {
-          next[next.length - 2] = { ...next[next.length - 2], y: newY };
-        }
+        const y = a.y + mmDelta.y;
+        moved0 = { x: a.x, y };
+        moved1 = { x: b.x, y };
       } else if (vertical) {
-        const newX = a.x + mmDelta.x;
-        if (seg > 0) next[seg] = { ...next[seg], x: newX };
-        if (seg + 1 < next.length - 1) next[seg + 1] = { ...next[seg + 1], x: newX };
-        if (seg === 0 && next.length >= 3) {
-          next[1] = { ...next[1], x: newX };
-        }
-        if (seg === next.length - 2 && next.length >= 3) {
-          next[next.length - 2] = { ...next[next.length - 2], x: newX };
-        }
+        const x = a.x + mmDelta.x;
+        moved0 = { x, y: a.y };
+        moved1 = { x, y: b.y };
       } else {
-        if (next.length >= 3) {
-          next[1] = {
-            x: initial[1].x + mmDelta.x,
-            y: initial[1].y + mmDelta.y
-          };
-        }
+        moved0 = { x: a.x + mmDelta.x, y: a.y + mmDelta.y };
+        moved1 = { x: b.x + mmDelta.x, y: b.y + mmDelta.y };
       }
-      next[0] = { ...initial[0] };
-      next[next.length - 1] = { ...initial[initial.length - 1] };
+      const next = [];
+      for (let i = 0; i < seg; i++) next.push({ ...initial[i] });
+      if (seg === 0) next.push({ ...initial[0] });
+      next.push(moved0, moved1);
+      if (seg + 1 === initial.length - 1) {
+        next.push({ ...initial[initial.length - 1] });
+      } else {
+        for (let i = seg + 2; i < initial.length; i++) next.push({ ...initial[i] });
+      }
       const event = { ...activeRef.current, route: next };
       activeRef.current = event;
       setActiveEvent(event);
