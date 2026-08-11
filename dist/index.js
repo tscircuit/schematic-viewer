@@ -6814,7 +6814,7 @@ var SchematicViewer = ({
     }
     if (allowEdit) {
       const target = e.target;
-      if (target.closest('[data-circuit-json-type="schematic_component"]') || target.closest('[data-circuit-json-type="schematic_trace"]')) {
+      if (target.closest('[data-circuit-json-type="schematic_component"]') || target.closest('[data-circuit-json-type="schematic_trace"]') || target.closest("[data-schematic-net-label-id]")) {
         return false;
       }
     }

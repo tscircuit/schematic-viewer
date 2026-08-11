@@ -532,10 +532,12 @@ export const SchematicViewer = ({
 
     if (allowEdit) {
       const target = e.target as Element
-      // Never pan when grabbing a component or reshaping a wire (Altium-style).
+      // Never pan when grabbing a component, a net-label/power/ground symbol,
+      // or reshaping a wire (Altium-style).
       if (
         target.closest('[data-circuit-json-type="schematic_component"]') ||
-        target.closest('[data-circuit-json-type="schematic_trace"]')
+        target.closest('[data-circuit-json-type="schematic_trace"]') ||
+        target.closest("[data-schematic-net-label-id]")
       ) {
         return false
       }
