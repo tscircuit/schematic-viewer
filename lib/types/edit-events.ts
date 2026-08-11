@@ -1,8 +1,4 @@
-import type {
-  BaseManualEditEvent,
-  EditSchematicComponentLocationEvent,
-  ManualEditEvent,
-} from "@tscircuit/props"
+import type { EditSchematicComponentLocationEvent } from "@tscircuit/props"
 
 export type EditSchematicComponentLocationEventWithElement =
   EditSchematicComponentLocationEvent & {
@@ -13,4 +9,4 @@ export type {
   BaseManualEditEvent,
   EditSchematicComponentLocationEvent,
   ManualEditEvent,
-}
+} from "@tscircuit/props"
