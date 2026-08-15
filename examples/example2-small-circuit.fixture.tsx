@@ -1,4 +1,4 @@
-import { ControlledSchematicViewer } from "lib/components/ControlledSchematicViewer"
+import { SchematicViewer } from "lib/components/SchematicViewer"
 import { renderToCircuitJson } from "lib/dev/render-to-circuit-json"
 
 const circuitJson = renderToCircuitJson(
@@ -38,9 +38,8 @@ const circuitJson = renderToCircuitJson(
 )
 
 export default () => (
-  <ControlledSchematicViewer
+  <SchematicViewer
     circuitJson={circuitJson}
-    editingEnabled
     containerStyle={{ height: "100%" }}
     debugGrid
     debug

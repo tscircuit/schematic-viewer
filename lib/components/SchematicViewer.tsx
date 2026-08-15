@@ -3,23 +3,13 @@ import {
   type ColorOverrides,
 } from "circuit-to-svg"
 import { su } from "@tscircuit/soup-util"
-import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
-import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { useSchematicNetHover } from "lib/hooks/useSchematicNetHover"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import {
-  fromString,
-  identity,
-  toString as transformToString,
-} from "transformation-matrix"
+import { toString as transformToString } from "transformation-matrix"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
-import { useComponentDragging } from "../hooks/useComponentDragging"
-import type { ManualEditEvent } from "../types/edit-events"
-import { EditIcon } from "./EditIcon"
-import { GridIcon } from "./GridIcon"
 import { ViewMenu } from "./ViewMenu"
 import type { CircuitJson, SchematicSheet } from "circuit-json"
 import { zIndexMap } from "../utils/z-index-map"
@@ -38,11 +28,7 @@ import { SchematicSheetSelector } from "./SchematicSheetSelector"
 interface Props {
   circuitJson: CircuitJson
   containerStyle?: React.CSSProperties
-  editEvents?: ManualEditEvent[]
-  onEditEvent?: (event: ManualEditEvent) => void
-  defaultEditMode?: boolean
   debugGrid?: boolean
-  editingEnabled?: boolean
   debug?: boolean
   clickToInteractEnabled?: boolean
   colorOverrides?: ColorOverrides
@@ -67,11 +53,7 @@ interface Props {
 export const SchematicViewer = ({
   circuitJson,
   containerStyle,
-  editEvents: unappliedEditEvents = [],
-  onEditEvent,
-  defaultEditMode = false,
   debugGrid = false,
-  editingEnabled = false,
   debug = false,
   clickToInteractEnabled = false,
   colorOverrides,
@@ -155,8 +137,6 @@ export const SchematicViewer = ({
     [onSchematicSheetChange],
   )
 
-  const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
-  const [snapToGrid, setSnapToGrid] = useState(true)
   const [showGridInternal, setShowGridInternal] = useState(false)
   const showGrid = debugGrid || showGridInternal
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
@@ -268,26 +248,7 @@ export const SchematicViewer = ({
     touchStartRef.current = null
   }
 
-  const [internalEditEvents, setInternalEditEvents] = useState<
-    ManualEditEvent[]
-  >([])
-  const circuitJsonRef = useRef<CircuitJson>(circuitJson)
-
-  useEffect(() => {
-    const circuitHash = getCircuitHash(circuitJson)
-    const circuitHashRef = getCircuitHash(circuitJsonRef.current)
-
-    if (circuitHash !== circuitHashRef) {
-      setInternalEditEvents([])
-      circuitJsonRef.current = circuitJson
-    }
-  }, [circuitJson])
-
-  const {
-    ref: containerRef,
-    cancelDrag,
-    transform: svgToScreenProjection,
-  } = useMouseMatrixTransform({
+  const { ref: containerRef } = useMouseMatrixTransform({
     onSetTransform(transform) {
       if (!svgDivRef.current) return
       svgDivRef.current.style.transform = transformToString(transform)
@@ -331,62 +292,6 @@ export const SchematicViewer = ({
     return match?.[1] ?? "transparent"
   }, [svgString])
 
-  const realToSvgProjection = useMemo(() => {
-    if (!svgString) return identity()
-    const transformString = svgString.match(
-      /data-real-to-screen-transform="([^"]+)"/,
-    )?.[1]!
-
-    try {
-      return fromString(transformString)
-    } catch (e) {
-      console.error(e)
-      return identity()
-    }
-  }, [svgString])
-
-  const handleEditEvent = (event: ManualEditEvent) => {
-    setInternalEditEvents((prev) => [...prev, event])
-    if (onEditEvent) {
-      onEditEvent(event)
-    }
-  }
-
-  const editEventsWithUnappliedEditEvents = useMemo(() => {
-    return [...unappliedEditEvents, ...internalEditEvents]
-  }, [unappliedEditEvents, internalEditEvents])
-
-  const {
-    handleMouseDown,
-    handleTouchStart: handleComponentTouchStart,
-    isDragging,
-    activeEditEvent,
-  } = useComponentDragging({
-    onEditEvent: handleEditEvent,
-    cancelDrag,
-    realToSvgProjection,
-    svgToScreenProjection,
-    circuitJson,
-    editEvents: editEventsWithUnappliedEditEvents,
-    enabled: editModeEnabled && isInteractionEnabled,
-    snapToGrid,
-  })
-
-  useChangeSchematicComponentLocationsInSvg({
-    svgDivRef,
-    editEvents: editEventsWithUnappliedEditEvents,
-    realToSvgProjection,
-    svgToScreenProjection,
-    activeEditEvent,
-  })
-
-  useChangeSchematicTracesForMovedComponents({
-    svgDivRef,
-    circuitJson,
-    activeEditEvent,
-    editEvents: editEventsWithUnappliedEditEvents,
-  })
-
   // Add group overlays when enabled. The key includes the active sheet so
   // overlays are recomputed against the freshly-rendered sheet's SVG.
   useSchematicGroupsOverlay({
@@ -405,12 +310,6 @@ export const SchematicViewer = ({
     enabled: netHoverHighlightEnabled,
   })
 
-  // keep the latest touch handler without re-rendering the svg div
-  const handleComponentTouchStartRef = useRef(handleComponentTouchStart)
-  useEffect(() => {
-    handleComponentTouchStartRef.current = handleComponentTouchStart
-  }, [handleComponentTouchStart])
-
   const svgDiv = useMemo(
     () => (
       <div
@@ -428,16 +327,11 @@ export const SchematicViewer = ({
             ? "schematic-component-clickable"
             : undefined
         }
-        onTouchStart={(e) => {
-          if (editModeEnabled && isInteractionEnabled) {
-            handleComponentTouchStartRef.current(e)
-          }
-        }}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
         dangerouslySetInnerHTML={{ __html: svgString }}
       />
     ),
-    [svgString, isInteractionEnabled, clickToInteractEnabled, editModeEnabled],
+    [svgString, isInteractionEnabled, clickToInteractEnabled],
   )
 
   return (
@@ -464,9 +358,8 @@ export const SchematicViewer = ({
           position: "relative",
           backgroundColor: containerBackgroundColor,
           overflow: "hidden",
-          cursor: isDragging
-            ? "grabbing"
-            : clickToInteractEnabled && !isInteractionEnabled
+          cursor:
+            clickToInteractEnabled && !isInteractionEnabled
               ? "pointer"
               : isHoveringClickableComponent && onSchematicComponentClicked
                 ? "pointer"
@@ -475,14 +368,6 @@ export const SchematicViewer = ({
                   : "grab",
           minHeight: "300px",
           ...containerStyle,
-        }}
-        onMouseDown={(e) => {
-          if (clickToInteractEnabled && !isInteractionEnabled) {
-            e.preventDefault()
-            e.stopPropagation()
-            return
-          }
-          handleMouseDown(e)
         }}
         onMouseDownCapture={(e) => {
           if (clickToInteractEnabled && !isInteractionEnabled) {
@@ -530,18 +415,6 @@ export const SchematicViewer = ({
                 : "Click to Interact"}
             </div>
           </div>
-        )}
-        {editingEnabled && (
-          <EditIcon
-            active={editModeEnabled}
-            onClick={() => setEditModeEnabled(!editModeEnabled)}
-          />
-        )}
-        {editingEnabled && editModeEnabled && (
-          <GridIcon
-            active={snapToGrid}
-            onClick={() => setSnapToGrid(!snapToGrid)}
-          />
         )}
         <ViewMenu
           circuitJson={circuitJson}
