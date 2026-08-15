@@ -5,6 +5,9 @@ export const zIndexMap = {
   viewMenu: 55,
   viewMenuBackdrop: 54,
   clickToInteractOverlay: 100,
-  schematicComponentHoverOutline: 47,
-  schematicPortHoverOutline: 48,
+  // Kept below viewMenuIcon (48): schematicPortHoverOutline + 1 (the port
+  // hover label's z-index, see SchematicPortMouseTarget) must stay clear of
+  // schematicGridIcon (49) too.
+  schematicComponentHoverOutline: 45,
+  schematicPortHoverOutline: 46,
 }
