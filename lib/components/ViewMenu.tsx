@@ -1,50 +1,55 @@
-import { useMemo } from "react"
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { su } from "@tscircuit/soup-util"
 import type { CircuitJson } from "circuit-json"
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
-import { zIndexMap } from "../utils/z-index-map"
+import { useMemo } from "react"
 import packageJson from "../../package.json"
-import { ViewMenuIcon } from "./ViewMenuIcon"
+import { zIndexMap } from "../utils/z-index-map"
 
 interface ViewMenuProps {
   circuitJson: CircuitJson
   circuitJsonKey: string
-  open: boolean
+  menuRef: React.RefObject<HTMLDivElement | null>
+  menuPos: { x: number; y: number }
   onOpenChange: (open: boolean) => void
   showGroups: boolean
   onToggleGroups: (show: boolean) => void
   showGrid: boolean
   onToggleGrid: (show: boolean) => void
+  showPorts: boolean
+  onTogglePorts: (show: boolean) => void
 }
 
 const FONT_FAMILY =
   'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
 
 const contentStyles: React.CSSProperties = {
-  backgroundColor: "#ffffff",
-  color: "#111111",
-  borderRadius: 8,
-  boxShadow: "0 6px 24px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)",
-  border: "1px solid #e5e7eb",
+  backgroundColor: "#262626",
+  color: "#fafafa",
+  borderRadius: 6,
+  boxShadow:
+    "0px 12px 48px -12px rgba(0, 0, 0, 0.5), 0px 8px 24px -8px rgba(0, 0, 0, 0.3)",
+  border: "1px solid #333333",
   padding: 4,
-  minWidth: 224,
-  fontSize: 13,
+  minWidth: 208,
+  fontSize: 14,
+  fontWeight: 400,
   fontFamily: FONT_FAMILY,
   outline: "none",
-  zIndex: zIndexMap.viewMenu,
+  zIndex: zIndexMap.contextMenu,
 }
 
 const itemStyles: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 8,
-  padding: "7px 10px 7px 8px",
+  padding: "6px 8px",
   borderRadius: 6,
-  cursor: "pointer",
+  cursor: "default",
   outline: "none",
   userSelect: "none",
-  color: "#111111",
-  fontSize: 13,
+  color: "#fafafa",
+  fontSize: 14,
+  fontWeight: 400,
   fontFamily: FONT_FAMILY,
 }
 
@@ -55,18 +60,18 @@ const iconSlotStyles: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  color: "#111111",
+  color: "#fafafa",
 }
 
 const separatorStyles: React.CSSProperties = {
   height: 1,
-  backgroundColor: "#ececec",
+  backgroundColor: "#ffffff1a",
   margin: "4px 0",
 }
 
 const HIGHLIGHT_CSS = `
 .sv-vm-item[data-highlighted]:not([data-disabled]),
-.sv-vm-item:hover:not([data-disabled]) { background-color: #f1f3f5; }
+.sv-vm-item:hover:not([data-disabled]) { background-color: #404040; }
 .sv-vm-item[data-disabled] { opacity: 0.45; cursor: not-allowed; }
 `
 
@@ -89,12 +94,15 @@ const CheckIcon = () => (
 export const ViewMenu = ({
   circuitJson,
   circuitJsonKey,
-  open,
+  menuRef,
+  menuPos,
   onOpenChange,
   showGroups,
   onToggleGroups,
   showGrid,
   onToggleGrid,
+  showPorts,
+  onTogglePorts,
 }: ViewMenuProps) => {
   const hasGroups = useMemo(() => {
     if (!circuitJson || circuitJson.length === 0) return false
@@ -127,65 +135,105 @@ export const ViewMenu = ({
     }
   }, [circuitJsonKey])
 
+  const hasPorts = useMemo(() => {
+    if (!circuitJson || circuitJson.length === 0) return false
+
+    try {
+      return (su(circuitJson).schematic_port?.list() || []).length > 0
+    } catch (error) {
+      console.error("Error checking for schematic ports:", error)
+      return false
+    }
+  }, [circuitJsonKey])
+
   return (
-    <DropdownMenu.Root open={open} onOpenChange={onOpenChange} modal={false}>
-      <DropdownMenu.Trigger asChild>
-        <ViewMenuIcon active={open} />
-      </DropdownMenu.Trigger>
+    <div
+      ref={menuRef}
+      style={{
+        position: "fixed",
+        left: menuPos.x,
+        top: menuPos.y,
+        width: 0,
+        height: 0,
+      }}
+    >
+      <DropdownMenu.Root open={true} onOpenChange={onOpenChange} modal={false}>
+        <DropdownMenu.Trigger asChild>
+          <div style={{ position: "absolute", width: 1, height: 1 }} />
+        </DropdownMenu.Trigger>
 
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          style={contentStyles}
-          side="bottom"
-          align="end"
-          sideOffset={8}
-          collisionPadding={10}
-        >
-          <style>{HIGHLIGHT_CSS}</style>
-
-          {/* View toggles */}
-          <DropdownMenu.Item
-            className="sv-vm-item"
-            style={itemStyles}
-            disabled={!hasGroups}
-            title={hasGroups ? undefined : "No groups found in this schematic"}
-            // Toggle on pointerup (reliable on touch); keep the menu open by
-            // preventing Radix's click-based onSelect (which also closes it).
-            onSelect={(e) => e.preventDefault()}
-            onPointerUp={() => {
-              if (hasGroups) onToggleGroups(!showGroups)
-            }}
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            style={contentStyles}
+            align="start"
+            sideOffset={0}
+            collisionPadding={10}
+            avoidCollisions={true}
           >
-            <span style={iconSlotStyles}>{showGroups && <CheckIcon />}</span>
-            <span>View Schematic Groups</span>
-          </DropdownMenu.Item>
+            <style>{HIGHLIGHT_CSS}</style>
 
-          <DropdownMenu.Item
-            className="sv-vm-item"
-            style={itemStyles}
-            onSelect={(e) => e.preventDefault()}
-            onPointerUp={() => onToggleGrid(!showGrid)}
-          >
-            <span style={iconSlotStyles}>{showGrid && <CheckIcon />}</span>
-            <span>Show Grid</span>
-          </DropdownMenu.Item>
+            <DropdownMenu.Item
+              className="sv-vm-item"
+              style={itemStyles}
+              disabled={!hasPorts}
+              title={hasPorts ? undefined : "No ports found in this schematic"}
+              onSelect={(event) => event.preventDefault()}
+              onPointerDown={(event) => {
+                event.preventDefault()
+                if (hasPorts) onTogglePorts(!showPorts)
+              }}
+            >
+              <span style={iconSlotStyles}>{showPorts && <CheckIcon />}</span>
+              <span>Show Schematic Ports</span>
+            </DropdownMenu.Item>
 
-          <DropdownMenu.Separator style={separatorStyles} />
+            <DropdownMenu.Item
+              className="sv-vm-item"
+              style={itemStyles}
+              disabled={!hasGroups}
+              title={
+                hasGroups ? undefined : "No groups found in this schematic"
+              }
+              onSelect={(event) => event.preventDefault()}
+              onPointerDown={(event) => {
+                event.preventDefault()
+                if (hasGroups) onToggleGroups(!showGroups)
+              }}
+            >
+              <span style={iconSlotStyles}>{showGroups && <CheckIcon />}</span>
+              <span>View Schematic Groups</span>
+            </DropdownMenu.Item>
 
-          {/* Version */}
-          <div
-            style={{
-              padding: "4px 8px",
-              fontSize: 12,
-              color: "#9ca3af",
-              textAlign: "center",
-              fontFamily: FONT_FAMILY,
-            }}
-          >
-            v{String(packageJson?.version)}
-          </div>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+            <DropdownMenu.Item
+              className="sv-vm-item"
+              style={itemStyles}
+              onSelect={(event) => event.preventDefault()}
+              onPointerDown={(event) => {
+                event.preventDefault()
+                onToggleGrid(!showGrid)
+              }}
+            >
+              <span style={iconSlotStyles}>{showGrid && <CheckIcon />}</span>
+              <span>Show Grid</span>
+            </DropdownMenu.Item>
+
+            <DropdownMenu.Separator style={separatorStyles} />
+
+            <div
+              style={{
+                padding: "4px 8px 4px 32px",
+                fontSize: 11,
+                opacity: 0.35,
+                color: "#a1a1aa",
+                letterSpacing: "0.2px",
+                fontFamily: FONT_FAMILY,
+              }}
+            >
+              @tscircuit/schematic-viewer@{String(packageJson?.version)}
+            </div>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    </div>
   )
 }
