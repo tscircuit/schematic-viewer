@@ -102,7 +102,6 @@ export default () => {
           backgroundColor: "#f8f9fa",
         }}
         debugGrid={false}
-        editingEnabled={false}
       />
     </div>
   )

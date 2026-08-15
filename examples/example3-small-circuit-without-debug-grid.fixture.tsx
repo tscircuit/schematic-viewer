@@ -1,8 +1,8 @@
-import { ControlledSchematicViewer } from "lib/components/ControlledSchematicViewer"
+import { SchematicViewer } from "lib/components/SchematicViewer"
 import { renderToCircuitJson } from "lib/dev/render-to-circuit-json"
 
 export default () => (
-  <ControlledSchematicViewer
+  <SchematicViewer
     circuitJson={renderToCircuitJson(
       <board width="10mm" height="10mm">
         <resistor name="R1" resistance={1000} schX={-2} />
@@ -38,7 +38,6 @@ export default () => (
         <trace from=".U1 .pin1" to=".U1 .pin5" />
       </board>,
     )}
-    editingEnabled
     containerStyle={{ height: "100%" }}
   />
 )
