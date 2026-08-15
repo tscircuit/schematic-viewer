@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
-import { ControlledSchematicViewer } from "lib/components/ControlledSchematicViewer"
 import { renderToCircuitJson } from "lib/dev/render-to-circuit-json"
 import type { ManualEditEvent } from "lib/types/edit-events"
-import { SchematicViewer } from "lib/index"
+import { ControlledSchematicViewer, SchematicViewer } from "lib/index"
 import type { CircuitJson } from "circuit-json"
 
 export default () => {

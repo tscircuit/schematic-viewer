@@ -1,4 +1,4 @@
-import { ControlledSchematicViewer } from "lib/components/ControlledSchematicViewer"
+import { ControlledSchematicViewer } from "lib/index"
 import { renderToCircuitJson } from "lib/dev/render-to-circuit-json"
 
 const circuitJson = renderToCircuitJson(
