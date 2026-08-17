@@ -19,8 +19,10 @@ import { toString as transformToString } from "transformation-matrix"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useContextMenu } from "../hooks/useContextMenu"
+import { getSchematicComponentDetails } from "../utils/component-details"
 import { zIndexMap } from "../utils/z-index-map"
 import { MouseTracker } from "./MouseTracker"
+import { SchematicComponentDetailsTooltip } from "./SchematicComponentDetailsTooltip"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
@@ -49,6 +51,12 @@ interface Props {
   }) => void
   /** Called when the active schematic sheet changes (multi-sheet circuits). */
   onSchematicSheetChange?: (schematicSheetId: string) => void
+}
+
+interface SelectedSchematicComponent {
+  schematicComponentId: string
+  anchorX: number
+  anchorY: number
 }
 
 export const SchematicViewer = ({
@@ -161,6 +169,8 @@ export const SchematicViewer = ({
   const [isHoveringClickableComponent, setIsHoveringClickableComponent] =
     useState(false)
   const hoveringComponentsRef = useRef<Set<string>>(new Set())
+  const [selectedSchematicComponent, setSelectedSchematicComponent] =
+    useState<SelectedSchematicComponent | null>(null)
 
   const handleComponentHoverChange = useCallback(
     (componentId: string, isHovering: boolean) => {
@@ -286,6 +296,101 @@ export const SchematicViewer = ({
   } = useContextMenu({ containerRef })
 
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
+  const selectedComponentDetails = useMemo(
+    () =>
+      selectedSchematicComponent
+        ? getSchematicComponentDetails(
+            circuitJson,
+            selectedSchematicComponent.schematicComponentId,
+          )
+        : null,
+    [circuitJsonKey, circuitJson, selectedSchematicComponent],
+  )
+
+  const componentTooltipLayout = useMemo(() => {
+    if (!selectedSchematicComponent || !containerWidth || !containerHeight) {
+      return null
+    }
+
+    const margin = 12
+    const gap = 14
+    const width = Math.min(420, containerWidth - margin * 2)
+    const maxHeight = Math.min(520, containerHeight - margin * 2)
+    const { anchorX, anchorY } = selectedSchematicComponent
+
+    const rightOfAnchor = anchorX + gap
+    const leftOfAnchor = anchorX - width - gap
+    const left =
+      rightOfAnchor + width <= containerWidth - margin
+        ? rightOfAnchor
+        : leftOfAnchor >= margin
+          ? leftOfAnchor
+          : Math.max(
+              margin,
+              Math.min(anchorX - width / 2, containerWidth - width - margin),
+            )
+    const top = Math.max(
+      margin,
+      Math.min(anchorY - 24, containerHeight - maxHeight - margin),
+    )
+
+    return { left, top, width, maxHeight }
+  }, [selectedSchematicComponent, containerWidth, containerHeight])
+
+  const handleSchematicComponentClick = useCallback(
+    (schematicComponentId: string, event: MouseEvent) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest("[data-schematic-component-details-tooltip]")
+      ) {
+        return
+      }
+
+      const containerRect = containerRef.current?.getBoundingClientRect()
+      if (!containerRect) return
+
+      setSelectedSchematicComponent({
+        schematicComponentId,
+        anchorX: event.clientX - containerRect.left,
+        anchorY: event.clientY - containerRect.top,
+      })
+      onSchematicComponentClicked?.({
+        schematicComponentId,
+        event,
+      })
+    },
+    [containerRef, onSchematicComponentClicked],
+  )
+
+  useEffect(() => {
+    setSelectedSchematicComponent(null)
+  }, [circuitJsonKey, activeSheetId])
+
+  useEffect(() => {
+    if (!selectedSchematicComponent) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedSchematicComponent(null)
+      }
+    }
+    const handleDocumentMouseDown = (event: MouseEvent) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest("[data-schematic-component-details-tooltip]")
+      ) {
+        return
+      }
+      setSelectedSchematicComponent(null)
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    document.addEventListener("mousedown", handleDocumentMouseDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      document.removeEventListener("mousedown", handleDocumentMouseDown)
+    }
+  }, [selectedSchematicComponent])
+
   const svgString = useMemo(() => {
     if (!containerWidth || !containerHeight) return ""
 
@@ -350,11 +455,7 @@ export const SchematicViewer = ({
             : "auto",
           transformOrigin: "0 0",
         }}
-        className={
-          onSchematicComponentClicked
-            ? "schematic-component-clickable"
-            : undefined
-        }
+        className="schematic-component-clickable"
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
         dangerouslySetInnerHTML={{ __html: svgString }}
       />
@@ -370,13 +471,11 @@ export const SchematicViewer = ({
             svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id]) { transition: opacity 0.12s ease-in-out; }`}
         </style>
       )}
-      {onSchematicComponentClicked && (
-        <style>
-          {
-            ".schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }"
-          }
-        </style>
-      )}
+      <style>
+        {
+          ".schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }"
+        }
+      </style>
       {onSchematicPortClicked && (
         <style>
           {"[data-schematic-port-id]:hover { cursor: pointer !important; }"}
@@ -391,7 +490,7 @@ export const SchematicViewer = ({
           cursor:
             clickToInteractEnabled && !isInteractionEnabled
               ? "pointer"
-              : isHoveringClickableComponent && onSchematicComponentClicked
+              : isHoveringClickableComponent
                 ? "pointer"
                 : isHoveringClickablePort && onSchematicPortClicked
                   ? "pointer"
@@ -490,25 +589,27 @@ export const SchematicViewer = ({
           selectedSheetId={activeSheetId}
           onSelectSheet={handleSelectSheet}
         />
-        {onSchematicComponentClicked &&
-          schematicComponentIds.map((componentId) => (
-            <SchematicComponentMouseTarget
-              key={componentId}
-              componentId={componentId}
-              svgDivRef={svgDivRef}
-              containerRef={containerRef}
-              showOutline={true}
-              circuitJsonKey={circuitJsonKey}
-              onHoverChange={handleComponentHoverChange}
-              onComponentClick={(id, event) => {
-                onSchematicComponentClicked?.({
-                  schematicComponentId: id,
-                  event,
-                })
-              }}
-            />
-          ))}
+        {schematicComponentIds.map((componentId) => (
+          <SchematicComponentMouseTarget
+            key={componentId}
+            componentId={componentId}
+            svgDivRef={svgDivRef}
+            containerRef={containerRef}
+            showOutline={true}
+            circuitJsonKey={circuitJsonKey}
+            onHoverChange={handleComponentHoverChange}
+            onComponentClick={handleSchematicComponentClick}
+          />
+        ))}
         {svgDiv}
+        {selectedComponentDetails && componentTooltipLayout && (
+          <SchematicComponentDetailsTooltip
+            sourceComponent={selectedComponentDetails.sourceComponent}
+            footprinterString={selectedComponentDetails.footprinterString}
+            {...componentTooltipLayout}
+            onClose={() => setSelectedSchematicComponent(null)}
+          />
+        )}
         {showSchematicPortsInternal &&
           schematicPortsInfo.map(({ portId, label }) => (
             <SchematicPortMouseTarget

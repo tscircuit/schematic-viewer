@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@tscircuit/create-snippet-url": "^0.0.15",
     "circuit-json": "^0.0.465",
     "circuit-to-svg": "^0.0.393",
     "debug": "^4.4.0",
