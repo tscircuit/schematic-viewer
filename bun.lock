@@ -6,7 +6,7 @@
       "name": "@tscircuit/schematic-viewer",
       "dependencies": {
         "@radix-ui/react-dropdown-menu": "^2.1.16",
-        "@tscircuit/circuit-json-util": "github:tscircuit/circuit-json-util#ded28270ad82f19a65fa353cf758e7945c030169",
+        "@tscircuit/circuit-json-util": "github:tscircuit/circuit-json-util#7c7b63a3019048d8dfbe37e53d19224c8e2c5df4",
         "circuit-json": "^0.0.465",
         "circuit-to-svg": "^0.0.393",
         "debug": "^4.4.0",
@@ -352,7 +352,7 @@
 
     "@tscircuit/checks": ["@tscircuit/checks@0.0.145", "", { "peerDependencies": { "@flatten-js/core": "*", "@tscircuit/math-utils": "*", "circuit-json": "*", "circuit-json-to-connectivity-map": "*", "typescript": "^5.5.3" } }, "sha512-HKdugkjGSrx4HyyrrtDi4pXmORZGx9kA/4zKRUnk7qqqaIyF7OKXGSKW1nIxv+O2oSHOu4z9lpMCEYkHmPUdrQ=="],
 
-    "@tscircuit/circuit-json-util": ["@tscircuit/circuit-json-util@github:tscircuit/circuit-json-util#ded2827", { "dependencies": { "parsel-js": "^1.1.2" }, "peerDependencies": { "circuit-json": "*", "transformation-matrix": "*", "zod": "3" } }, "tscircuit-circuit-json-util-ded2827"],
+    "@tscircuit/circuit-json-util": ["@tscircuit/circuit-json-util@github:tscircuit/circuit-json-util#7c7b63a", { "dependencies": { "parsel-js": "^1.1.2" }, "peerDependencies": { "circuit-json": "*", "transformation-matrix": "*", "zod": "3" } }, "tscircuit-circuit-json-util-7c7b63a"],
 
     "@tscircuit/cli": ["@tscircuit/cli@0.1.1698", "", { "peerDependencies": { "circuit-json": "^0.0.446", "tscircuit": "*" }, "bin": { "tscircuit-cli": "cli/entrypoint.js" } }, "sha512-VrvC6WkjrNO67jbHBymL4u3aySpTYSEXGcPtJHQFMMkmaUQClRlhdfT7hrabhlnbnXJOd22wTdlSNZi0b0bX/Q=="],
 
