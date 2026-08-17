@@ -4,7 +4,14 @@ import { useState } from "react"
 
 const circuitJson = renderToCircuitJson(
   <board width="12mm" height="12mm">
-    <resistor name="R1" resistance={1000} footprint="0603" schX={-2} schY={0} />
+    <resistor
+      name="R1"
+      resistance={1000}
+      manufacturerPartNumber="RC0603FR-071KL"
+      footprint="0603"
+      schX={-2}
+      schY={0}
+    />
     <capacitor name="C1" capacitance="1uF" footprint="0603" schX={2} schY={0} />
     <trace from=".R1 .pin2" to=".C1 .pin1" />
     <trace from=".R1 .pin1" to=".C1 .pin2" />

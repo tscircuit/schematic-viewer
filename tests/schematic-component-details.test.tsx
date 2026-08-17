@@ -13,7 +13,13 @@ import {
 
 const circuitJson = renderToCircuitJson(
   <board width="12mm" height="12mm">
-    <resistor name="R1" resistance={1000} footprint="0603" schX={-2} />
+    <resistor
+      name="R1"
+      resistance={1000}
+      manufacturerPartNumber="RC0603FR-071KL"
+      footprint="0603"
+      schX={-2}
+    />
     <capacitor name="C1" capacitance="1uF" footprint="0603" schX={2} />
   </board>,
 )
@@ -142,6 +148,11 @@ test("component details include source values and the footprinter string", () =>
     label: "Resistance",
     value: "1kΩ",
   })
+  expect(resistorInfo).toContainEqual({
+    key: "manufacturer_part_number",
+    label: "Manufacturer Part Number",
+    value: "RC0603FR-071KL",
+  })
   expect(
     resistorInfo.some((entry) => entry.key === "are_pins_interchangeable"),
   ).toBe(false)
@@ -216,6 +227,7 @@ test("clicking a component opens its details without requiring a callback", asyn
     expect(tooltip).not.toBeNull()
     expect(tooltip?.textContent).toContain("R1")
     expect(tooltip?.textContent).toContain("1kΩ")
+    expect(tooltip?.textContent).toContain("RC0603FR-071KL")
     expect(tooltip?.textContent).toContain("res0603")
     expect(tooltip?.querySelector("img")?.getAttribute("src")).toContain(
       "https://svg.tscircuit.com/",
