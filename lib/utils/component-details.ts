@@ -2,7 +2,7 @@ import {
   type PcbBounds,
   getPcbElementBounds,
   getPcbElementsWithinBounds,
-} from "@tscircuit/circuit-json-util"
+} from "circuit-json-util-preview/lib/get-bounds-of-pcb-elements"
 import type {
   CadComponent,
   CircuitJson,
@@ -11,7 +11,7 @@ import type {
 } from "circuit-json"
 import { gzipSync, strToU8 } from "fflate"
 
-export type { PcbBounds } from "@tscircuit/circuit-json-util"
+export type { PcbBounds } from "circuit-json-util-preview/lib/get-bounds-of-pcb-elements"
 
 export type SourceComponent = Extract<
   CircuitJson[number],
