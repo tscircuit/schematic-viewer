@@ -159,15 +159,20 @@ test("component details include source values and the footprinter string", () =>
   expect(details?.sourceComponent.name).toBe("R1")
   expect(details?.footprinterString).toBe("res0603")
   const resistorInfo = getSourceComponentInfoEntries(details!.sourceComponent)
+  expect(resistorInfo[0]).toEqual({
+    key: "name",
+    label: "name",
+    value: "R1",
+  })
   expect(resistorInfo).toContainEqual({
     key: "resistance",
-    label: "Resistance",
-    value: "1kΩ",
+    label: "resistance",
+    value: '"1k"',
   })
   expect(resistorInfo).toContainEqual({
     key: "manufacturer_part_number",
-    label: "Manufacturer Part Number",
-    value: "RC0603FR-071KL",
+    label: "manufacturer_part_number",
+    value: '"RC0603FR-071KL"',
   })
   expect(
     resistorInfo.some((entry) => entry.key === "are_pins_interchangeable"),
@@ -181,8 +186,8 @@ test("component details include source values and the footprinter string", () =>
   )!
   expect(getSourceComponentInfoEntries(capacitor)).toContainEqual({
     key: "capacitance",
-    label: "Capacitance",
-    value: "1uF",
+    label: "capacitance",
+    value: '"1uF"',
   })
 })
 
@@ -246,7 +251,7 @@ test("footprint previews use the selected component's actual PCB elements", () =
   )
 })
 
-test("clicking a component opens its details without requiring a callback", async () => {
+test("component details use compact styling and close on zoom or outside click", async () => {
   const { dom, restore } = installDom()
   const reactRoot = createRoot(document.getElementById("root")!)
 
@@ -289,8 +294,18 @@ test("clicking a component opens its details without requiring a callback", asyn
       "[data-schematic-component-details-tooltip]",
     )
     expect(tooltip).not.toBeNull()
-    expect(tooltip?.textContent).toContain("R1")
-    expect(tooltip?.textContent).toContain("1kΩ")
+    expect((tooltip as HTMLElement).style.borderRadius).toBe("4px")
+    expect((tooltip?.firstElementChild as HTMLElement).style.padding).toBe(
+      "8px",
+    )
+    const nameLabel = Array.from(tooltip?.querySelectorAll("dt") ?? []).find(
+      (element) => element.textContent === "name",
+    )
+    expect(nameLabel?.nextElementSibling?.textContent).toBe("R1")
+    expect(tooltip?.firstElementChild?.tagName).toBe("DL")
+    expect(tooltip?.querySelector("button")).toBeNull()
+    expect(tooltip?.textContent).not.toContain("Resistor")
+    expect(tooltip?.textContent).toContain('"1k"')
     expect(tooltip?.textContent).toContain("RC0603FR-071KL")
     expect(tooltip?.textContent).toContain("res0603")
     expect(tooltip?.querySelector("img")?.getAttribute("src")).toContain(
@@ -299,6 +314,38 @@ test("clicking a component opens its details without requiring a callback", asyn
     expect(tooltip?.querySelector("img")?.getAttribute("alt")).toBe(
       "R1 res0603 PCB footprint",
     )
+    expect(
+      (tooltip?.querySelector("img")?.parentElement as HTMLElement).style
+        .borderRadius,
+    ).toBe("2px")
+
+    const viewerContainer = tooltip?.parentElement
+    await act(async () => {
+      viewerContainer?.dispatchEvent(
+        new dom.window.WheelEvent("wheel", {
+          bubbles: true,
+          clientX: 320,
+          clientY: 270,
+          deltaY: -100,
+        }),
+      )
+    })
+    expect(
+      document.querySelector("[data-schematic-component-details-tooltip]"),
+    ).toBeNull()
+
+    await act(async () => {
+      component.dispatchEvent(
+        new dom.window.MouseEvent("click", {
+          bubbles: true,
+          clientX: 320,
+          clientY: 270,
+        }),
+      )
+    })
+    expect(
+      document.querySelector("[data-schematic-component-details-tooltip]"),
+    ).not.toBeNull()
 
     await act(async () => {
       document.body.dispatchEvent(

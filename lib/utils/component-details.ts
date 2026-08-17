@@ -38,13 +38,13 @@ const hiddenSourceComponentKeys = new Set([
   "source_component_id",
   "source_group_id",
   "subcircuit_id",
-  "name",
   "display_name",
   "ftype",
   "are_pins_interchangeable",
 ])
 
 const priorityKeys = [
+  "name",
   "resistance",
   "capacitance",
   "inductance",
@@ -63,39 +63,22 @@ const getKeyPriority = (key: string) => {
   return priority === -1 ? priorityKeys.length : priority
 }
 
-export const humanizeComponentField = (field: string) =>
-  field
-    .replace(/^simple_/, "")
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase())
-
-const formatObjectValue = (value: Record<string, unknown>) =>
-  Object.entries(value)
-    .map(([key, nestedValue]) => {
-      const formattedNestedValue = Array.isArray(nestedValue)
-        ? nestedValue.join(", ")
-        : String(nestedValue)
-      return `${humanizeComponentField(key)}: ${formattedNestedValue}`
-    })
-    .join(" · ")
-
 const formatComponentValue = (
   sourceComponent: SourceComponent,
   key: string,
   value: unknown,
 ) => {
+  if (key === "name") return String(value)
+
   const displayValue = (sourceComponent as Record<string, unknown>)[
     `display_${key}`
   ]
   if (typeof displayValue === "string" && displayValue.trim()) {
-    return displayValue
+    const propValue =
+      key === "resistance" ? displayValue.replace(/Ω$/, "") : displayValue
+    return JSON.stringify(propValue)
   }
-  if (typeof value === "boolean") return value ? "Yes" : "No"
-  if (Array.isArray(value)) return value.join(", ")
-  if (value && typeof value === "object") {
-    return formatObjectValue(value as Record<string, unknown>)
-  }
-  return String(value)
+  return JSON.stringify(value) ?? String(value)
 }
 
 export const getSourceComponentInfoEntries = (
@@ -118,7 +101,7 @@ export const getSourceComponentInfoEntries = (
     })
     .map(([key, value]) => ({
       key,
-      label: humanizeComponentField(key),
+      label: key,
       value: formatComponentValue(sourceComponent, key, value),
     }))
 
