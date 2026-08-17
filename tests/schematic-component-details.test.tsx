@@ -6,7 +6,9 @@ import { createRoot } from "react-dom/client"
 import { SchematicViewer } from "../lib/components/SchematicViewer"
 import { renderToCircuitJson } from "../lib/dev/render-to-circuit-json"
 import {
+  type SourceComponent,
   getFootprintPreviewUrl,
+  getPcbComponentPreviewCircuitJson,
   getSchematicComponentDetails,
   getSourceComponentInfoEntries,
 } from "../lib/utils/component-details"
@@ -158,7 +160,10 @@ test("component details include source values and the footprinter string", () =>
   ).toBe(false)
 
   const capacitor = circuitJson.find(
-    (element) => element.type === "source_component" && element.name === "C1",
+    (element): element is SourceComponent =>
+      element.type === "source_component" &&
+      element.ftype === "simple_capacitor" &&
+      element.name === "C1",
   )!
   expect(getSourceComponentInfoEntries(capacitor)).toContainEqual({
     key: "capacitance",
@@ -167,9 +172,16 @@ test("component details include source values and the footprinter string", () =>
   })
 })
 
-test("footprint preview URLs safely encode the footprinter string", () => {
-  const footprinterString = 'kicad:Package_SO:SOIC-8_3.9x4.9mm_P1.27mm"test'
-  const previewUrl = new URL(getFootprintPreviewUrl(footprinterString))
+test("footprint previews use the selected component's actual PCB elements", () => {
+  const details = getSchematicComponentDetails(
+    circuitJson,
+    "schematic_component_0",
+  )!
+  const previewCircuitJson = getPcbComponentPreviewCircuitJson(
+    circuitJson,
+    details.pcbComponent!.pcb_component_id,
+  )
+  const previewUrl = new URL(getFootprintPreviewUrl(previewCircuitJson))
   const generatedCode = getUncompressedSnippetString(
     previewUrl.searchParams.get("code")!,
   )
@@ -177,9 +189,21 @@ test("footprint preview URLs safely encode the footprinter string", () => {
   expect(previewUrl.origin).toBe("https://svg.tscircuit.com")
   expect(previewUrl.searchParams.get("svg_type")).toBe("pcb")
   expect(previewUrl.searchParams.get("background_color")).toBe("#f8fafc")
-  expect(generatedCode).toContain(
-    `footprint={${JSON.stringify(footprinterString)}}`,
+  expect(generatedCode).toContain("<board circuitJson={circuitJson} />")
+  expect(generatedCode).not.toContain('name="U1"')
+  expect(previewCircuitJson).toContainEqual(
+    expect.objectContaining({
+      type: "pcb_silkscreen_text",
+      pcb_component_id: details.pcbComponent!.pcb_component_id,
+      text: "R1",
+    }),
   )
+  expect(
+    previewCircuitJson.some(
+      (element) =>
+        element.type === "pcb_silkscreen_text" && element.text === "C1",
+    ),
+  ).toBe(false)
 })
 
 test("clicking a component opens its details without requiring a callback", async () => {
@@ -231,6 +255,9 @@ test("clicking a component opens its details without requiring a callback", asyn
     expect(tooltip?.textContent).toContain("res0603")
     expect(tooltip?.querySelector("img")?.getAttribute("src")).toContain(
       "https://svg.tscircuit.com/",
+    )
+    expect(tooltip?.querySelector("img")?.getAttribute("alt")).toBe(
+      "R1 res0603 PCB footprint",
     )
 
     await act(async () => {

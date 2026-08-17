@@ -1,17 +1,22 @@
 import { createSvgUrl } from "@tscircuit/create-snippet-url"
 import type {
-  AnySourceComponent,
   CadComponent,
   CircuitJson,
   PcbComponent,
   SchematicComponent,
 } from "circuit-json"
 
+export type SourceComponent = Extract<
+  CircuitJson[number],
+  { type: "source_component" }
+>
+
 export interface SchematicComponentDetails {
   schematicComponent: SchematicComponent
-  sourceComponent: AnySourceComponent
+  sourceComponent: SourceComponent
   pcbComponent?: PcbComponent
   footprinterString?: string
+  footprintPreviewCircuitJson?: CircuitJson
 }
 
 export interface ComponentInfoEntry {
@@ -67,7 +72,7 @@ const formatObjectValue = (value: Record<string, unknown>) =>
     .join(" · ")
 
 const formatComponentValue = (
-  sourceComponent: AnySourceComponent,
+  sourceComponent: SourceComponent,
   key: string,
   value: unknown,
 ) => {
@@ -86,7 +91,7 @@ const formatComponentValue = (
 }
 
 export const getSourceComponentInfoEntries = (
-  sourceComponent: AnySourceComponent,
+  sourceComponent: SourceComponent,
 ): ComponentInfoEntry[] =>
   Object.entries(sourceComponent as Record<string, unknown>)
     .filter(([key, value]) => {
@@ -121,7 +126,7 @@ export const getSchematicComponentDetails = (
   if (!schematicComponent) return null
 
   const sourceComponent = circuitJson.find(
-    (element): element is AnySourceComponent =>
+    (element): element is SourceComponent =>
       element.type === "source_component" &&
       element.source_component_id === schematicComponent.source_component_id,
   )
@@ -154,15 +159,55 @@ export const getSchematicComponentDetails = (
     sourceComponent,
     pcbComponent,
     footprinterString,
+    footprintPreviewCircuitJson: pcbComponent
+      ? getPcbComponentPreviewCircuitJson(
+          circuitJson,
+          pcbComponent.pcb_component_id,
+        )
+      : undefined,
   }
 }
 
-export const getFootprintPreviewUrl = (footprinterString: string) => {
+const hasPcbComponentId = (
+  element: CircuitJson[number],
+): element is CircuitJson[number] & { pcb_component_id: string } =>
+  "pcb_component_id" in element && typeof element.pcb_component_id === "string"
+
+/**
+ * Keep the component and every PCB primitive generated for its footprint.
+ * In particular, this preserves the real reference-designator silkscreen text
+ * instead of regenerating the footprint under a generic component name.
+ */
+export const getPcbComponentPreviewCircuitJson = (
+  circuitJson: CircuitJson,
+  pcbComponentId: string,
+): CircuitJson => {
+  const pcbComponent = circuitJson.find(
+    (element): element is PcbComponent =>
+      element.type === "pcb_component" &&
+      element.pcb_component_id === pcbComponentId,
+  )
+  if (!pcbComponent) return []
+
+  return circuitJson.filter(
+    (element) =>
+      (element.type === "source_component" &&
+        element.source_component_id === pcbComponent.source_component_id) ||
+      (element.type === "pcb_component" &&
+        element.pcb_component_id === pcbComponentId) ||
+      (hasPcbComponentId(element) &&
+        element.pcb_component_id === pcbComponentId),
+  )
+}
+
+export const getFootprintPreviewUrl = (
+  footprintPreviewCircuitJson: CircuitJson,
+) => {
   const code = `
+const circuitJson = ${JSON.stringify(footprintPreviewCircuitJson)}
+
 export default () => (
-  <board>
-    <chip name="U1" footprint={${JSON.stringify(footprinterString)}} />
-  </board>
+  <board circuitJson={circuitJson} />
 )
 `
 

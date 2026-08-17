@@ -1,6 +1,7 @@
-import type { AnySourceComponent } from "circuit-json"
+import type { CircuitJson } from "circuit-json"
 import { useMemo } from "react"
 import {
+  type SourceComponent,
   getFootprintPreviewUrl,
   getSourceComponentInfoEntries,
   humanizeComponentField,
@@ -8,8 +9,9 @@ import {
 import { zIndexMap } from "../utils/z-index-map"
 
 interface Props {
-  sourceComponent: AnySourceComponent
+  sourceComponent: SourceComponent
   footprinterString?: string
+  footprintPreviewCircuitJson?: CircuitJson
   left: number
   top: number
   width: number
@@ -28,6 +30,7 @@ const detailLabelStyle: React.CSSProperties = {
 export const SchematicComponentDetailsTooltip = ({
   sourceComponent,
   footprinterString,
+  footprintPreviewCircuitJson,
   left,
   top,
   width,
@@ -40,8 +43,10 @@ export const SchematicComponentDetailsTooltip = ({
   )
   const footprintPreviewUrl = useMemo(
     () =>
-      footprinterString ? getFootprintPreviewUrl(footprinterString) : undefined,
-    [footprinterString],
+      footprintPreviewCircuitJson?.length
+        ? getFootprintPreviewUrl(footprintPreviewCircuitJson)
+        : undefined,
+    [footprintPreviewCircuitJson],
   )
   const componentType = sourceComponent.ftype
     ? humanizeComponentField(sourceComponent.ftype)
@@ -162,7 +167,7 @@ export const SchematicComponentDetailsTooltip = ({
         </dl>
       )}
 
-      {footprinterString && footprintPreviewUrl && (
+      {footprinterString && (
         <div style={{ padding: "16px 18px 18px" }}>
           <div style={{ ...detailLabelStyle, marginBottom: 7 }}>Footprint</div>
           <code
@@ -181,28 +186,30 @@ export const SchematicComponentDetailsTooltip = ({
           >
             {footprinterString}
           </code>
-          <div
-            style={{
-              height: "210px",
-              overflow: "hidden",
-              border: "1px solid #e2e8f0",
-              borderRadius: "9px",
-              background: "#f8fafc",
-            }}
-          >
-            <img
-              src={footprintPreviewUrl}
-              alt={`${footprinterString} PCB footprint`}
-              loading="lazy"
-              referrerPolicy="no-referrer"
+          {footprintPreviewUrl && (
+            <div
               style={{
-                display: "block",
-                width: "100%",
-                height: "100%",
-                objectFit: "contain",
+                height: "210px",
+                overflow: "hidden",
+                border: "1px solid #e2e8f0",
+                borderRadius: "9px",
+                background: "#f8fafc",
               }}
-            />
-          </div>
+            >
+              <img
+                src={footprintPreviewUrl}
+                alt={`${sourceComponent.name} ${footprinterString} PCB footprint`}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                style={{
+                  display: "block",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
     </dialog>

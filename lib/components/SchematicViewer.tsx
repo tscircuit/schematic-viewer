@@ -606,6 +606,9 @@ export const SchematicViewer = ({
           <SchematicComponentDetailsTooltip
             sourceComponent={selectedComponentDetails.sourceComponent}
             footprinterString={selectedComponentDetails.footprinterString}
+            footprintPreviewCircuitJson={
+              selectedComponentDetails.footprintPreviewCircuitJson
+            }
             {...componentTooltipLayout}
             onClose={() => setSelectedSchematicComponent(null)}
           />
