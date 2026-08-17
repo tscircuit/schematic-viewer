@@ -69,7 +69,7 @@ export const SchematicComponentDetailsTooltip = ({
         overflowY: "auto",
         boxSizing: "border-box",
         border: "1px solid #cbd5e1",
-        borderRadius: "12px",
+        borderRadius: "4px",
         backgroundColor: "rgba(255, 255, 255, 0.98)",
         boxShadow:
           "0 20px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.12)",
@@ -88,9 +88,9 @@ export const SchematicComponentDetailsTooltip = ({
         style={{
           display: "grid",
           gridTemplateColumns: "minmax(110px, 0.8fr) minmax(0, 1.2fr)",
-          gap: "10px 18px",
+          gap: "6px 12px",
           margin: 0,
-          padding: "18px",
+          padding: "8px",
         }}
       >
         {infoEntries.map((entry) => (
@@ -134,13 +134,13 @@ export const SchematicComponentDetailsTooltip = ({
       </dl>
 
       {footprinterString && footprintPreviewUrl && (
-        <div style={{ padding: "0 18px 18px" }}>
+        <div style={{ padding: "0 4px 4px" }}>
           <div
             style={{
               height: "210px",
               overflow: "hidden",
               border: "1px solid #e2e8f0",
-              borderRadius: "9px",
+              borderRadius: "2px",
               background: "#f8fafc",
             }}
           >

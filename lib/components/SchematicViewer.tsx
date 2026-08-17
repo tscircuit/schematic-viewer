@@ -201,6 +201,7 @@ export const SchematicViewer = ({
 
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const zoomScaleRef = useRef({ x: 1, y: 1 })
 
   const schematicComponentIds = useMemo(() => {
     try {
@@ -279,6 +280,13 @@ export const SchematicViewer = ({
 
   const { ref: containerRef } = useMouseMatrixTransform({
     onSetTransform(transform) {
+      const zoomChanged =
+        transform.a !== zoomScaleRef.current.x ||
+        transform.d !== zoomScaleRef.current.y
+      zoomScaleRef.current = { x: transform.a, y: transform.d }
+      if (zoomChanged) {
+        setSelectedSchematicComponent(null)
+      }
       if (!svgDivRef.current) return
       svgDivRef.current.style.transform = transformToString(transform)
     },

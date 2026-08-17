@@ -251,7 +251,7 @@ test("footprint previews use the selected component's actual PCB elements", () =
   )
 })
 
-test("clicking a component opens its details without requiring a callback", async () => {
+test("component details use compact styling and close on zoom or outside click", async () => {
   const { dom, restore } = installDom()
   const reactRoot = createRoot(document.getElementById("root")!)
 
@@ -294,6 +294,10 @@ test("clicking a component opens its details without requiring a callback", asyn
       "[data-schematic-component-details-tooltip]",
     )
     expect(tooltip).not.toBeNull()
+    expect((tooltip as HTMLElement).style.borderRadius).toBe("4px")
+    expect((tooltip?.firstElementChild as HTMLElement).style.padding).toBe(
+      "8px",
+    )
     const nameLabel = Array.from(tooltip?.querySelectorAll("dt") ?? []).find(
       (element) => element.textContent === "name",
     )
@@ -310,6 +314,38 @@ test("clicking a component opens its details without requiring a callback", asyn
     expect(tooltip?.querySelector("img")?.getAttribute("alt")).toBe(
       "R1 res0603 PCB footprint",
     )
+    expect(
+      (tooltip?.querySelector("img")?.parentElement as HTMLElement).style
+        .borderRadius,
+    ).toBe("2px")
+
+    const viewerContainer = tooltip?.parentElement
+    await act(async () => {
+      viewerContainer?.dispatchEvent(
+        new dom.window.WheelEvent("wheel", {
+          bubbles: true,
+          clientX: 320,
+          clientY: 270,
+          deltaY: -100,
+        }),
+      )
+    })
+    expect(
+      document.querySelector("[data-schematic-component-details-tooltip]"),
+    ).toBeNull()
+
+    await act(async () => {
+      component.dispatchEvent(
+        new dom.window.MouseEvent("click", {
+          bubbles: true,
+          clientX: 320,
+          clientY: 270,
+        }),
+      )
+    })
+    expect(
+      document.querySelector("[data-schematic-component-details-tooltip]"),
+    ).not.toBeNull()
 
     await act(async () => {
       document.body.dispatchEvent(
