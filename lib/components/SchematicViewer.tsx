@@ -609,6 +609,9 @@ export const SchematicViewer = ({
             footprintPreviewCircuitJson={
               selectedComponentDetails.footprintPreviewCircuitJson
             }
+            footprintPreviewViewBox={
+              selectedComponentDetails.footprintPreviewViewBox
+            }
             {...componentTooltipLayout}
             onClose={() => setSelectedSchematicComponent(null)}
           />

@@ -1,6 +1,7 @@
 import type { CircuitJson } from "circuit-json"
 import { useMemo } from "react"
 import {
+  type PcbBounds,
   type SourceComponent,
   getFootprintPreviewUrl,
   getSourceComponentInfoEntries,
@@ -12,6 +13,7 @@ interface Props {
   sourceComponent: SourceComponent
   footprinterString?: string
   footprintPreviewCircuitJson?: CircuitJson
+  footprintPreviewViewBox?: PcbBounds
   left: number
   top: number
   width: number
@@ -31,6 +33,7 @@ export const SchematicComponentDetailsTooltip = ({
   sourceComponent,
   footprinterString,
   footprintPreviewCircuitJson,
+  footprintPreviewViewBox,
   left,
   top,
   width,
@@ -43,10 +46,13 @@ export const SchematicComponentDetailsTooltip = ({
   )
   const footprintPreviewUrl = useMemo(
     () =>
-      footprintPreviewCircuitJson?.length
-        ? getFootprintPreviewUrl(footprintPreviewCircuitJson)
+      footprintPreviewCircuitJson?.length && footprintPreviewViewBox
+        ? getFootprintPreviewUrl(
+            footprintPreviewCircuitJson,
+            footprintPreviewViewBox,
+          )
         : undefined,
-    [footprintPreviewCircuitJson],
+    [footprintPreviewCircuitJson, footprintPreviewViewBox],
   )
   const componentType = sourceComponent.ftype
     ? humanizeComponentField(sourceComponent.ftype)

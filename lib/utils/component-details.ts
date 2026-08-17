@@ -1,10 +1,17 @@
-import { createSvgUrl } from "@tscircuit/create-snippet-url"
+import {
+  type PcbBounds,
+  getPcbElementBounds,
+  getPcbElementsWithinBounds,
+} from "@tscircuit/circuit-json-util"
 import type {
   CadComponent,
   CircuitJson,
   PcbComponent,
   SchematicComponent,
 } from "circuit-json"
+import { gzipSync, strToU8 } from "fflate"
+
+export type { PcbBounds } from "@tscircuit/circuit-json-util"
 
 export type SourceComponent = Extract<
   CircuitJson[number],
@@ -17,6 +24,7 @@ export interface SchematicComponentDetails {
   pcbComponent?: PcbComponent
   footprinterString?: string
   footprintPreviewCircuitJson?: CircuitJson
+  footprintPreviewViewBox?: PcbBounds
 }
 
 export interface ComponentInfoEntry {
@@ -154,64 +162,82 @@ export const getSchematicComponentDetails = (
         | undefined
     )?.footprinter_string ?? cadComponent?.footprinter_string
 
+  const footprintPreview = pcbComponent
+    ? getPcbComponentPreview(circuitJson, pcbComponent.pcb_component_id)
+    : null
+
   return {
     schematicComponent,
     sourceComponent,
     pcbComponent,
     footprinterString,
-    footprintPreviewCircuitJson: pcbComponent
-      ? getPcbComponentPreviewCircuitJson(
-          circuitJson,
-          pcbComponent.pcb_component_id,
-        )
-      : undefined,
+    footprintPreviewCircuitJson: footprintPreview?.circuitJson,
+    footprintPreviewViewBox: footprintPreview?.viewBox,
   }
 }
 
-const hasPcbComponentId = (
-  element: CircuitJson[number],
-): element is CircuitJson[number] & { pcb_component_id: string } =>
-  "pcb_component_id" in element && typeof element.pcb_component_id === "string"
+const PCB_PREVIEW_PADDING_MM = 2
+
+interface PcbComponentPreview {
+  circuitJson: CircuitJson
+  viewBox: PcbBounds
+}
 
 /**
- * Keep the component and every PCB primitive generated for its footprint.
- * In particular, this preserves the real reference-designator silkscreen text
- * instead of regenerating the footprint under a generic component name.
+ * Select the real PCB context around a component. Elements only need to
+ * intersect the view box, so long traces and the board remain available for
+ * rendering while svg.tscircuit.com clips the parts outside the preview.
  */
-export const getPcbComponentPreviewCircuitJson = (
+export const getPcbComponentPreview = (
   circuitJson: CircuitJson,
   pcbComponentId: string,
-): CircuitJson => {
+): PcbComponentPreview | null => {
   const pcbComponent = circuitJson.find(
     (element): element is PcbComponent =>
       element.type === "pcb_component" &&
       element.pcb_component_id === pcbComponentId,
   )
-  if (!pcbComponent) return []
+  if (!pcbComponent) return null
 
-  return circuitJson.filter(
-    (element) =>
-      (element.type === "source_component" &&
-        element.source_component_id === pcbComponent.source_component_id) ||
-      (element.type === "pcb_component" &&
-        element.pcb_component_id === pcbComponentId) ||
-      (hasPcbComponentId(element) &&
-        element.pcb_component_id === pcbComponentId),
-  )
+  const componentBounds = getPcbElementBounds(pcbComponent)
+  if (!componentBounds) return null
+
+  const viewBox = {
+    minX: componentBounds.minX - PCB_PREVIEW_PADDING_MM,
+    minY: componentBounds.minY - PCB_PREVIEW_PADDING_MM,
+    maxX: componentBounds.maxX + PCB_PREVIEW_PADDING_MM,
+    maxY: componentBounds.maxY + PCB_PREVIEW_PADDING_MM,
+  }
+
+  return {
+    circuitJson: getPcbElementsWithinBounds(circuitJson, viewBox),
+    viewBox,
+  }
+}
+
+const bytesToBase64 = (bytes: Uint8Array) => {
+  let binary = ""
+  const chunkSize = 8192
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize))
+  }
+  return btoa(binary)
 }
 
 export const getFootprintPreviewUrl = (
   footprintPreviewCircuitJson: CircuitJson,
+  viewBox: PcbBounds,
 ) => {
-  const code = `
-const circuitJson = ${JSON.stringify(footprintPreviewCircuitJson)}
-
-export default () => (
-  <board circuitJson={circuitJson} />
-)
-`
-
-  const url = new URL(createSvgUrl(code, "pcb"))
+  const encodedCircuitJson = bytesToBase64(
+    gzipSync(strToU8(JSON.stringify(footprintPreviewCircuitJson))),
+  )
+  const url = new URL("https://svg.tscircuit.com/")
+  url.searchParams.set("svg_type", "pcb")
+  url.searchParams.set("circuit_json", encodedCircuitJson)
+  url.searchParams.set(
+    "viewbox",
+    [viewBox.minX, viewBox.minY, viewBox.maxX, viewBox.maxY].join(","),
+  )
   url.searchParams.set("background_color", "#f8fafc")
   return url.toString()
 }

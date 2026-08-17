@@ -39,10 +39,11 @@
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
-    "@tscircuit/create-snippet-url": "^0.0.15",
+    "@tscircuit/circuit-json-util": "github:tscircuit/circuit-json-util#ded28270ad82f19a65fa353cf758e7945c030169",
     "circuit-json": "^0.0.465",
     "circuit-to-svg": "^0.0.393",
     "debug": "^4.4.0",
+    "fflate": "^0.8.3",
     "performance-now": "^2.1.0",
     "use-mouse-matrix-transform": "^1.2.2"
   }

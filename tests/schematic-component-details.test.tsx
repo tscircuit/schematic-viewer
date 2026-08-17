@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test"
-import { getUncompressedSnippetString } from "@tscircuit/create-snippet-url"
+import type { CircuitJson } from "circuit-json"
+import { gunzipSync, strFromU8 } from "fflate"
 import { JSDOM } from "jsdom"
 import { act } from "react"
 import { createRoot } from "react-dom/client"
@@ -8,12 +9,12 @@ import { renderToCircuitJson } from "../lib/dev/render-to-circuit-json"
 import {
   type SourceComponent,
   getFootprintPreviewUrl,
-  getPcbComponentPreviewCircuitJson,
+  getPcbComponentPreview,
   getSchematicComponentDetails,
   getSourceComponentInfoEntries,
 } from "../lib/utils/component-details"
 
-const circuitJson = renderToCircuitJson(
+const renderedCircuitJson = renderToCircuitJson(
   <board width="12mm" height="12mm">
     <resistor
       name="R1"
@@ -21,10 +22,23 @@ const circuitJson = renderToCircuitJson(
       manufacturerPartNumber="RC0603FR-071KL"
       footprint="0603"
       schX={-2}
+      pcbX={-2}
     />
-    <capacitor name="C1" capacitance="1uF" footprint="0603" schX={2} />
+    <capacitor name="C1" capacitance="1uF" footprint="0603" schX={2} pcbX={2} />
   </board>,
 )
+
+const circuitJson: CircuitJson = [
+  ...renderedCircuitJson,
+  {
+    type: "pcb_trace",
+    pcb_trace_id: "pcb_trace_preview_context",
+    route: [
+      { route_type: "wire", x: -6, y: 0, width: 0.15, layer: "top" },
+      { route_type: "wire", x: 6, y: 0, width: 0.15, layer: "top" },
+    ],
+  },
+]
 
 const installDom = () => {
   const dom = new JSDOM('<div id="root"></div>', {
@@ -177,33 +191,59 @@ test("footprint previews use the selected component's actual PCB elements", () =
     circuitJson,
     "schematic_component_0",
   )!
-  const previewCircuitJson = getPcbComponentPreviewCircuitJson(
+  const preview = getPcbComponentPreview(
     circuitJson,
     details.pcbComponent!.pcb_component_id,
+  )!
+  const previewUrl = new URL(
+    getFootprintPreviewUrl(preview.circuitJson, preview.viewBox),
   )
-  const previewUrl = new URL(getFootprintPreviewUrl(previewCircuitJson))
-  const generatedCode = getUncompressedSnippetString(
-    previewUrl.searchParams.get("code")!,
+  const compressedCircuitJson = Uint8Array.from(
+    atob(previewUrl.searchParams.get("circuit_json")!),
+    (character) => character.charCodeAt(0),
+  )
+  const decodedCircuitJson = JSON.parse(
+    strFromU8(gunzipSync(compressedCircuitJson)),
   )
 
   expect(previewUrl.origin).toBe("https://svg.tscircuit.com")
   expect(previewUrl.searchParams.get("svg_type")).toBe("pcb")
   expect(previewUrl.searchParams.get("background_color")).toBe("#f8fafc")
-  expect(generatedCode).toContain("<board circuitJson={circuitJson} />")
-  expect(generatedCode).not.toContain('name="U1"')
-  expect(previewCircuitJson).toContainEqual(
+  expect(previewUrl.searchParams.get("viewbox")).toBe(
+    [
+      preview.viewBox.minX,
+      preview.viewBox.minY,
+      preview.viewBox.maxX,
+      preview.viewBox.maxY,
+    ].join(","),
+  )
+  expect(decodedCircuitJson).toEqual(preview.circuitJson)
+  expect(preview.circuitJson).toContainEqual(
     expect.objectContaining({
       type: "pcb_silkscreen_text",
       pcb_component_id: details.pcbComponent!.pcb_component_id,
       text: "R1",
     }),
   )
-  expect(
-    previewCircuitJson.some(
-      (element) =>
-        element.type === "pcb_silkscreen_text" && element.text === "C1",
-    ),
-  ).toBe(false)
+  expect(preview.circuitJson).toContainEqual(
+    expect.objectContaining({ type: "pcb_board" }),
+  )
+  expect(preview.circuitJson).toContainEqual(
+    expect.objectContaining({
+      type: "pcb_trace",
+      pcb_trace_id: "pcb_trace_preview_context",
+    }),
+  )
+  const capacitor = circuitJson.find(
+    (element): element is SourceComponent =>
+      element.type === "source_component" && element.name === "C1",
+  )!
+  expect(preview.circuitJson).toContainEqual(
+    expect.objectContaining({
+      type: "pcb_component",
+      source_component_id: capacitor.source_component_id,
+    }),
+  )
 })
 
 test("clicking a component opens its details without requiring a callback", async () => {
