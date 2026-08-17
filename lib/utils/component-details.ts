@@ -28,6 +28,7 @@ const hiddenSourceComponentKeys = new Set([
   "name",
   "display_name",
   "ftype",
+  "are_pins_interchangeable",
 ])
 
 const priorityKeys = [

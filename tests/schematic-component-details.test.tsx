@@ -136,13 +136,15 @@ test("component details include source values and the footprinter string", () =>
 
   expect(details?.sourceComponent.name).toBe("R1")
   expect(details?.footprinterString).toBe("res0603")
-  expect(
-    getSourceComponentInfoEntries(details!.sourceComponent),
-  ).toContainEqual({
+  const resistorInfo = getSourceComponentInfoEntries(details!.sourceComponent)
+  expect(resistorInfo).toContainEqual({
     key: "resistance",
     label: "Resistance",
     value: "1kΩ",
   })
+  expect(
+    resistorInfo.some((entry) => entry.key === "are_pins_interchangeable"),
+  ).toBe(false)
 
   const capacitor = circuitJson.find(
     (element) => element.type === "source_component" && element.name === "C1",
