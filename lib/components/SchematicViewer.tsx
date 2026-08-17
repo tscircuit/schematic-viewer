@@ -613,7 +613,6 @@ export const SchematicViewer = ({
               selectedComponentDetails.footprintPreviewViewBox
             }
             {...componentTooltipLayout}
-            onClose={() => setSelectedSchematicComponent(null)}
           />
         )}
         {showSchematicPortsInternal &&
