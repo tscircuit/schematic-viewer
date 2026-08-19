@@ -12,6 +12,7 @@ import {
   getPcbComponentPreview,
   getSchematicComponentDetails,
   getSourceComponentInfoEntries,
+  getSupplierPartNumberEntries,
 } from "../lib/utils/component-details"
 
 const renderedCircuitJson = renderToCircuitJson(
@@ -20,6 +21,11 @@ const renderedCircuitJson = renderToCircuitJson(
       name="R1"
       resistance={1000}
       manufacturerPartNumber="RC0603FR-071KL"
+      supplierPartNumbers={{
+        jlcpcb: ["C2040", "2040"],
+        lcsc: ["C2040"],
+        mouser: ["123-EXAMPLE"],
+      }}
       footprint="0603"
       schX={-2}
       pcbX={-2}
@@ -177,6 +183,31 @@ test("component details include source values and the footprinter string", () =>
   expect(
     resistorInfo.some((entry) => entry.key === "are_pins_interchangeable"),
   ).toBe(false)
+  expect(
+    resistorInfo.some((entry) => entry.key === "supplier_part_numbers"),
+  ).toBe(false)
+  expect(getSupplierPartNumberEntries(details!.sourceComponent)).toEqual([
+    {
+      key: "supplier_part_numbers.jlcpcb",
+      label: "jlcpcb",
+      links: [
+        {
+          partNumber: "C2040",
+          href: "https://jlcpcb.com/partdetail/C2040",
+        },
+      ],
+    },
+    {
+      key: "supplier_part_numbers.lcsc",
+      label: "lcsc",
+      links: [
+        {
+          partNumber: "C2040",
+          href: "https://www.lcsc.com/product-detail/C2040.html",
+        },
+      ],
+    },
+  ])
 
   const capacitor = circuitJson.find(
     (element): element is SourceComponent =>
@@ -307,7 +338,25 @@ test("component details use compact styling and close on zoom or outside click",
     expect(tooltip?.textContent).not.toContain("Resistor")
     expect(tooltip?.textContent).toContain('"1k"')
     expect(tooltip?.textContent).toContain("RC0603FR-071KL")
+    expect(tooltip?.textContent).not.toContain("supplier_part_numbers")
     expect(tooltip?.textContent).toContain("res0603")
+    const supplierLinks = Array.from(tooltip?.querySelectorAll("a") ?? [])
+    expect(supplierLinks).toHaveLength(2)
+    expect(supplierLinks.map((link) => link.textContent)).toEqual([
+      "C2040",
+      "C2040",
+    ])
+    expect(supplierLinks.map((link) => link.getAttribute("href"))).toEqual([
+      "https://jlcpcb.com/partdetail/C2040",
+      "https://www.lcsc.com/product-detail/C2040.html",
+    ])
+    expect(
+      supplierLinks.every(
+        (link) =>
+          link.getAttribute("target") === "_blank" &&
+          link.getAttribute("rel") === "noreferrer noopener",
+      ),
+    ).toBe(true)
     expect(tooltip?.querySelector("img")?.getAttribute("src")).toContain(
       "https://svg.tscircuit.com/",
     )
