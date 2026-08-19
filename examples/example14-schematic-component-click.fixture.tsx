@@ -8,6 +8,7 @@ const circuitJson = renderToCircuitJson(
       name="R1"
       resistance={1000}
       manufacturerPartNumber="RC0603FR-071KL"
+      supplierPartNumbers={{ jlcpcb: ["C2040"], lcsc: ["C2040"] }}
       footprint="0603"
       schX={-2}
       schY={0}

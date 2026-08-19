@@ -33,6 +33,15 @@ export interface ComponentInfoEntry {
   value: string
 }
 
+export interface SupplierPartNumberEntry {
+  key: string
+  label: "jlcpcb" | "lcsc"
+  links: Array<{
+    partNumber: string
+    href: string
+  }>
+}
+
 const hiddenSourceComponentKeys = new Set([
   "type",
   "source_component_id",
@@ -41,6 +50,7 @@ const hiddenSourceComponentKeys = new Set([
   "display_name",
   "ftype",
   "are_pins_interchangeable",
+  "supplier_part_numbers",
 ])
 
 const priorityKeys = [
@@ -55,8 +65,20 @@ const priorityKeys = [
   "max_current_rating",
   "power_rating",
   "manufacturer_part_number",
-  "supplier_part_numbers",
 ]
+
+const supplierPartNumberUrls = {
+  jlcpcb: (partNumber: string) =>
+    `https://jlcpcb.com/partdetail/${encodeURIComponent(partNumber)}`,
+  lcsc: (partNumber: string) =>
+    `https://www.lcsc.com/product-detail/${encodeURIComponent(partNumber)}.html`,
+}
+
+const normalizeLcscPartNumber = (partNumber: string) => {
+  const trimmedPartNumber = partNumber.trim()
+  const numericPartNumber = /^c?(\d+)$/i.exec(trimmedPartNumber)
+  return numericPartNumber ? `C${numericPartNumber[1]}` : trimmedPartNumber
+}
 
 const getKeyPriority = (key: string) => {
   const priority = priorityKeys.indexOf(key)
@@ -104,6 +126,40 @@ export const getSourceComponentInfoEntries = (
       label: key,
       value: formatComponentValue(sourceComponent, key, value),
     }))
+
+export const getSupplierPartNumberEntries = (
+  sourceComponent: SourceComponent,
+): SupplierPartNumberEntry[] => {
+  const supplierPartNumbers = sourceComponent.supplier_part_numbers
+  if (!supplierPartNumbers) return []
+
+  return (["jlcpcb", "lcsc"] as const).flatMap((supplier) => {
+    const partNumbers = supplierPartNumbers[supplier]
+    if (!Array.isArray(partNumbers)) return []
+
+    const normalizedPartNumbers = [
+      ...new Set(
+        partNumbers
+          .filter((partNumber): partNumber is string =>
+            Boolean(typeof partNumber === "string" && partNumber.trim()),
+          )
+          .map(normalizeLcscPartNumber),
+      ),
+    ]
+    if (!normalizedPartNumbers.length) return []
+
+    return [
+      {
+        key: `supplier_part_numbers.${supplier}`,
+        label: supplier,
+        links: normalizedPartNumbers.map((partNumber) => ({
+          partNumber,
+          href: supplierPartNumberUrls[supplier](partNumber),
+        })),
+      },
+    ]
+  })
+}
 
 export const getSchematicComponentDetails = (
   circuitJson: CircuitJson,

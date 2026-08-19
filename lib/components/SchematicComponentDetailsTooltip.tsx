@@ -5,6 +5,7 @@ import {
   type SourceComponent,
   getFootprintPreviewUrl,
   getSourceComponentInfoEntries,
+  getSupplierPartNumberEntries,
 } from "../utils/component-details"
 import { zIndexMap } from "../utils/z-index-map"
 
@@ -39,6 +40,10 @@ export const SchematicComponentDetailsTooltip = ({
 }: Props) => {
   const infoEntries = useMemo(
     () => getSourceComponentInfoEntries(sourceComponent),
+    [sourceComponent],
+  )
+  const supplierPartNumberEntries = useMemo(
+    () => getSupplierPartNumberEntries(sourceComponent),
     [sourceComponent],
   )
   const footprintPreviewUrl = useMemo(
@@ -109,6 +114,36 @@ export const SchematicComponentDetailsTooltip = ({
               }}
             >
               {entry.value}
+            </dd>
+          </div>
+        ))}
+        {supplierPartNumberEntries.map((entry) => (
+          <div key={entry.key} style={{ display: "contents" }}>
+            <dt style={detailLabelStyle}>{entry.label}</dt>
+            <dd
+              style={{
+                minWidth: 0,
+                margin: 0,
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+                fontSize: "12px",
+                lineHeight: 1.45,
+                overflowWrap: "anywhere",
+              }}
+            >
+              {entry.links.map((link, index) => (
+                <span key={link.href}>
+                  {index > 0 && ", "}
+                  <a
+                    href={link.href}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    style={{ color: "#2563eb", textDecoration: "underline" }}
+                  >
+                    {link.partNumber}
+                  </a>
+                </span>
+              ))}
             </dd>
           </div>
         ))}
