@@ -1,7 +1,13 @@
-import { CornerDownLeft, Cpu, GitBranch, Search, X } from "lucide-react"
 import { useEffect, useRef, useState, type RefObject } from "react"
 import type { SchematicSearchResult } from "../utils/get-schematic-search-results"
 import { zIndexMap } from "../utils/z-index-map"
+import {
+  CloseIcon,
+  ComponentIcon,
+  EnterIcon,
+  NetIcon,
+  SearchIcon,
+} from "./SchematicSearchIcons"
 
 const HighlightedSearchText = ({
   text,
@@ -230,11 +236,9 @@ export const SchematicSearch = ({
           let resultBackground = "#ffffff"
           if (hovering || active) resultBackground = "#f1f3f5"
 
-          let resultIcon = (
-            <GitBranch size={15} strokeWidth={1.8} aria-hidden="true" />
-          )
+          let resultIcon = <NetIcon size={15} strokeWidth={1.8} />
           if (result.kind === "component") {
-            resultIcon = <Cpu size={15} strokeWidth={1.8} aria-hidden="true" />
+            resultIcon = <ComponentIcon size={15} strokeWidth={1.8} />
           }
           const selectResult = () => {
             inputRef.current?.blur()
@@ -339,7 +343,7 @@ export const SchematicSearch = ({
                     lineHeight: 1,
                   }}
                 >
-                  <CornerDownLeft size={14} strokeWidth={1.8} />
+                  <EnterIcon size={14} strokeWidth={1.8} />
                 </span>
               )}
             </button>
@@ -393,7 +397,7 @@ export const SchematicSearch = ({
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
         >
-          <Search size={16} strokeWidth={2} aria-hidden="true" />
+          <SearchIcon size={16} strokeWidth={2} />
         </button>
       ) : (
         <div
@@ -418,7 +422,7 @@ export const SchematicSearch = ({
               borderBottom: searchHeaderBorder,
             }}
           >
-            <Search size={15} strokeWidth={2} aria-hidden="true" />
+            <SearchIcon size={15} strokeWidth={2} />
             <input
               ref={inputRef}
               value={query}
@@ -487,7 +491,7 @@ export const SchematicSearch = ({
                   lineHeight: 1,
                 }}
               >
-                <X size={16} strokeWidth={2} aria-hidden="true" />
+                <CloseIcon size={16} strokeWidth={2} />
               </button>
             )}
           </div>

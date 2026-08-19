@@ -1,6 +1,6 @@
 import type { CircuitJson } from "circuit-json"
 import { SchematicViewer } from "lib/components/SchematicViewer"
-import circuitJson from "./light-controller.circuit.json"
+import circuitJson from "./rp2040-motor-controller.circuit.json"
 
 export default () => (
   <SchematicViewer
