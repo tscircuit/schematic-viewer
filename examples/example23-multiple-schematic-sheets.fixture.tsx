@@ -89,7 +89,6 @@ export default () => {
           height: "100vh",
           backgroundColor: "#f8f9fa",
         }}
-        editingEnabled
       />
     </div>
   )

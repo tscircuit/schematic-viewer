@@ -1,50 +1,39 @@
-import {
-  convertCircuitJsonToSchematicSvg,
-  type ColorOverrides,
-} from "circuit-to-svg"
 import { su } from "@tscircuit/soup-util"
-import { useChangeSchematicComponentLocationsInSvg } from "lib/hooks/useChangeSchematicComponentLocationsInSvg"
-import { useChangeSchematicTracesForMovedComponents } from "lib/hooks/useChangeSchematicTracesForMovedComponents"
+import type { CircuitJson, SchematicSheet } from "circuit-json"
+import {
+  type ColorOverrides,
+  convertCircuitJsonToSchematicSvg,
+} from "circuit-to-svg"
+import {
+  STORAGE_KEYS,
+  getStoredBoolean,
+  getStoredString,
+  setStoredBoolean,
+  setStoredString,
+} from "lib/hooks/useLocalStorage"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { useSchematicNetHover } from "lib/hooks/useSchematicNetHover"
 import { useSchematicSearch } from "lib/hooks/useSchematicSearch"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import {
-  fromString,
-  identity,
-  toString as transformToString,
-} from "transformation-matrix"
+import { toString as transformToString } from "transformation-matrix"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
-import { useComponentDragging } from "../hooks/useComponentDragging"
-import type { ManualEditEvent } from "../types/edit-events"
-import { EditIcon } from "./EditIcon"
-import { GridIcon } from "./GridIcon"
-import { ViewMenu } from "./ViewMenu"
-import type { CircuitJson, SchematicSheet } from "circuit-json"
+import { useContextMenu } from "../hooks/useContextMenu"
+import { getSchematicComponentDetails } from "../utils/component-details"
 import { zIndexMap } from "../utils/z-index-map"
-import {
-  getStoredBoolean,
-  setStoredBoolean,
-  getStoredString,
-  setStoredString,
-  STORAGE_KEYS,
-} from "lib/hooks/useLocalStorage"
 import { MouseTracker } from "./MouseTracker"
+import { SchematicComponentDetailsTooltip } from "./SchematicComponentDetailsTooltip"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
-import { SchematicSheetSelector } from "./SchematicSheetSelector"
 import { SchematicSearch } from "./SchematicSearch"
+import { SchematicSheetSelector } from "./SchematicSheetSelector"
+import { ViewMenu } from "./ViewMenu"
 
 interface Props {
   circuitJson: CircuitJson
   containerStyle?: React.CSSProperties
-  editEvents?: ManualEditEvent[]
-  onEditEvent?: (event: ManualEditEvent) => void
-  defaultEditMode?: boolean
   debugGrid?: boolean
-  editingEnabled?: boolean
   debug?: boolean
   clickToInteractEnabled?: boolean
   colorOverrides?: ColorOverrides
@@ -68,21 +57,23 @@ interface Props {
   searchEnabled?: boolean
 }
 
+interface SelectedSchematicComponent {
+  schematicComponentId: string
+  anchorX: number
+  anchorY: number
+}
+
 export const SchematicViewer = ({
   circuitJson,
   containerStyle,
-  editEvents: unappliedEditEvents = [],
-  onEditEvent,
-  defaultEditMode = false,
   debugGrid = false,
-  editingEnabled = false,
   debug = false,
   clickToInteractEnabled = false,
   colorOverrides,
   disableGroups = false,
   netHoverHighlightEnabled = true,
   onSchematicComponentClicked,
-  showSchematicPorts = false,
+  showSchematicPorts,
   onSchematicPortClicked,
   onSchematicSheetChange,
   searchEnabled = true,
@@ -160,21 +151,31 @@ export const SchematicViewer = ({
     [onSchematicSheetChange],
   )
 
-  const [editModeEnabled, setEditModeEnabled] = useState(defaultEditMode)
-  const [snapToGrid, setSnapToGrid] = useState(true)
   const [showGridInternal, setShowGridInternal] = useState(false)
   const showGrid = debugGrid || showGridInternal
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
     !clickToInteractEnabled,
   )
-  const [showViewMenu, setShowViewMenu] = useState(false)
   const [showSchematicGroups, setShowSchematicGroups] = useState(() => {
     if (disableGroups) return false
-    return getStoredBoolean("schematic_viewer_show_groups", false)
+    return getStoredBoolean(STORAGE_KEYS.IS_SHOWING_SCHEMATIC_GROUPS, false)
   })
+  const [showSchematicPortsInternal, setShowSchematicPortsInternal] = useState(
+    () =>
+      showSchematicPorts ??
+      getStoredBoolean(STORAGE_KEYS.IS_SHOWING_SCHEMATIC_PORTS, false),
+  )
+
+  useEffect(() => {
+    if (showSchematicPorts !== undefined) {
+      setShowSchematicPortsInternal(showSchematicPorts)
+    }
+  }, [showSchematicPorts])
   const [isHoveringClickableComponent, setIsHoveringClickableComponent] =
     useState(false)
   const hoveringComponentsRef = useRef<Set<string>>(new Set())
+  const [selectedSchematicComponent, setSelectedSchematicComponent] =
+    useState<SelectedSchematicComponent | null>(null)
 
   const handleComponentHoverChange = useCallback(
     (componentId: string, isHovering: boolean) => {
@@ -205,6 +206,7 @@ export const SchematicViewer = ({
 
   const svgDivRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const zoomScaleRef = useRef({ x: 1, y: 1 })
 
   const schematicComponentIds = useMemo(() => {
     try {
@@ -222,7 +224,7 @@ export const SchematicViewer = ({
   }, [circuitJsonKey, circuitJson, activeSheetId])
 
   const schematicPortsInfo = useMemo(() => {
-    if (!showSchematicPorts) return []
+    if (!showSchematicPortsInternal) return []
     try {
       const ports = (su(circuitJson).schematic_port?.list() ?? []).filter(
         (port) => !activeSheetId || port.schematic_sheet_id === activeSheetId,
@@ -247,7 +249,7 @@ export const SchematicViewer = ({
       console.error("Failed to derive schematic port info", err)
       return []
     }
-  }, [circuitJsonKey, circuitJson, showSchematicPorts, activeSheetId])
+  }, [circuitJsonKey, circuitJson, showSchematicPortsInternal, activeSheetId])
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0]
@@ -273,54 +275,152 @@ export const SchematicViewer = ({
     touchStartRef.current = null
   }
 
-  const [internalEditEvents, setInternalEditEvents] = useState<
-    ManualEditEvent[]
-  >([])
-  const circuitJsonRef = useRef<CircuitJson>(circuitJson)
-
-  useEffect(() => {
-    const circuitHash = getCircuitHash(circuitJson)
-    const circuitHashRef = getCircuitHash(circuitJsonRef.current)
-
-    if (circuitHash !== circuitHashRef) {
-      setInternalEditEvents([])
-      circuitJsonRef.current = circuitJson
-    }
-  }, [circuitJson])
-
-  const shouldHandleViewerGesture = useCallback(
+  const shouldPanSchematic = useCallback(
     (event: MouseEvent | TouchEvent | WheelEvent) => {
-      const target = event.target
-      return !(
-        target instanceof Element && target.closest("[data-schematic-search]")
-      )
+      if (
+        event.target instanceof Element &&
+        event.target.closest("[data-schematic-search]")
+      ) {
+        return false
+      }
+      if (event.type !== "mousedown" || !("button" in event)) return true
+      return event.button !== 2 && !(event.button === 0 && event.ctrlKey)
     },
     [],
   )
 
   const {
     ref: containerRef,
-    cancelDrag,
     transform: svgToScreenProjection,
     setTransform: setSvgToScreenProjection,
   } = useMouseMatrixTransform({
     onSetTransform(transform) {
+      const zoomChanged =
+        transform.a !== zoomScaleRef.current.x ||
+        transform.d !== zoomScaleRef.current.y
+      zoomScaleRef.current = { x: transform.a, y: transform.d }
+      if (zoomChanged) {
+        setSelectedSchematicComponent(null)
+      }
       if (!svgDivRef.current) return
       svgDivRef.current.style.transform = transformToString(transform)
     },
-    shouldDrag: shouldHandleViewerGesture,
     // @ts-ignore disabled is a valid prop but not typed
     enabled: isInteractionEnabled,
+    shouldDrag: shouldPanSchematic,
   })
 
+  const {
+    menuVisible,
+    menuPos,
+    menuRef,
+    setMenuVisible,
+    contextMenuEventHandlers,
+  } = useContextMenu({ containerRef })
+
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
+  const selectedComponentDetails = useMemo(
+    () =>
+      selectedSchematicComponent
+        ? getSchematicComponentDetails(
+            circuitJson,
+            selectedSchematicComponent.schematicComponentId,
+          )
+        : null,
+    [circuitJsonKey, circuitJson, selectedSchematicComponent],
+  )
+
+  const componentTooltipLayout = useMemo(() => {
+    if (!selectedSchematicComponent || !containerWidth || !containerHeight) {
+      return null
+    }
+
+    const margin = 12
+    const gap = 14
+    const width = Math.min(420, containerWidth - margin * 2)
+    const maxHeight = Math.min(520, containerHeight - margin * 2)
+    const { anchorX, anchorY } = selectedSchematicComponent
+
+    const rightOfAnchor = anchorX + gap
+    const leftOfAnchor = anchorX - width - gap
+    const left =
+      rightOfAnchor + width <= containerWidth - margin
+        ? rightOfAnchor
+        : leftOfAnchor >= margin
+          ? leftOfAnchor
+          : Math.max(
+              margin,
+              Math.min(anchorX - width / 2, containerWidth - width - margin),
+            )
+    const top = Math.max(
+      margin,
+      Math.min(anchorY - 24, containerHeight - maxHeight - margin),
+    )
+
+    return { left, top, width, maxHeight }
+  }, [selectedSchematicComponent, containerWidth, containerHeight])
+
+  const handleSchematicComponentClick = useCallback(
+    (schematicComponentId: string, event: MouseEvent) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest("[data-schematic-component-details-tooltip]")
+      ) {
+        return
+      }
+
+      const containerRect = containerRef.current?.getBoundingClientRect()
+      if (!containerRect) return
+
+      setSelectedSchematicComponent({
+        schematicComponentId,
+        anchorX: event.clientX - containerRect.left,
+        anchorY: event.clientY - containerRect.top,
+      })
+      onSchematicComponentClicked?.({
+        schematicComponentId,
+        event,
+      })
+    },
+    [containerRef, onSchematicComponentClicked],
+  )
+
+  useEffect(() => {
+    setSelectedSchematicComponent(null)
+  }, [circuitJsonKey, activeSheetId])
+
+  useEffect(() => {
+    if (!selectedSchematicComponent) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedSchematicComponent(null)
+      }
+    }
+    const handleDocumentMouseDown = (event: MouseEvent) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest("[data-schematic-component-details-tooltip]")
+      ) {
+        return
+      }
+      setSelectedSchematicComponent(null)
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    document.addEventListener("mousedown", handleDocumentMouseDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      document.removeEventListener("mousedown", handleDocumentMouseDown)
+    }
+  }, [selectedSchematicComponent])
+
   const svgString = useMemo(() => {
     if (!containerWidth || !containerHeight) return ""
 
     return convertCircuitJsonToSchematicSvg(circuitJson as any, {
       width: containerWidth,
       height: containerHeight || 720,
-      drawPorts: showSchematicPorts,
+      drawPorts: showSchematicPortsInternal,
       schematicSheetId: activeSheetId,
       grid: !showGrid
         ? undefined
@@ -337,7 +437,7 @@ export const SchematicViewer = ({
     containerWidth,
     containerHeight,
     showGrid,
-    showSchematicPorts,
+    showSchematicPortsInternal,
     activeSheetId,
   ])
 
@@ -346,20 +446,6 @@ export const SchematicViewer = ({
       /<svg[^>]*style="[^"]*background-color:\s*([^;\"]+)/i,
     )
     return match?.[1] ?? "transparent"
-  }, [svgString])
-
-  const realToSvgProjection = useMemo(() => {
-    if (!svgString) return identity()
-    const transformString = svgString.match(
-      /data-real-to-screen-transform="([^"]+)"/,
-    )?.[1]!
-
-    try {
-      return fromString(transformString)
-    } catch (e) {
-      console.error(e)
-      return identity()
-    }
   }, [svgString])
 
   const {
@@ -382,48 +468,6 @@ export const SchematicViewer = ({
     setIsInteractionEnabled,
   })
 
-  const handleEditEvent = (event: ManualEditEvent) => {
-    setInternalEditEvents((prev) => [...prev, event])
-    if (onEditEvent) {
-      onEditEvent(event)
-    }
-  }
-
-  const editEventsWithUnappliedEditEvents = useMemo(() => {
-    return [...unappliedEditEvents, ...internalEditEvents]
-  }, [unappliedEditEvents, internalEditEvents])
-
-  const {
-    handleMouseDown,
-    handleTouchStart: handleComponentTouchStart,
-    isDragging,
-    activeEditEvent,
-  } = useComponentDragging({
-    onEditEvent: handleEditEvent,
-    cancelDrag,
-    realToSvgProjection,
-    svgToScreenProjection,
-    circuitJson,
-    editEvents: editEventsWithUnappliedEditEvents,
-    enabled: editModeEnabled && isInteractionEnabled,
-    snapToGrid,
-  })
-
-  useChangeSchematicComponentLocationsInSvg({
-    svgDivRef,
-    editEvents: editEventsWithUnappliedEditEvents,
-    realToSvgProjection,
-    svgToScreenProjection,
-    activeEditEvent,
-  })
-
-  useChangeSchematicTracesForMovedComponents({
-    svgDivRef,
-    circuitJson,
-    activeEditEvent,
-    editEvents: editEventsWithUnappliedEditEvents,
-  })
-
   // Add group overlays when enabled. The key includes the active sheet so
   // overlays are recomputed against the freshly-rendered sheet's SVG.
   useSchematicGroupsOverlay({
@@ -442,12 +486,6 @@ export const SchematicViewer = ({
     enabled: netHoverHighlightEnabled,
   })
 
-  // keep the latest touch handler without re-rendering the svg div
-  const handleComponentTouchStartRef = useRef(handleComponentTouchStart)
-  useEffect(() => {
-    handleComponentTouchStartRef.current = handleComponentTouchStart
-  }, [handleComponentTouchStart])
-
   const svgDiv = useMemo(
     () => (
       <div
@@ -460,21 +498,12 @@ export const SchematicViewer = ({
             : "auto",
           transformOrigin: "0 0",
         }}
-        className={
-          onSchematicComponentClicked
-            ? "schematic-component-clickable"
-            : undefined
-        }
-        onTouchStart={(e) => {
-          if (editModeEnabled && isInteractionEnabled) {
-            handleComponentTouchStartRef.current(e)
-          }
-        }}
+        className="schematic-component-clickable"
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
         dangerouslySetInnerHTML={{ __html: svgString }}
       />
     ),
-    [svgString, isInteractionEnabled, clickToInteractEnabled, editModeEnabled],
+    [svgString, isInteractionEnabled, clickToInteractEnabled],
   )
 
   return (
@@ -505,14 +534,14 @@ export const SchematicViewer = ({
             }`}
         </style>
       )}
-      {onSchematicComponentClicked && (
-        <style>
-          {`.schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }`}
-        </style>
-      )}
+      <style>
+        {
+          ".schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }"
+        }
+      </style>
       {onSchematicPortClicked && (
         <style>
-          {`[data-schematic-port-id]:hover { cursor: pointer !important; }`}
+          {"[data-schematic-port-id]:hover { cursor: pointer !important; }"}
         </style>
       )}
       <div
@@ -521,41 +550,39 @@ export const SchematicViewer = ({
           position: "relative",
           backgroundColor: containerBackgroundColor,
           overflow: "hidden",
-          cursor: isDragging
-            ? "grabbing"
-            : clickToInteractEnabled && !isInteractionEnabled
+          cursor:
+            clickToInteractEnabled && !isInteractionEnabled
               ? "pointer"
-              : isHoveringClickableComponent && onSchematicComponentClicked
+              : isHoveringClickableComponent
                 ? "pointer"
                 : isHoveringClickablePort && onSchematicPortClicked
                   ? "pointer"
                   : "grab",
           minHeight: "300px",
+          userSelect: "none",
+          WebkitUserSelect: "none",
+          WebkitTouchCallout: "none",
           ...containerStyle,
         }}
-        onMouseDown={(e) => {
-          if (clickToInteractEnabled && !isInteractionEnabled) {
-            e.preventDefault()
-            e.stopPropagation()
-            return
-          }
-          handleMouseDown(e)
-        }}
         onMouseDownCapture={(e) => {
-          if (
-            e.target instanceof Element &&
-            e.target.closest("[data-schematic-search]")
-          ) {
-            return
-          }
+          contextMenuEventHandlers.onMouseDown(e)
           if (clickToInteractEnabled && !isInteractionEnabled) {
             e.preventDefault()
             e.stopPropagation()
             return
           }
         }}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
+        onContextMenu={contextMenuEventHandlers.onContextMenu}
+        onTouchStart={(event) => {
+          handleTouchStart(event)
+          contextMenuEventHandlers.onTouchStart(event)
+        }}
+        onTouchMove={contextMenuEventHandlers.onTouchMove}
+        onTouchEnd={(event) => {
+          handleTouchEnd(event)
+          contextMenuEventHandlers.onTouchEnd()
+        }}
+        onTouchCancel={contextMenuEventHandlers.onTouchCancel}
       >
         {!isInteractionEnabled && clickToInteractEnabled && (
           <div
@@ -594,37 +621,34 @@ export const SchematicViewer = ({
             </div>
           </div>
         )}
-        {editingEnabled && (
-          <EditIcon
-            active={editModeEnabled}
-            onClick={() => setEditModeEnabled(!editModeEnabled)}
+        {menuVisible && (
+          <ViewMenu
+            circuitJson={circuitJson}
+            circuitJsonKey={circuitJsonKey}
+            menuRef={menuRef}
+            menuPos={menuPos}
+            onOpenChange={setMenuVisible}
+            showPorts={showSchematicPortsInternal}
+            onTogglePorts={(value) => {
+              setShowSchematicPortsInternal(value)
+              setStoredBoolean(STORAGE_KEYS.IS_SHOWING_SCHEMATIC_PORTS, value)
+            }}
+            showGroups={showSchematicGroups}
+            onToggleGroups={(value) => {
+              if (!disableGroups) {
+                setShowSchematicGroups(value)
+                setStoredBoolean(
+                  STORAGE_KEYS.IS_SHOWING_SCHEMATIC_GROUPS,
+                  value,
+                )
+              }
+            }}
+            showGrid={showGrid}
+            onToggleGrid={setShowGridInternal}
           />
         )}
-        {editingEnabled && editModeEnabled && (
-          <GridIcon
-            active={snapToGrid}
-            onClick={() => setSnapToGrid(!snapToGrid)}
-          />
-        )}
-        <ViewMenu
-          circuitJson={circuitJson}
-          circuitJsonKey={circuitJsonKey}
-          open={showViewMenu}
-          onOpenChange={setShowViewMenu}
-          showGroups={showSchematicGroups}
-          onToggleGroups={(value) => {
-            if (!disableGroups) {
-              setShowSchematicGroups(value)
-              setStoredBoolean("schematic_viewer_show_groups", value)
-            }
-          }}
-          showGrid={showGrid}
-          onToggleGrid={setShowGridInternal}
-        />
         <div
           className="schematic-viewer-toolbar"
-          onTouchStart={(event) => event.stopPropagation()}
-          onTouchEnd={(event) => event.stopPropagation()}
           style={{
             position: "absolute",
             top: "16px",
@@ -651,26 +675,33 @@ export const SchematicViewer = ({
             />
           )}
         </div>
-        {onSchematicComponentClicked &&
-          schematicComponentIds.map((componentId) => (
-            <SchematicComponentMouseTarget
-              key={componentId}
-              componentId={componentId}
-              svgDivRef={svgDivRef}
-              containerRef={containerRef}
-              showOutline={true}
-              circuitJsonKey={circuitJsonKey}
-              onHoverChange={handleComponentHoverChange}
-              onComponentClick={(id, event) => {
-                onSchematicComponentClicked?.({
-                  schematicComponentId: id,
-                  event,
-                })
-              }}
-            />
-          ))}
+        {schematicComponentIds.map((componentId) => (
+          <SchematicComponentMouseTarget
+            key={componentId}
+            componentId={componentId}
+            svgDivRef={svgDivRef}
+            containerRef={containerRef}
+            showOutline={true}
+            circuitJsonKey={circuitJsonKey}
+            onHoverChange={handleComponentHoverChange}
+            onComponentClick={handleSchematicComponentClick}
+          />
+        ))}
         {svgDiv}
-        {showSchematicPorts &&
+        {selectedComponentDetails && componentTooltipLayout && (
+          <SchematicComponentDetailsTooltip
+            sourceComponent={selectedComponentDetails.sourceComponent}
+            footprinterString={selectedComponentDetails.footprinterString}
+            footprintPreviewCircuitJson={
+              selectedComponentDetails.footprintPreviewCircuitJson
+            }
+            footprintPreviewViewBox={
+              selectedComponentDetails.footprintPreviewViewBox
+            }
+            {...componentTooltipLayout}
+          />
+        )}
+        {showSchematicPortsInternal &&
           schematicPortsInfo.map(({ portId, label }) => (
             <SchematicPortMouseTarget
               key={portId}

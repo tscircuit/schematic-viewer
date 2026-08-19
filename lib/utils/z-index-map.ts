@@ -1,10 +1,9 @@
 export const zIndexMap = {
-  schematicEditIcon: 50,
-  schematicGridIcon: 49,
-  viewMenuIcon: 48,
+  contextMenu: 110,
   viewMenu: 55,
-  viewMenuBackdrop: 54,
+  viewMenuIcon: 48,
   clickToInteractOverlay: 100,
+  schematicComponentDetailsTooltip: 105,
   schematicComponentHoverOutline: 47,
   schematicPortHoverOutline: 48,
   schematicSearch: 101,

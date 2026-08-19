@@ -23,7 +23,6 @@ export default () => (
         />
       </board>,
     )}
-    editingEnabled
     containerStyle={{ height: "100%" }}
     debugGrid
     debug

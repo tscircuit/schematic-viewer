@@ -57,6 +57,10 @@ export const MouseTracker = ({ children }: { children: ReactNode }) => {
     return <>{children}</>
   }
 
+  return <MouseTrackerProvider>{children}</MouseTrackerProvider>
+}
+
+const MouseTrackerProvider = ({ children }: { children: ReactNode }) => {
   const storeRef = useRef({
     pointer: null as { x: number; y: number } | null,
     boundingBoxes: new Map<string, BoundingBoxRegistration>(),
