@@ -1,6 +1,7 @@
 import { SchematicViewer } from "lib/components/SchematicViewer"
 import { renderToCircuitJson } from "lib/dev/render-to-circuit-json"
 import { useState } from "react"
+import { CC0603KRX7R9BB104 } from "./imports/c14663"
 
 const circuitJson = renderToCircuitJson(
   <board width="12mm" height="12mm">
@@ -12,8 +13,10 @@ const circuitJson = renderToCircuitJson(
       footprint="0603"
       schX={-2}
       schY={0}
+      pcbX={-2}
+      pcbY={0}
     />
-    <capacitor name="C1" capacitance="1uF" footprint="0603" schX={2} schY={0} />
+    <CC0603KRX7R9BB104 name="C1" schX={2} schY={0} pcbX={2} pcbY={0} />
     <trace from=".R1 .pin2" to=".C1 .pin1" />
     <trace from=".R1 .pin1" to=".C1 .pin2" />
   </board>,

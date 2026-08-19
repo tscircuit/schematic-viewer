@@ -168,7 +168,7 @@ export const SchematicComponentDetailsTooltip = ({
         )}
       </dl>
 
-      {footprinterString && footprintPreviewUrl && (
+      {footprintPreviewUrl && (
         <div style={{ padding: "0 4px 4px" }}>
           <div
             style={{
@@ -181,7 +181,7 @@ export const SchematicComponentDetailsTooltip = ({
           >
             <img
               src={footprintPreviewUrl}
-              alt={`${sourceComponent.name} ${footprinterString} PCB footprint`}
+              alt={`${sourceComponent.name}${footprinterString ? ` ${footprinterString}` : ""} PCB footprint`}
               loading="lazy"
               referrerPolicy="no-referrer"
               style={{
