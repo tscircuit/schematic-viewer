@@ -13,6 +13,7 @@ import {
 } from "lib/hooks/useLocalStorage"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { useSchematicNetHover } from "lib/hooks/useSchematicNetHover"
+import { useSchematicSearch } from "lib/hooks/useSchematicSearch"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toString as transformToString } from "transformation-matrix"
@@ -25,6 +26,7 @@ import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentDetailsTooltip } from "./SchematicComponentDetailsTooltip"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
+import { SchematicSearch } from "./SchematicSearch"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
 import { ViewMenu } from "./ViewMenu"
 
@@ -51,6 +53,8 @@ interface Props {
   }) => void
   /** Called when the active schematic sheet changes (multi-sheet circuits). */
   onSchematicSheetChange?: (schematicSheetId: string) => void
+  /** Show component and net-label search. Default true. */
+  searchEnabled?: boolean
 }
 
 interface SelectedSchematicComponent {
@@ -72,6 +76,7 @@ export const SchematicViewer = ({
   showSchematicPorts,
   onSchematicPortClicked,
   onSchematicSheetChange,
+  searchEnabled = true,
   css,
   className,
 }: Props) => {
@@ -272,13 +277,23 @@ export const SchematicViewer = ({
 
   const shouldPanSchematic = useCallback(
     (event: MouseEvent | TouchEvent | WheelEvent) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest("[data-schematic-search]")
+      ) {
+        return false
+      }
       if (event.type !== "mousedown" || !("button" in event)) return true
       return event.button !== 2 && !(event.button === 0 && event.ctrlKey)
     },
     [],
   )
 
-  const { ref: containerRef } = useMouseMatrixTransform({
+  const {
+    ref: containerRef,
+    transform: svgToScreenProjection,
+    setTransform: setSvgToScreenProjection,
+  } = useMouseMatrixTransform({
     onSetTransform(transform) {
       const zoomChanged =
         transform.a !== zoomScaleRef.current.x ||
@@ -433,6 +448,26 @@ export const SchematicViewer = ({
     return match?.[1] ?? "transparent"
   }, [svgString])
 
+  const {
+    searchQuery,
+    setSearchQuery,
+    searchResults,
+    handleSearchResultSelect,
+    handleCancelSearch,
+  } = useSchematicSearch({
+    circuitJson,
+    circuitJsonKey,
+    svgDivRef,
+    containerRef,
+    activeSheetId,
+    hasMultipleSheets,
+    handleSelectSheet,
+    svgString,
+    svgToScreenProjection,
+    setSvgToScreenProjection,
+    setIsInteractionEnabled,
+  })
+
   // Add group overlays when enabled. The key includes the active sheet so
   // overlays are recomputed against the freshly-rendered sheet's SVG.
   useSchematicGroupsOverlay({
@@ -477,6 +512,26 @@ export const SchematicViewer = ({
         <style>
           {`.sch-net-faded { opacity: 0.35; }
             svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id]) { transition: opacity 0.12s ease-in-out; }`}
+        </style>
+      )}
+      {searchEnabled && (
+        <style>
+          {`.schematic-search-match text,
+            text.schematic-search-match {
+              fill: #ff00d4 !important;
+            }
+            .schematic-search-match [stroke]:not(text):not([stroke="none"]),
+            [stroke]:not(text):not([stroke="none"]).schematic-search-match {
+              stroke: #ff00d4 !important;
+            }
+            .schematic-viewer-toolbar {
+              flex-direction: row;
+            }
+            @media (max-width: 640px) {
+              .schematic-viewer-toolbar {
+                flex-direction: column;
+              }
+            }`}
         </style>
       )}
       <style>
@@ -592,11 +647,34 @@ export const SchematicViewer = ({
             onToggleGrid={setShowGridInternal}
           />
         )}
-        <SchematicSheetSelector
-          sheets={schematicSheets}
-          selectedSheetId={activeSheetId}
-          onSelectSheet={handleSelectSheet}
-        />
+        <div
+          className="schematic-viewer-toolbar"
+          style={{
+            position: "absolute",
+            top: "16px",
+            left: "16px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "8px",
+            zIndex: zIndexMap.schematicSearch,
+          }}
+        >
+          <SchematicSheetSelector
+            sheets={schematicSheets}
+            selectedSheetId={activeSheetId}
+            onSelectSheet={handleSelectSheet}
+          />
+          {searchEnabled && (
+            <SchematicSearch
+              query={searchQuery}
+              onQueryChange={setSearchQuery}
+              onCancel={handleCancelSearch}
+              results={searchResults}
+              onSelect={handleSearchResultSelect}
+              viewerContainerRef={containerRef}
+            />
+          )}
+        </div>
         {schematicComponentIds.map((componentId) => (
           <SchematicComponentMouseTarget
             key={componentId}

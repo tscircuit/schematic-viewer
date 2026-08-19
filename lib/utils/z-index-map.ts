@@ -6,4 +6,5 @@ export const zIndexMap = {
   schematicComponentDetailsTooltip: 105,
   schematicComponentHoverOutline: 47,
   schematicPortHoverOutline: 48,
+  schematicSearch: 101,
 }
