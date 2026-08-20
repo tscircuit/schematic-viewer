@@ -52,6 +52,13 @@ const getComponentDetail = (
   primaryLabel: string,
 ) => {
   const componentType = humanizeComponentType(sourceComponent?.ftype)
+  let componentDescription = componentType
+  if (
+    sourceComponent?.ftype === "simple_chip" &&
+    sourceComponent.manufacturer_part_number
+  ) {
+    componentDescription = sourceComponent.manufacturer_part_number
+  }
   const detailParts: string[] = []
   if (
     sourceComponent?.display_name === primaryLabel &&
@@ -80,14 +87,14 @@ const getComponentDetail = (
   }
   componentValue ??= schematicComponent.symbol_display_value
 
-  if (componentType) {
-    detailParts.push(componentType)
+  if (componentDescription) {
+    detailParts.push(componentDescription)
   }
   if (componentValue) {
     detailParts.push(componentValue)
   }
   if (
-    !componentType &&
+    !componentDescription &&
     !componentValue &&
     sourceComponent?.manufacturer_part_number
   ) {

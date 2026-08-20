@@ -13,6 +13,7 @@ test("searches components and nets in a Wi-Fi smart switch board", () => {
   )
 
   expect(componentResults[0]?.label).toBe("U2 ESP-12F (ESP8266MOD)")
+  expect(componentResults[0]?.detail).toBe("U2 · ESP-12F(ESP8266MOD)")
   expect(componentResults[0]?.kind).toBe("component")
   expect(netResults.some((result) => result.label === "RELAY_CTL")).toBe(true)
 })

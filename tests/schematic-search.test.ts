@@ -94,6 +94,26 @@ test("shows reference designator, type, and value below a display name", () => {
   expect(result?.detail).toBe("R1 · Resistor · 300Ω")
 })
 
+test("shows chip type when no manufacturer part number is available", () => {
+  const circuitWithChip = [
+    {
+      type: "source_component",
+      source_component_id: "source_component_u1",
+      name: "U1",
+      ftype: "simple_chip",
+    },
+    {
+      type: "schematic_component",
+      schematic_component_id: "schematic_component_u1",
+      source_component_id: "source_component_u1",
+    },
+  ] as CircuitJson
+
+  const result = getSchematicSearchResults(circuitWithChip, "U1")[0]
+
+  expect(result?.detail).toBe("Chip")
+})
+
 test("finds components by manufacturer part number", () => {
   const circuitWithManufacturerPartNumber = circuitJson.map((element) => {
     if (element.type !== "source_component") return element
