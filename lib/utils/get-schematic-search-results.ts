@@ -157,7 +157,10 @@ export const getSchematicSearchResults = (
       : undefined
     const primaryLabel =
       sourceComponent?.name ?? sourceComponent?.display_name ?? "Component"
-    const componentScore = getTextMatchScore(primaryLabel, normalizedQuery)
+    const componentScore = Math.min(
+      getTextMatchScore(primaryLabel, normalizedQuery),
+      getTextMatchScore(sourceComponent?.display_name, normalizedQuery),
+    )
 
     if (Number.isFinite(componentScore)) {
       const result: SchematicSearchResult = {

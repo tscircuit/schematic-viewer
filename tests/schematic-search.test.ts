@@ -36,6 +36,25 @@ test("finds components by reference designator", () => {
   expect(results[0]?.schematicSheetId).toBe("sheet_1")
 })
 
+test("finds components by display name", () => {
+  const circuitWithDisplayName = circuitJson.map((element) => {
+    if (element.type !== "source_component") return element
+    return { ...element, display_name: "USB Connector" }
+  }) as CircuitJson
+
+  const results = getSchematicSearchResults(
+    circuitWithDisplayName,
+    "usb connector",
+  )
+
+  expect(results).toHaveLength(1)
+  expect(results[0]?.label).toBe("U1")
+  expect(results[0]?.target).toEqual({
+    type: "schematic_component",
+    id: "schematic_component_1",
+  })
+})
+
 test("finds net labels case-insensitively", () => {
   const results = getSchematicSearchResults(circuitJson, "gnd")
 
