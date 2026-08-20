@@ -160,6 +160,10 @@ export const getSchematicSearchResults = (
     const componentScore = Math.min(
       getTextMatchScore(primaryLabel, normalizedQuery),
       getTextMatchScore(sourceComponent?.display_name, normalizedQuery),
+      getTextMatchScore(
+        sourceComponent?.manufacturer_part_number,
+        normalizedQuery,
+      ),
     )
 
     if (Number.isFinite(componentScore)) {
