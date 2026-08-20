@@ -52,9 +52,19 @@ const getComponentDetail = (
   primaryLabel: string,
 ) => {
   const componentType = humanizeComponentType(sourceComponent?.ftype)
-  let displayName: string | undefined
-  if (sourceComponent?.display_name !== primaryLabel) {
-    displayName = sourceComponent?.display_name
+  let componentDescription = componentType
+  if (
+    sourceComponent?.ftype === "simple_chip" &&
+    sourceComponent.manufacturer_part_number
+  ) {
+    componentDescription = sourceComponent.manufacturer_part_number
+  }
+  const detailParts: string[] = []
+  if (
+    sourceComponent?.display_name === primaryLabel &&
+    sourceComponent.name !== primaryLabel
+  ) {
+    detailParts.push(sourceComponent.name)
   }
 
   let componentValue = sourceComponent?.display_value
@@ -77,15 +87,22 @@ const getComponentDetail = (
   }
   componentValue ??= schematicComponent.symbol_display_value
 
-  if (componentType && componentValue) {
-    return `${componentType} · ${componentValue}`
+  if (componentDescription) {
+    detailParts.push(componentDescription)
   }
-  return (
-    componentValue ??
-    displayName ??
-    sourceComponent?.manufacturer_part_number ??
-    componentType
-  )
+  if (componentValue) {
+    detailParts.push(componentValue)
+  }
+  if (
+    !componentDescription &&
+    !componentValue &&
+    sourceComponent?.manufacturer_part_number
+  ) {
+    detailParts.push(sourceComponent.manufacturer_part_number)
+  }
+
+  if (detailParts.length === 0) return undefined
+  return detailParts.join(" · ")
 }
 
 const isSourceComponent = (
@@ -156,9 +173,9 @@ export const getSchematicSearchResults = (
       ? sourceComponents.get(component.source_component_id)
       : undefined
     const primaryLabel =
-      sourceComponent?.name ?? sourceComponent?.display_name ?? "Component"
+      sourceComponent?.display_name ?? sourceComponent?.name ?? "Component"
     const componentScore = Math.min(
-      getTextMatchScore(primaryLabel, normalizedQuery),
+      getTextMatchScore(sourceComponent?.name, normalizedQuery),
       getTextMatchScore(sourceComponent?.display_name, normalizedQuery),
       getTextMatchScore(
         sourceComponent?.manufacturer_part_number,

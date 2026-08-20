@@ -48,11 +48,70 @@ test("finds components by display name", () => {
   )
 
   expect(results).toHaveLength(1)
-  expect(results[0]?.label).toBe("U1")
+  expect(results[0]?.label).toBe("USB Connector")
   expect(results[0]?.target).toEqual({
     type: "schematic_component",
     id: "schematic_component_1",
   })
+})
+
+test("shows the display name when searching by reference designator", () => {
+  const circuitWithDisplayName = circuitJson.map((element) => {
+    if (element.type !== "source_component") return element
+    return { ...element, display_name: "USB Connector" }
+  }) as CircuitJson
+
+  const results = getSchematicSearchResults(circuitWithDisplayName, "U1")
+
+  expect(results).toHaveLength(1)
+  expect(results[0]?.label).toBe("USB Connector")
+  expect(results[0]?.detail).toBe("U1 · USB Controller")
+})
+
+test("shows reference designator, type, and value below a display name", () => {
+  const circuitWithDisplayedResistor = [
+    {
+      type: "source_component",
+      source_component_id: "source_component_r1",
+      name: "R1",
+      display_name: "Current Limiter",
+      ftype: "simple_resistor",
+      display_resistance: "300Ω",
+    },
+    {
+      type: "schematic_component",
+      schematic_component_id: "schematic_component_r1",
+      source_component_id: "source_component_r1",
+    },
+  ] as CircuitJson
+
+  const result = getSchematicSearchResults(
+    circuitWithDisplayedResistor,
+    "R1",
+  )[0]
+
+  expect(result?.label).toBe("Current Limiter")
+  expect(result?.detail).toBe("R1 · Resistor · 300Ω")
+})
+
+test("shows chip type when no manufacturer part number is available", () => {
+  const circuitWithChip = [
+    {
+      type: "source_component",
+      source_component_id: "source_component_u1",
+      name: "U1",
+      ftype: "simple_chip",
+    },
+    {
+      type: "schematic_component",
+      schematic_component_id: "schematic_component_u1",
+      source_component_id: "source_component_u1",
+    },
+  ] as CircuitJson
+
+  const result = getSchematicSearchResults(circuitWithChip, "U1")[0]
+
+  expect(result?.detail).toBe("Chip")
 })
 
 test("finds components by manufacturer part number", () => {
