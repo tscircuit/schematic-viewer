@@ -52,9 +52,12 @@ const getComponentDetail = (
   primaryLabel: string,
 ) => {
   const componentType = humanizeComponentType(sourceComponent?.ftype)
-  let displayName: string | undefined
-  if (sourceComponent?.display_name !== primaryLabel) {
-    displayName = sourceComponent?.display_name
+  const detailParts: string[] = []
+  if (
+    sourceComponent?.display_name === primaryLabel &&
+    sourceComponent.name !== primaryLabel
+  ) {
+    detailParts.push(sourceComponent.name)
   }
 
   let componentValue = sourceComponent?.display_value
@@ -77,15 +80,22 @@ const getComponentDetail = (
   }
   componentValue ??= schematicComponent.symbol_display_value
 
-  if (componentType && componentValue) {
-    return `${componentType} · ${componentValue}`
+  if (componentType) {
+    detailParts.push(componentType)
   }
-  return (
-    componentValue ??
-    displayName ??
-    sourceComponent?.manufacturer_part_number ??
-    componentType
-  )
+  if (componentValue) {
+    detailParts.push(componentValue)
+  }
+  if (
+    !componentType &&
+    !componentValue &&
+    sourceComponent?.manufacturer_part_number
+  ) {
+    detailParts.push(sourceComponent.manufacturer_part_number)
+  }
+
+  if (detailParts.length === 0) return undefined
+  return detailParts.join(" · ")
 }
 
 const isSourceComponent = (
