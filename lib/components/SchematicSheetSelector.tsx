@@ -127,9 +127,6 @@ export const SchematicSheetSelector = ({
             title={selectedLabel}
             onPointerDown={(e) => e.stopPropagation()}
             style={{
-              position: "absolute",
-              top: "16px",
-              left: "16px",
               display: "flex",
               alignItems: "center",
               gap: "6px",
@@ -144,7 +141,6 @@ export const SchematicSheetSelector = ({
               boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
               fontSize: "13px",
               fontFamily: FONT_FAMILY,
-              zIndex: zIndexMap.viewMenuIcon,
             }}
           >
             <span style={{ color: "#888888", flexShrink: 0 }}>Sheet:</span>

@@ -1,6 +1,10 @@
 {
   "name": "@tscircuit/schematic-viewer",
-  "version": "2.0.77",
+  "version": "2.0.88",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tscircuit/schematic-viewer"
+  },
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
@@ -18,9 +22,11 @@
     "@biomejs/biome": "^1.9.4",
     "@types/bun": "latest",
     "@types/debug": "^4.1.12",
+    "@types/jsdom": "^21.1.7",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^26.0.0",
     "react": "^19.1.0",
     "react-cosmos": "^6.2.1",
     "react-cosmos-plugin-vite": "^6.2.0",
@@ -37,9 +43,11 @@
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@tscircuit/circuit-json-util": "^0.0.108",
     "circuit-json": "^0.0.465",
     "circuit-to-svg": "^0.0.393",
     "debug": "^4.4.0",
+    "fflate": "^0.8.3",
     "performance-now": "^2.1.0",
     "use-mouse-matrix-transform": "^1.2.2"
   }

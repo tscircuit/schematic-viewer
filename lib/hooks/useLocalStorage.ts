@@ -2,6 +2,7 @@ import { useCallback } from "react"
 
 export const STORAGE_KEYS = {
   IS_SHOWING_SCHEMATIC_GROUPS: "schematic_viewer_show_groups",
+  IS_SHOWING_SCHEMATIC_PORTS: "schematic_viewer_show_ports",
   SELECTED_SCHEMATIC_SHEET: "schematic_viewer_selected_sheet",
 } as const
 

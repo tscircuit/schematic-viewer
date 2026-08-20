@@ -1,11 +1,22 @@
-import { useState } from "react"
-import { ControlledSchematicViewer } from "lib/components/ControlledSchematicViewer"
+import { SchematicViewer } from "lib/components/SchematicViewer"
 import { renderToCircuitJson } from "lib/dev/render-to-circuit-json"
+import { useState } from "react"
+import { CC0603KRX7R9BB104 } from "./imports/c14663"
 
 const circuitJson = renderToCircuitJson(
   <board width="12mm" height="12mm">
-    <resistor name="R1" resistance={1000} schX={-2} schY={0} />
-    <capacitor name="C1" capacitance="1uF" schX={2} schY={0} />
+    <resistor
+      name="R1"
+      resistance={1000}
+      manufacturerPartNumber="RC0603FR-071KL"
+      supplierPartNumbers={{ jlcpcb: ["C2040"], lcsc: ["C2040"] }}
+      footprint="0603"
+      schX={-2}
+      schY={0}
+      pcbX={-2}
+      pcbY={0}
+    />
+    <CC0603KRX7R9BB104 name="C1" schX={2} schY={0} pcbX={2} pcbY={0} />
     <trace from=".R1 .pin2" to=".C1 .pin1" />
     <trace from=".R1 .pin1" to=".C1 .pin2" />
   </board>,
@@ -30,10 +41,10 @@ export default function Example() {
       <div style={{ fontFamily: "sans-serif" }}>
         {clickedComponentId
           ? `Last clicked component: ${clickedComponentId}`
-          : "Click a component to highlight it"}
+          : "Click a component to inspect it"}
       </div>
       <div style={{ flex: 1, minHeight: 320 }}>
-        <ControlledSchematicViewer
+        <SchematicViewer
           circuitJson={circuitJson}
           containerStyle={{ height: "100%" }}
           onSchematicComponentClicked={({ schematicComponentId }) => {
