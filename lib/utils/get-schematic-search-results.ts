@@ -156,9 +156,9 @@ export const getSchematicSearchResults = (
       ? sourceComponents.get(component.source_component_id)
       : undefined
     const primaryLabel =
-      sourceComponent?.name ?? sourceComponent?.display_name ?? "Component"
+      sourceComponent?.display_name ?? sourceComponent?.name ?? "Component"
     const componentScore = Math.min(
-      getTextMatchScore(primaryLabel, normalizedQuery),
+      getTextMatchScore(sourceComponent?.name, normalizedQuery),
       getTextMatchScore(sourceComponent?.display_name, normalizedQuery),
       getTextMatchScore(
         sourceComponent?.manufacturer_part_number,

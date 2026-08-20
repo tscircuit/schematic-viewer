@@ -12,7 +12,7 @@
       "cosmos-export",
       "dist",
       "package.json",
-      "examples/rp2040-motor-controller.circuit.json"
+      "examples/wifi-smart-switch.circuit.json"
     ]
   },
   "javascript": {
