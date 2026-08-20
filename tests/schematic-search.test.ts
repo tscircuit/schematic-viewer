@@ -55,6 +55,25 @@ test("finds components by display name", () => {
   })
 })
 
+test("finds components by manufacturer part number", () => {
+  const circuitWithManufacturerPartNumber = circuitJson.map((element) => {
+    if (element.type !== "source_component") return element
+    return { ...element, manufacturer_part_number: "STM32F103C8T6" }
+  }) as CircuitJson
+
+  const results = getSchematicSearchResults(
+    circuitWithManufacturerPartNumber,
+    "stm32f103",
+  )
+
+  expect(results).toHaveLength(1)
+  expect(results[0]?.label).toBe("U1")
+  expect(results[0]?.target).toEqual({
+    type: "schematic_component",
+    id: "schematic_component_1",
+  })
+})
+
 test("finds net labels case-insensitively", () => {
   const results = getSchematicSearchResults(circuitJson, "gnd")
 
