@@ -21,6 +21,7 @@ import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useContextMenu } from "../hooks/useContextMenu"
 import { getSchematicComponentDetails } from "../utils/component-details"
+import type { NavigateToPcbComponentOptions } from "../types/schematic-component-navigation"
 import { zIndexMap } from "../utils/z-index-map"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentDetailsTooltip } from "./SchematicComponentDetailsTooltip"
@@ -30,7 +31,7 @@ import { SchematicSearch } from "./SchematicSearch"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
 import { ViewMenu } from "./ViewMenu"
 
-interface Props {
+export interface SchematicViewerProps {
   circuitJson: CircuitJson
   containerStyle?: React.CSSProperties
   debugGrid?: boolean
@@ -46,6 +47,8 @@ interface Props {
     schematicComponentId: string
     event: MouseEvent
   }) => void
+  /** Request that the host open and focus the matching PCB component. */
+  onNavigateToPcbComponent?: (options: NavigateToPcbComponentOptions) => void
   showSchematicPorts?: boolean
   onSchematicPortClicked?: (options: {
     schematicPortId: string
@@ -73,13 +76,14 @@ export const SchematicViewer = ({
   disableGroups = false,
   netHoverHighlightEnabled = true,
   onSchematicComponentClicked,
+  onNavigateToPcbComponent,
   showSchematicPorts,
   onSchematicPortClicked,
   onSchematicSheetChange,
   searchEnabled = true,
   css,
   className,
-}: Props) => {
+}: SchematicViewerProps) => {
   if (debug) {
     enableDebug()
   }
@@ -691,6 +695,16 @@ export const SchematicViewer = ({
         {selectedComponentDetails && componentTooltipLayout && (
           <SchematicComponentDetailsTooltip
             sourceComponent={selectedComponentDetails.sourceComponent}
+            schematicComponentId={
+              selectedComponentDetails.schematicComponent.schematic_component_id
+            }
+            sourceComponentId={
+              selectedComponentDetails.sourceComponent.source_component_id
+            }
+            pcbComponentId={
+              selectedComponentDetails.pcbComponent?.pcb_component_id
+            }
+            onNavigateToPcbComponent={onNavigateToPcbComponent}
             footprinterString={selectedComponentDetails.footprinterString}
             footprintPreviewCircuitJson={
               selectedComponentDetails.footprintPreviewCircuitJson

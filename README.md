@@ -19,3 +19,9 @@ export default () => (
   />
 )
 ```
+
+Pass `onNavigateToPcbComponent` to add a **Go to PCB View** action to
+component-detail popups when the selected schematic component has a matching
+PCB component. The host callback receives the schematic, source, and PCB
+component IDs so it can switch views without coupling this package to a PCB
+viewer.

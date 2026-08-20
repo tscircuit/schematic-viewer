@@ -410,3 +410,129 @@ test("component details use compact styling and close on zoom or outside click",
     restore()
   }
 })
+
+test("PCB navigation is offered for represented components and emits resolved IDs", async () => {
+  const { dom, restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const navigationEvents: Array<{
+    schematicComponentId: string
+    sourceComponentId: string
+    pcbComponentId: string
+  }> = []
+
+  try {
+    await act(async () => {
+      reactRoot.render(
+        <SchematicViewer
+          circuitJson={circuitJson}
+          containerStyle={{ width: 800, height: 600 }}
+          onNavigateToPcbComponent={(options) => navigationEvents.push(options)}
+        />,
+      )
+    })
+    await act(
+      () => new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
+    )
+
+    const component = document.querySelector(
+      '[data-schematic-component-id="schematic_component_0"]',
+    )!
+    await act(async () => {
+      component.dispatchEvent(
+        new dom.window.MouseEvent("click", {
+          bubbles: true,
+          clientX: 320,
+          clientY: 270,
+        }),
+      )
+    })
+
+    const button = Array.from(document.querySelectorAll("button")).find(
+      (element) => element.textContent === "Go to PCB View",
+    )
+    expect(button).not.toBeNull()
+    expect(button?.style.fontSize).toBe("12px")
+    expect(button?.style.padding).toBe("4px 8px")
+    expect(button?.style.backgroundColor).toBe("rgb(248, 250, 252)")
+    expect(button?.parentElement?.style.justifyContent).toBe("flex-end")
+
+    await act(async () => {
+      button?.dispatchEvent(
+        new dom.window.MouseEvent("mousedown", { bubbles: true }),
+      )
+      button?.dispatchEvent(
+        new dom.window.MouseEvent("click", { bubbles: true }),
+      )
+    })
+
+    const details = getSchematicComponentDetails(
+      circuitJson,
+      "schematic_component_0",
+    )!
+    expect(navigationEvents).toEqual([
+      {
+        schematicComponentId: details.schematicComponent.schematic_component_id,
+        sourceComponentId: details.sourceComponent.source_component_id,
+        pcbComponentId: details.pcbComponent!.pcb_component_id,
+      },
+    ])
+  } finally {
+    await act(async () => reactRoot.unmount())
+    await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))
+    restore()
+  }
+})
+
+test("PCB navigation is hidden when a component has no PCB representation", async () => {
+  const { dom, restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const details = getSchematicComponentDetails(
+    circuitJson,
+    "schematic_component_0",
+  )!
+  const circuitWithoutPcbComponent = circuitJson.filter(
+    (element) =>
+      !(
+        element.type === "pcb_component" &&
+        element.pcb_component_id === details.pcbComponent!.pcb_component_id
+      ),
+  )
+
+  try {
+    await act(async () => {
+      reactRoot.render(
+        <SchematicViewer
+          circuitJson={circuitWithoutPcbComponent}
+          containerStyle={{ width: 800, height: 600 }}
+          onNavigateToPcbComponent={() => {}}
+        />,
+      )
+    })
+    await act(
+      () => new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
+    )
+
+    const component = document.querySelector(
+      '[data-schematic-component-id="schematic_component_0"]',
+    )!
+    await act(async () => {
+      component.dispatchEvent(
+        new dom.window.MouseEvent("click", {
+          bubbles: true,
+          clientX: 320,
+          clientY: 270,
+        }),
+      )
+    })
+
+    expect(
+      Array.from(document.querySelectorAll("button")).some(
+        (element) => element.textContent === "Go to PCB View",
+      ),
+    ).toBe(false)
+  } finally {
+    await act(async () => reactRoot.unmount())
+    await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))
+    restore()
+  }
+})
