@@ -1,5 +1,6 @@
 import type { CircuitJson } from "circuit-json"
 import { useMemo } from "react"
+import type { NavigateToPcbComponentOptions } from "../types/schematic-component-navigation"
 import {
   type PcbBounds,
   type SourceComponent,
@@ -11,6 +12,10 @@ import { zIndexMap } from "../utils/z-index-map"
 
 interface Props {
   sourceComponent: SourceComponent
+  schematicComponentId: string
+  sourceComponentId: string
+  pcbComponentId?: string
+  onNavigateToPcbComponent?: (options: NavigateToPcbComponentOptions) => void
   footprinterString?: string
   footprintPreviewCircuitJson?: CircuitJson
   footprintPreviewViewBox?: PcbBounds
@@ -30,6 +35,10 @@ const detailLabelStyle: React.CSSProperties = {
 
 export const SchematicComponentDetailsTooltip = ({
   sourceComponent,
+  schematicComponentId,
+  sourceComponentId,
+  pcbComponentId,
+  onNavigateToPcbComponent,
   footprinterString,
   footprintPreviewCircuitJson,
   footprintPreviewViewBox,
@@ -192,6 +201,45 @@ export const SchematicComponentDetailsTooltip = ({
               }}
             />
           </div>
+        </div>
+      )}
+      {onNavigateToPcbComponent && pcbComponentId && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            padding: "4px 8px 8px",
+          }}
+        >
+          <button
+            type="button"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation()
+              onNavigateToPcbComponent({
+                schematicComponentId,
+                sourceComponentId,
+                pcbComponentId,
+              })
+            }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px solid #cbd5e1",
+              borderRadius: "3px",
+              backgroundColor: "#f8fafc",
+              color: "#334155",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontSize: "12px",
+              fontWeight: 500,
+              lineHeight: 1.25,
+              padding: "4px 8px",
+            }}
+          >
+            Go to PCB View
+          </button>
         </div>
       )}
     </dialog>
