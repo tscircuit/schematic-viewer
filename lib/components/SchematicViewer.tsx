@@ -511,7 +511,7 @@ export const SchematicViewer = ({
       {netHoverHighlightEnabled && (
         <style>
           {`.sch-net-faded { opacity: 0.35; }
-            svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id]) { transition: opacity 0.12s ease-in-out; }`}
+            svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id], [data-schematic-text-id]) { transition: opacity 0.12s ease-in-out; }`}
         </style>
       )}
       {searchEnabled && (
