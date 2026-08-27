@@ -1,6 +1,11 @@
 import { su } from "@tscircuit/soup-util"
-import type { CircuitJson } from "circuit-json"
+import type { CircuitJson, SourceTrace } from "circuit-json"
 import { useEffect } from "react"
+
+type SourceTraceId = SourceTrace["source_trace_id"]
+type SubcircuitConnectivityMapKey = NonNullable<
+  SourceTrace["subcircuit_connectivity_map_key"]
+>
 
 const FADED_CLASS = "sch-net-faded"
 
@@ -8,17 +13,19 @@ const TRACE_SELECTOR =
   "g.trace[data-subcircuit-connectivity-map-key], g.trace-overlays[data-subcircuit-connectivity-map-key]"
 
 const NET_LABEL_SELECTOR = "[data-schematic-net-label-id]"
+const INLINE_NET_LABEL_SELECTOR = ".sch-inline-net-label[data-source-trace-id]"
 
 /**
  * Net highlighting on hover, done entirely in JS (the base SVG carries no
- * interaction). Hovering a wire or a net label fades every element that is NOT
- * part of that net — other nets' traces/labels and chips not connected to the
- * net — so the hovered net stands out by contrast rather than by recoloring.
+ * interaction). Hovering a wire, anchored net label, or inline net label fades
+ * every element that is NOT part of that net — other nets' traces/labels and
+ * chips not connected to the net — so the hovered net stands out by contrast.
  *
  * Identifies elements by the attributes circuit-to-svg emits:
  *  - traces:     g.trace[data-subcircuit-connectivity-map-key] (+ g.trace-overlays)
  *  - components: g[data-schematic-component-id]
  *  - net labels: [data-schematic-net-label-id] (per element, no wrapping group)
+ *  - inline labels: .sch-inline-net-label[data-source-trace-id]
  *
  * Faded elements get the `sch-net-faded` class (styled by SchematicViewer).
  */
@@ -37,7 +44,8 @@ export const useSchematicNetHover = ({
     const svgDiv = svgDivRef.current
     if (!enabled || !svgDiv) return
 
-    const { componentIdToKeys, netLabelIdToKey } = buildNetRegistry(circuitJson)
+    const { componentIdToKeys, netLabelIdToKey, sourceTraceIdToKey } =
+      buildNetRegistry(circuitJson)
 
     // Every net element and the net key(s) it belongs to, plus each hover
     // trigger's net key. Rebuilt from the SVG whenever it re-renders; the
@@ -81,6 +89,19 @@ export const useSchematicNetHover = ({
         }
         netElements.push({ el, keys })
       }
+      for (const el of Array.from(
+        svg.querySelectorAll(INLINE_NET_LABEL_SELECTOR),
+      )) {
+        const key = sourceTraceIdToKey.get(
+          el.getAttribute("data-source-trace-id")!,
+        )
+        const keys = new Set<string>()
+        if (key) {
+          keys.add(key)
+          triggerNetKeys.set(el, key)
+        }
+        netElements.push({ el, keys })
+      }
     }
 
     // Fade everything not on `key` (null clears the fade).
@@ -98,7 +119,9 @@ export const useSchematicNetHover = ({
         highlightNet(null)
         return
       }
-      const trigger = target.closest(`${TRACE_SELECTOR}, ${NET_LABEL_SELECTOR}`)
+      const trigger = target.closest(
+        `${TRACE_SELECTOR}, ${NET_LABEL_SELECTOR}, ${INLINE_NET_LABEL_SELECTOR}`,
+      )
       if (!trigger) {
         highlightNet(null)
         return
@@ -148,9 +171,14 @@ function buildNetRegistry(circuitJson: CircuitJson) {
   // schematic_component_id -> the connectivity nets its ports belong to (a chip
   // sits on several nets). The connectivity key lives on source_trace.
   const componentIdToKeys = new Map<string, Set<string>>()
+  const sourceTraceIdToKey = new Map<
+    SourceTraceId,
+    SubcircuitConnectivityMapKey
+  >()
   for (const sourceTrace of cju.source_trace.list()) {
     const key = sourceTrace.subcircuit_connectivity_map_key
     if (!key) continue
+    sourceTraceIdToKey.set(sourceTrace.source_trace_id, key)
     for (const portId of sourceTrace.connected_source_port_ids ?? []) {
       const schCompId = srcCompToSchComp.get(
         cju.source_port.get(portId)?.source_component_id ?? "",
@@ -175,5 +203,5 @@ function buildNetRegistry(circuitJson: CircuitJson) {
     netLabelIdToKey.set(label.schematic_net_label_id, key)
   }
 
-  return { componentIdToKeys, netLabelIdToKey }
+  return { componentIdToKeys, netLabelIdToKey, sourceTraceIdToKey }
 }
