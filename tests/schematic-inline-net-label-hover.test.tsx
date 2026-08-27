@@ -20,6 +20,27 @@ const circuitJson: CircuitJson = [
     connected_source_net_ids: [],
     subcircuit_connectivity_map_key: "other_net_key",
   },
+  {
+    type: "schematic_text",
+    schematic_text_id: "schematic_text_inline_label",
+    source_trace_id: "source_trace_signal",
+    text: "SIGNAL",
+    position: { x: 0, y: 0 },
+    anchor: "center",
+    rotation: 0,
+    font_size: 0.2,
+    color: "rgb(132, 0, 0)",
+  },
+  {
+    type: "schematic_text",
+    schematic_text_id: "schematic_text_note",
+    text: "note",
+    position: { x: 0, y: 1 },
+    anchor: "center",
+    rotation: 0,
+    font_size: 0.2,
+    color: "#006464",
+  },
 ]
 
 test("hovering inline net label highlights its source trace net", async () => {
@@ -65,10 +86,17 @@ test("hovering inline net label highlights its source trace net", async () => {
           />
           <text
             id="inline-label"
-            className="sch-inline-net-label"
-            data-source-trace-id="source_trace_signal"
+            className="sch-text"
+            data-schematic-text-id="schematic_text_inline_label"
           >
             SIGNAL
+          </text>
+          <text
+            id="ordinary-note"
+            className="sch-text"
+            data-schematic-text-id="schematic_text_note"
+          >
+            note
           </text>
         </svg>
       </div>
@@ -91,6 +119,9 @@ test("hovering inline net label highlights its source trace net", async () => {
       "sch-net-faded",
     )
     expect(document.getElementById("other-trace")!.classList).toContain(
+      "sch-net-faded",
+    )
+    expect(document.getElementById("ordinary-note")!.classList).not.toContain(
       "sch-net-faded",
     )
   } finally {

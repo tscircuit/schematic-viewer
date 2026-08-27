@@ -1,8 +1,9 @@
 import { su } from "@tscircuit/soup-util"
-import type { CircuitJson, SourceTrace } from "circuit-json"
+import type { CircuitJson, SchematicText, SourceTrace } from "circuit-json"
 import { useEffect } from "react"
 
 type SourceTraceId = SourceTrace["source_trace_id"]
+type SchematicTextId = SchematicText["schematic_text_id"]
 type SubcircuitConnectivityMapKey = NonNullable<
   SourceTrace["subcircuit_connectivity_map_key"]
 >
@@ -13,7 +14,7 @@ const TRACE_SELECTOR =
   "g.trace[data-subcircuit-connectivity-map-key], g.trace-overlays[data-subcircuit-connectivity-map-key]"
 
 const NET_LABEL_SELECTOR = "[data-schematic-net-label-id]"
-const INLINE_NET_LABEL_SELECTOR = ".sch-inline-net-label[data-source-trace-id]"
+const SCHEMATIC_TEXT_SELECTOR = "[data-schematic-text-id]"
 
 /**
  * Net highlighting on hover, done entirely in JS (the base SVG carries no
@@ -25,7 +26,7 @@ const INLINE_NET_LABEL_SELECTOR = ".sch-inline-net-label[data-source-trace-id]"
  *  - traces:     g.trace[data-subcircuit-connectivity-map-key] (+ g.trace-overlays)
  *  - components: g[data-schematic-component-id]
  *  - net labels: [data-schematic-net-label-id] (per element, no wrapping group)
- *  - inline labels: .sch-inline-net-label[data-source-trace-id]
+ *  - schematic text: [data-schematic-text-id]
  *
  * Faded elements get the `sch-net-faded` class (styled by SchematicViewer).
  */
@@ -44,7 +45,7 @@ export const useSchematicNetHover = ({
     const svgDiv = svgDivRef.current
     if (!enabled || !svgDiv) return
 
-    const { componentIdToKeys, netLabelIdToKey, sourceTraceIdToKey } =
+    const { componentIdToKeys, netLabelIdToKey, schematicTextIdToKey } =
       buildNetRegistry(circuitJson)
 
     // Every net element and the net key(s) it belongs to, plus each hover
@@ -90,16 +91,15 @@ export const useSchematicNetHover = ({
         netElements.push({ el, keys })
       }
       for (const el of Array.from(
-        svg.querySelectorAll(INLINE_NET_LABEL_SELECTOR),
+        svg.querySelectorAll(SCHEMATIC_TEXT_SELECTOR),
       )) {
-        const key = sourceTraceIdToKey.get(
-          el.getAttribute("data-source-trace-id")!,
+        const key = schematicTextIdToKey.get(
+          el.getAttribute("data-schematic-text-id")!,
         )
+        if (!key) continue
         const keys = new Set<string>()
-        if (key) {
-          keys.add(key)
-          triggerNetKeys.set(el, key)
-        }
+        keys.add(key)
+        triggerNetKeys.set(el, key)
         netElements.push({ el, keys })
       }
     }
@@ -120,7 +120,7 @@ export const useSchematicNetHover = ({
         return
       }
       const trigger = target.closest(
-        `${TRACE_SELECTOR}, ${NET_LABEL_SELECTOR}, ${INLINE_NET_LABEL_SELECTOR}`,
+        `${TRACE_SELECTOR}, ${NET_LABEL_SELECTOR}, ${SCHEMATIC_TEXT_SELECTOR}`,
       )
       if (!trigger) {
         highlightNet(null)
@@ -156,6 +156,7 @@ export const useSchematicNetHover = ({
  * elements to nets:
  *  - componentIdToKeys: which connectivity nets each schematic component touches
  *  - netLabelIdToKey: a schematic_net_label_id -> its connectivity key
+ *  - schematicTextIdToKey: an inline label's schematic_text_id -> its connectivity key
  */
 function buildNetRegistry(circuitJson: CircuitJson) {
   const cju = su(circuitJson)
@@ -191,6 +192,17 @@ function buildNetRegistry(circuitJson: CircuitJson) {
     }
   }
 
+  const schematicTextIdToKey = new Map<
+    SchematicTextId,
+    SubcircuitConnectivityMapKey
+  >()
+  for (const schematicText of cju.schematic_text.list()) {
+    if (!schematicText.source_trace_id) continue
+    const key = sourceTraceIdToKey.get(schematicText.source_trace_id)
+    if (!key) continue
+    schematicTextIdToKey.set(schematicText.schematic_text_id, key)
+  }
+
   // schematic_net_label_id -> connectivity key, resolved via its source_net
   // (same key the net's traces use). Falls back to source_net_id, which already
   // *is* the key for auto-emitted labels on unrouted nets (no source_net).
@@ -203,5 +215,5 @@ function buildNetRegistry(circuitJson: CircuitJson) {
     netLabelIdToKey.set(label.schematic_net_label_id, key)
   }
 
-  return { componentIdToKeys, netLabelIdToKey, sourceTraceIdToKey }
+  return { componentIdToKeys, netLabelIdToKey, schematicTextIdToKey }
 }
