@@ -33,7 +33,7 @@
     "react-dom": "^19.1.0",
     "react-reconciler": "^0.31.0",
     "semver": "^7.7.2",
-    "tscircuit": "^0.0.2112",
+    "tscircuit": "^0.0.2460",
     "tsup": "^8.3.5",
     "vite": "^6.0.3"
   },
@@ -44,8 +44,8 @@
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@tscircuit/circuit-json-util": "^0.0.108",
-    "circuit-json": "^0.0.465",
-    "circuit-to-svg": "^0.0.393",
+    "circuit-json": "^0.0.479",
+    "circuit-to-svg": "^0.0.410",
     "debug": "^4.4.0",
     "fflate": "^0.8.3",
     "performance-now": "^2.1.0",
