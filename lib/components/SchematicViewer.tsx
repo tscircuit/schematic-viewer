@@ -28,6 +28,7 @@ import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
 import { SchematicSearch } from "./SchematicSearch"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
+import { SchematicTraceNetTooltip } from "./SchematicTraceNetTooltip"
 import { ViewMenu } from "./ViewMenu"
 
 interface Props {
@@ -479,8 +480,9 @@ export const SchematicViewer = ({
 
   // Fade unrelated nets/chips when hovering a wire or net label (JS-driven; the
   // base SVG carries no interaction).
-  useSchematicNetHover({
+  const hoveredSchematicTrace = useSchematicNetHover({
     svgDivRef,
+    containerRef,
     circuitJson,
     circuitJsonKey: `${circuitJsonKey}_${activeSheetId ?? ""}`,
     enabled: netHoverHighlightEnabled,
@@ -688,6 +690,9 @@ export const SchematicViewer = ({
           />
         ))}
         {svgDiv}
+        {hoveredSchematicTrace && (
+          <SchematicTraceNetTooltip hoveredTrace={hoveredSchematicTrace} />
+        )}
         {selectedComponentDetails && componentTooltipLayout && (
           <SchematicComponentDetailsTooltip
             sourceComponent={selectedComponentDetails.sourceComponent}

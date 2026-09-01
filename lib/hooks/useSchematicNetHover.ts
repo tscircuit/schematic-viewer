@@ -1,6 +1,6 @@
 import { su } from "@tscircuit/soup-util"
 import type { CircuitJson } from "circuit-json"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 const FADED_CLASS = "sch-net-faded"
 
@@ -8,6 +8,14 @@ const TRACE_SELECTOR =
   "g.trace[data-subcircuit-connectivity-map-key], g.trace-overlays[data-subcircuit-connectivity-map-key]"
 
 const NET_LABEL_SELECTOR = "[data-schematic-net-label-id]"
+
+type SubcircuitConnectivityMapKey = string
+
+export interface HoveredSchematicTrace {
+  netName: string
+  x: number
+  y: number
+}
 
 /**
  * Net highlighting on hover, done entirely in JS (the base SVG carries no
@@ -24,20 +32,29 @@ const NET_LABEL_SELECTOR = "[data-schematic-net-label-id]"
  */
 export const useSchematicNetHover = ({
   svgDivRef,
+  containerRef,
   circuitJson,
   circuitJsonKey,
   enabled,
 }: {
   svgDivRef: React.RefObject<HTMLDivElement | null>
+  containerRef: React.RefObject<HTMLDivElement | null>
   circuitJson: CircuitJson
   circuitJsonKey: string
   enabled: boolean
 }) => {
+  const [hoveredTrace, setHoveredTrace] =
+    useState<HoveredSchematicTrace | null>(null)
+
   useEffect(() => {
     const svgDiv = svgDivRef.current
-    if (!enabled || !svgDiv) return
+    if (!enabled || !svgDiv) {
+      setHoveredTrace(null)
+      return
+    }
 
-    const { componentIdToKeys, netLabelIdToKey } = buildNetRegistry(circuitJson)
+    const { componentIdToKeys, netLabelIdToKey, netNameByKey } =
+      buildNetRegistry(circuitJson)
 
     // Every net element and the net key(s) it belongs to, plus each hover
     // trigger's net key. Rebuilt from the SVG whenever it re-renders; the
@@ -51,6 +68,7 @@ export const useSchematicNetHover = ({
       netElements = []
       triggerNetKeys.clear()
       hoveredNetKey = null
+      setHoveredTrace(null)
 
       const svg = svgDiv.querySelector("svg")
       if (!svg) return
@@ -92,20 +110,47 @@ export const useSchematicNetHover = ({
       }
     }
 
-    const handleMouseOver = (e: Event) => {
-      const target = e.target
+    const handleMouseOver = (event: Event) => {
+      const target = event.target
       if (!(target instanceof Element)) {
         highlightNet(null)
+        setHoveredTrace(null)
         return
       }
       const trigger = target.closest(`${TRACE_SELECTOR}, ${NET_LABEL_SELECTOR}`)
       if (!trigger) {
         highlightNet(null)
+        setHoveredTrace(null)
         return
       }
-      highlightNet(triggerNetKeys.get(trigger) ?? null)
+      const netKey = triggerNetKeys.get(trigger)
+      highlightNet(netKey ?? null)
+
+      if (!trigger.matches(TRACE_SELECTOR) || !(event instanceof MouseEvent)) {
+        setHoveredTrace(null)
+        return
+      }
+
+      let netName: string | undefined
+      if (netKey) {
+        netName = netNameByKey.get(netKey)
+      }
+      const containerRect = containerRef.current?.getBoundingClientRect()
+      if (!netName || !containerRect) {
+        setHoveredTrace(null)
+        return
+      }
+
+      setHoveredTrace({
+        netName,
+        x: event.clientX - containerRect.left,
+        y: event.clientY - containerRect.top,
+      })
     }
-    const handleMouseLeave = () => highlightNet(null)
+    const handleMouseLeave = () => {
+      highlightNet(null)
+      setHoveredTrace(null)
+    }
 
     collectNetElements()
     svgDiv.addEventListener("mouseover", handleMouseOver)
@@ -125,7 +170,9 @@ export const useSchematicNetHover = ({
     }
     // Keyed on circuitJsonKey (content hash) rather than the circuitJson
     // reference, matching the other post-render SVG hooks.
-  }, [svgDivRef, circuitJsonKey, enabled])
+  }, [svgDivRef, containerRef, circuitJsonKey, enabled])
+
+  return hoveredTrace
 }
 
 /**
@@ -175,5 +222,32 @@ function buildNetRegistry(circuitJson: CircuitJson) {
     netLabelIdToKey.set(label.schematic_net_label_id, key)
   }
 
-  return { componentIdToKeys, netLabelIdToKey }
+  const netNameByKey = new Map<SubcircuitConnectivityMapKey, string>()
+  for (const sourceNet of cju.source_net.list()) {
+    const netName = sourceNet.name.trim()
+    if (!netName) continue
+    const key =
+      sourceNet.subcircuit_connectivity_map_key ?? sourceNet.source_net_id
+    netNameByKey.set(key, netName)
+  }
+
+  for (const sourceTrace of cju.source_trace.list()) {
+    const key = sourceTrace.subcircuit_connectivity_map_key
+    if (!key) continue
+
+    const traceName = sourceTrace.name?.trim()
+    if (traceName) {
+      netNameByKey.set(key, traceName)
+      continue
+    }
+
+    for (const sourceNetId of sourceTrace.connected_source_net_ids) {
+      const netName = cju.source_net.get(sourceNetId)?.name.trim()
+      if (!netName) continue
+      netNameByKey.set(key, netName)
+      break
+    }
+  }
+
+  return { componentIdToKeys, netLabelIdToKey, netNameByKey }
 }
