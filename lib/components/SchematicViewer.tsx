@@ -152,6 +152,7 @@ export const SchematicViewer = ({
   )
 
   const [showGridInternal, setShowGridInternal] = useState(false)
+  const [showWarnings, setShowWarnings] = useState(false)
   const showGrid = debugGrid || showGridInternal
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
     !clickToInteractEnabled,
@@ -421,6 +422,7 @@ export const SchematicViewer = ({
       width: containerWidth,
       height: containerHeight || 720,
       drawPorts: showSchematicPortsInternal,
+      shouldDrawWarnings: showWarnings,
       schematicSheetId: activeSheetId,
       grid: !showGrid
         ? undefined
@@ -437,6 +439,7 @@ export const SchematicViewer = ({
     containerWidth,
     containerHeight,
     showGrid,
+    showWarnings,
     showSchematicPortsInternal,
     activeSheetId,
   ])
@@ -643,6 +646,8 @@ export const SchematicViewer = ({
                 )
               }
             }}
+            showWarnings={showWarnings}
+            onToggleWarnings={setShowWarnings}
             showGrid={showGrid}
             onToggleGrid={setShowGridInternal}
           />

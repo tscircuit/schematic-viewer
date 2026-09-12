@@ -15,6 +15,8 @@ interface ViewMenuProps {
   onToggleGroups: (show: boolean) => void
   showGrid: boolean
   onToggleGrid: (show: boolean) => void
+  showWarnings: boolean
+  onToggleWarnings: (show: boolean) => void
   showPorts: boolean
   onTogglePorts: (show: boolean) => void
 }
@@ -103,6 +105,8 @@ export const ViewMenu = ({
   onToggleGrid,
   showPorts,
   onTogglePorts,
+  showWarnings,
+  onToggleWarnings,
 }: ViewMenuProps) => {
   const hasGroups = useMemo(() => {
     if (!circuitJson || circuitJson.length === 0) return false
@@ -216,6 +220,21 @@ export const ViewMenu = ({
               <span style={iconSlotStyles}>{showGrid && <CheckIcon />}</span>
               <span>Show Grid</span>
             </DropdownMenu.Item>
+
+            <DropdownMenu.CheckboxItem
+              className="sv-vm-item"
+              style={itemStyles}
+              checked={showWarnings}
+              onCheckedChange={onToggleWarnings}
+              onSelect={(event) => event.preventDefault()}
+            >
+              <span style={iconSlotStyles}>
+                <DropdownMenu.ItemIndicator>
+                  <CheckIcon />
+                </DropdownMenu.ItemIndicator>
+              </span>
+              <span>Show Warnings</span>
+            </DropdownMenu.CheckboxItem>
 
             <DropdownMenu.Separator style={separatorStyles} />
 
