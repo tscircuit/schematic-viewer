@@ -1,4 +1,13 @@
-import { expect, test } from "bun:test"
+import { afterAll, beforeAll, expect, spyOn, test } from "bun:test"
+import { styleAnalyzerLoader } from "../lib/utils/load-style-analyzer"
+
+let analyzerSpy: ReturnType<typeof spyOn>
+beforeAll(() => {
+  analyzerSpy = spyOn(styleAnalyzerLoader, "load").mockImplementation(
+    () => import("@tscircuit/circuit-json-schematic-placement-analysis"),
+  )
+})
+afterAll(() => analyzerSpy.mockRestore())
 import { JSDOM } from "jsdom"
 import { createRef, useRef, useState } from "react"
 import { act } from "react"
@@ -446,17 +455,20 @@ test("Run Style Analysis opens real issue SVGs and can be rerun", async () => {
   }
 })
 
-test("style analysis reports failures in a dismissible dialog", async () => {
+test("style analysis reports CDN failures in a dismissible dialog", async () => {
   const { dom, restore } = installDom()
   const reactRoot = createRoot(document.getElementById("root")!)
   const { StyleAnalysisDialog } = await import(
     "../lib/components/StyleAnalysisDialog"
   )
+  analyzerSpy.mockRejectedValueOnce(
+    new Error("Failed to load the analyzer from the CDN"),
+  )
   const Harness = () => {
     const [open, setOpen] = useState(true)
     return open ? (
       <StyleAnalysisDialog
-        circuitJson={[null] as any}
+        circuitJson={circuitJsonWithPort}
         onClose={() => setOpen(false)}
       />
     ) : null

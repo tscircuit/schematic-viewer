@@ -1,5 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog"
-import type { SchematicPlacementIssueArtifact } from "@tscircuit/circuit-json-schematic-placement-analysis"
+import {
+  styleAnalyzerLoader,
+  type StyleAnalysisArtifact,
+} from "../utils/load-style-analyzer"
 import type { CircuitJson } from "circuit-json"
 import { useEffect, useState } from "react"
 import { zIndexMap } from "../utils/z-index-map"
@@ -7,7 +10,7 @@ import { zIndexMap } from "../utils/z-index-map"
 type AnalysisState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "complete"; artifacts: SchematicPlacementIssueArtifact[] }
+  | { status: "complete"; artifacts: StyleAnalysisArtifact[] }
 
 export const StyleAnalysisDialog = ({
   circuitJson,
@@ -23,9 +26,8 @@ export const StyleAnalysisDialog = ({
     // Let the dialog paint before loading and running the analyzer.
     const timer = window.setTimeout(async () => {
       try {
-        const { createSchematicPlacementIssueArtifacts } = await import(
-          "@tscircuit/circuit-json-schematic-placement-analysis"
-        )
+        const { createSchematicPlacementIssueArtifacts } =
+          await styleAnalyzerLoader.load()
         if (cancelled) return
         const artifacts = createSchematicPlacementIssueArtifacts(circuitJson)
         if (!cancelled) setState({ status: "complete", artifacts })

@@ -35,7 +35,8 @@
     "semver": "^7.7.2",
     "tscircuit": "^0.0.2460",
     "tsup": "^8.3.5",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "@tscircuit/circuit-json-schematic-placement-analysis": "https://codeload.github.com/tscircuit/circuit-json-schematic-placement-analysis/tar.gz/refs/heads/main"
   },
   "peerDependencies": {
     "typescript": "^5.0.0",
@@ -44,7 +45,6 @@
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
-    "@tscircuit/circuit-json-schematic-placement-analysis": "https://codeload.github.com/tscircuit/circuit-json-schematic-placement-analysis/tar.gz/refs/heads/main",
     "@tscircuit/circuit-json-util": "^0.0.108",
     "circuit-json": "^0.0.479",
     "circuit-to-svg": "^0.0.416",
