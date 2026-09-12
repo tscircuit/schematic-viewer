@@ -1,4 +1,13 @@
-import { expect, test } from "bun:test"
+import { afterAll, beforeAll, expect, spyOn, test } from "bun:test"
+import { styleAnalyzerLoader } from "../lib/utils/load-style-analyzer"
+
+let analyzerSpy: ReturnType<typeof spyOn>
+beforeAll(() => {
+  analyzerSpy = spyOn(styleAnalyzerLoader, "load").mockImplementation(
+    () => import("@tscircuit/circuit-json-schematic-placement-analysis"),
+  )
+})
+afterAll(() => analyzerSpy.mockRestore())
 import { JSDOM } from "jsdom"
 import { createRef, useRef, useState } from "react"
 import { act } from "react"
@@ -16,9 +25,13 @@ const installDom = () => {
     Event: globalThis.Event,
     CustomEvent: globalThis.CustomEvent,
     HTMLElement: globalThis.HTMLElement,
+    HTMLInputElement: globalThis.HTMLInputElement,
     MouseEvent: globalThis.MouseEvent,
     MutationObserver: globalThis.MutationObserver,
     Node: globalThis.Node,
+    NodeFilter: globalThis.NodeFilter,
+    requestAnimationFrame: globalThis.requestAnimationFrame,
+    cancelAnimationFrame: globalThis.cancelAnimationFrame,
     ResizeObserver: globalThis.ResizeObserver,
     getComputedStyle: globalThis.getComputedStyle,
   }
@@ -52,9 +65,13 @@ const installDom = () => {
     Event: dom.window.Event,
     CustomEvent: dom.window.CustomEvent,
     HTMLElement: dom.window.HTMLElement,
+    HTMLInputElement: dom.window.HTMLInputElement,
     MouseEvent: dom.window.MouseEvent,
     MutationObserver: dom.window.MutationObserver,
     Node: dom.window.Node,
+    NodeFilter: dom.window.NodeFilter,
+    requestAnimationFrame: dom.window.requestAnimationFrame,
+    cancelAnimationFrame: dom.window.cancelAnimationFrame,
     ResizeObserver: TestResizeObserver,
     getComputedStyle: dom.window.getComputedStyle,
     IS_REACT_ACT_ENVIRONMENT: true,
@@ -116,6 +133,7 @@ test("the context menu toggles schematic ports", async () => {
           menuRef={createRef<HTMLDivElement>()}
           menuPos={{ x: 0, y: 0 }}
           onOpenChange={() => {}}
+          onRunStyleAnalysis={() => {}}
           showPorts={showPorts}
           onTogglePorts={setShowPorts}
           showGroups={false}
@@ -334,6 +352,140 @@ test("the warnings menu toggles rendered callouts with mouse and keyboard", asyn
     })
     expect(item.getAttribute("aria-checked")).toBe("false")
     expect(document.querySelector(".schematic-warning")).toBeNull()
+  } finally {
+    await act(async () => reactRoot.unmount())
+    await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))
+    restore()
+  }
+})
+
+test("Run Style Analysis opens real issue SVGs and can be rerun", async () => {
+  const { dom, restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const { SchematicViewer } = await import("../lib/components/SchematicViewer")
+  const circuitJson = [
+    ...circuitJsonWithPort,
+    {
+      type: "source_component",
+      source_component_id: "source_component_2",
+      name: "R2",
+      ftype: "simple_resistor",
+    },
+    {
+      type: "schematic_component",
+      schematic_component_id: "schematic_component_2",
+      source_component_id: "source_component_2",
+      center: { x: 0.1, y: 0 },
+      size: { width: 1, height: 1 },
+    },
+  ]
+  const openAnalysis = async () => {
+    const component = document.querySelector(
+      '[data-schematic-component-id="schematic_component_1"]',
+    )!
+    await act(async () => {
+      for (const type of ["mousedown", "contextmenu"]) {
+        component.dispatchEvent(
+          new dom.window.MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            clientX: 100,
+            clientY: 100,
+          }),
+        )
+      }
+    })
+    const command = Array.from(
+      document.querySelectorAll('[role="menuitem"]'),
+    ).find((item) => item.textContent === "Run Style Analysis")!
+    expect(command).toBeDefined()
+    await act(async () =>
+      command.dispatchEvent(
+        new dom.window.MouseEvent("click", { bubbles: true }),
+      ),
+    )
+    for (
+      let i = 0;
+      i < 100 &&
+      document.querySelector('[role="status"]')?.textContent ===
+        "Running style analysis…";
+      i++
+    ) {
+      await act(
+        () =>
+          new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
+      )
+    }
+  }
+  const closeAnalysis = async () => {
+    const close = Array.from(document.querySelectorAll("button")).find(
+      (button) => button.textContent === "Close",
+    )!
+    await act(async () => close.click())
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+  }
+  try {
+    await act(async () =>
+      reactRoot.render(<SchematicViewer circuitJson={circuitJson} />),
+    )
+    await openAnalysis()
+    const dialog = document.querySelector('[role="dialog"]')!
+    expect(dialog).not.toBeNull()
+    expect(dialog.textContent).toContain("Component Overlap")
+    const images = Array.from(dialog.querySelectorAll("img"))
+    expect(images.length).toBeGreaterThan(0)
+    expect(decodeURIComponent(images[0]!.src.split(",")[1]!)).toContain("<svg")
+    expect(document.querySelector('[role="menu"]')).toBeNull()
+    await closeAnalysis()
+
+    await act(async () =>
+      reactRoot.render(<SchematicViewer circuitJson={circuitJsonWithPort} />),
+    )
+    await openAnalysis()
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+      "No style issues found.",
+    )
+    expect(document.querySelector('[role="dialog"] img')).toBeNull()
+    await closeAnalysis()
+  } finally {
+    await act(async () => reactRoot.unmount())
+    await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))
+    restore()
+  }
+})
+
+test("style analysis reports CDN failures in a dismissible dialog", async () => {
+  const { dom, restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const { StyleAnalysisDialog } = await import(
+    "../lib/components/StyleAnalysisDialog"
+  )
+  analyzerSpy.mockRejectedValueOnce(
+    new Error("Failed to load the analyzer from the CDN"),
+  )
+  const Harness = () => {
+    const [open, setOpen] = useState(true)
+    return open ? (
+      <StyleAnalysisDialog
+        circuitJson={circuitJsonWithPort}
+        onClose={() => setOpen(false)}
+      />
+    ) : null
+  }
+  try {
+    await act(async () => reactRoot.render(<Harness />))
+    for (let i = 0; i < 100 && !document.querySelector('[role="alert"]'); i++) {
+      await act(
+        () =>
+          new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
+      )
+    }
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      "Style analysis failed:",
+    )
+    await act(async () => document.querySelector("button")!.click())
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
   } finally {
     await act(async () => reactRoot.unmount())
     await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))

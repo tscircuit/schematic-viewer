@@ -19,3 +19,17 @@ export default () => (
   />
 )
 ```
+
+Right-click a schematic and select **Run Style Analysis** to analyze the current
+Circuit JSON across all sheets. A modal displays one annotated SVG per placement
+or style issue, or a message when no issues are found. Analysis runs locally in
+the browser and loads on demand. Close the modal and run the command again after
+editing the circuit to get fresh results.
+
+The analyzer is fetched at runtime from
+`https://jscdn.tscircuit.com/@tscircuit/circuit-json-schematic-placement-analysis/latest/dist/browser.js`.
+It is not included in the viewer bundle. This requires a published analyzer
+release and network access to jscdn; the host page's Content Security Policy must
+allow scripts from that origin. jscdn caches `latest` for up to ten minutes, and
+the browser reuses an imported module until the page reloads. Circuit JSON stays
+in the browser. The analyzer's GitHub dev dependency is used only by tests.
