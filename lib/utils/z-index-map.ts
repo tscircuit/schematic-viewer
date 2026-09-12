@@ -1,5 +1,6 @@
 export const zIndexMap = {
   contextMenu: 110,
+  styleAnalysis: 120,
   viewMenu: 55,
   viewMenuIcon: 48,
   clickToInteractOverlay: 100,

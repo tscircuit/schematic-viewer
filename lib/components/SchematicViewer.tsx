@@ -1,3 +1,4 @@
+import { StyleAnalysisDialog } from "./StyleAnalysisDialog"
 import { su } from "@tscircuit/soup-util"
 import type { CircuitJson, SchematicSheet } from "circuit-json"
 import {
@@ -152,6 +153,8 @@ export const SchematicViewer = ({
   )
 
   const [showGridInternal, setShowGridInternal] = useState(false)
+  const [analysisCircuitJson, setAnalysisCircuitJson] =
+    useState<CircuitJson | null>(null)
   const [showWarnings, setShowWarnings] = useState(false)
   const showGrid = debugGrid || showGridInternal
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
@@ -624,6 +627,12 @@ export const SchematicViewer = ({
             </div>
           </div>
         )}
+        {analysisCircuitJson && (
+          <StyleAnalysisDialog
+            circuitJson={analysisCircuitJson}
+            onClose={() => setAnalysisCircuitJson(null)}
+          />
+        )}
         {menuVisible && (
           <ViewMenu
             circuitJson={circuitJson}
@@ -631,6 +640,10 @@ export const SchematicViewer = ({
             menuRef={menuRef}
             menuPos={menuPos}
             onOpenChange={setMenuVisible}
+            onRunStyleAnalysis={() => {
+              setMenuVisible(false)
+              setAnalysisCircuitJson(structuredClone(circuitJson))
+            }}
             showPorts={showSchematicPortsInternal}
             onTogglePorts={(value) => {
               setShowSchematicPortsInternal(value)

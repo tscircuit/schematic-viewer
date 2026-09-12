@@ -11,6 +11,7 @@ interface ViewMenuProps {
   menuRef: React.RefObject<HTMLDivElement | null>
   menuPos: { x: number; y: number }
   onOpenChange: (open: boolean) => void
+  onRunStyleAnalysis: () => void
   showGroups: boolean
   onToggleGroups: (show: boolean) => void
   showGrid: boolean
@@ -99,6 +100,7 @@ export const ViewMenu = ({
   menuRef,
   menuPos,
   onOpenChange,
+  onRunStyleAnalysis,
   showGroups,
   onToggleGroups,
   showGrid,
@@ -236,6 +238,15 @@ export const ViewMenu = ({
               <span>Show Warnings</span>
             </DropdownMenu.CheckboxItem>
 
+            <DropdownMenu.Separator style={separatorStyles} />
+            <DropdownMenu.Item
+              className="sv-vm-item"
+              style={itemStyles}
+              onSelect={onRunStyleAnalysis}
+            >
+              <span style={iconSlotStyles} />
+              <span>Run Style Analysis</span>
+            </DropdownMenu.Item>
             <DropdownMenu.Separator style={separatorStyles} />
 
             <div
