@@ -19,8 +19,31 @@ const installDom = () => {
     MouseEvent: globalThis.MouseEvent,
     MutationObserver: globalThis.MutationObserver,
     Node: globalThis.Node,
+    ResizeObserver: globalThis.ResizeObserver,
     getComputedStyle: globalThis.getComputedStyle,
   }
+
+  class TestResizeObserver {
+    observe() {}
+    disconnect() {}
+  }
+  dom.window.Element.prototype.getBoundingClientRect = () =>
+    ({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 800,
+      bottom: 600,
+      width: 800,
+      height: 600,
+      toJSON: () => {},
+    }) as DOMRect
+  Object.assign(dom.window, {
+    requestAnimationFrame: (callback: FrameRequestCallback) =>
+      dom.window.setTimeout(() => callback(Date.now()), 0),
+    cancelAnimationFrame: (id: number) => dom.window.clearTimeout(id),
+  })
 
   Object.assign(globalThis, {
     window: dom.window,
@@ -32,6 +55,7 @@ const installDom = () => {
     MouseEvent: dom.window.MouseEvent,
     MutationObserver: dom.window.MutationObserver,
     Node: dom.window.Node,
+    ResizeObserver: TestResizeObserver,
     getComputedStyle: dom.window.getComputedStyle,
     IS_REACT_ACT_ENVIRONMENT: true,
   })
@@ -96,6 +120,8 @@ test("the context menu toggles schematic ports", async () => {
           onTogglePorts={setShowPorts}
           showGroups={false}
           onToggleGroups={() => {}}
+          showWarnings={false}
+          onToggleWarnings={() => {}}
           showGrid={false}
           onToggleGrid={() => {}}
         />
@@ -232,6 +258,85 @@ test("a long press opens the context menu on touch devices", async () => {
     expect(target.getAttribute("data-menu-y")).toBe("70")
   } finally {
     await act(async () => reactRoot.unmount())
+    restore()
+  }
+})
+
+test("the warnings menu toggles rendered callouts with mouse and keyboard", async () => {
+  const { dom, restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const { SchematicViewer } = await import("../lib/components/SchematicViewer")
+  const message = "This component has a manual edit conflict"
+  const circuitJson = [
+    ...circuitJsonWithPort,
+    {
+      type: "schematic_manual_edit_conflict_warning",
+      schematic_manual_edit_conflict_warning_id: "warning_1",
+      schematic_component_id: "schematic_component_1",
+      message,
+    },
+  ]
+
+  try {
+    await act(async () =>
+      reactRoot.render(<SchematicViewer circuitJson={circuitJson} />),
+    )
+    expect(document.querySelector("svg")).not.toBeNull()
+    expect(document.querySelector(".schematic-warning")).toBeNull()
+
+    const component = document.querySelector(
+      '[data-schematic-component-id="schematic_component_1"]',
+    )!
+    await act(async () => {
+      component.dispatchEvent(
+        new dom.window.MouseEvent("mousedown", {
+          bubbles: true,
+          button: 2,
+          clientX: 100,
+          clientY: 100,
+        }),
+      )
+      component.dispatchEvent(
+        new dom.window.MouseEvent("contextmenu", {
+          bubbles: true,
+          cancelable: true,
+          button: 2,
+          clientX: 100,
+          clientY: 100,
+        }),
+      )
+    })
+    await act(
+      () => new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0)),
+    )
+
+    const item = document.querySelector('[role="menuitemcheckbox"]')!
+    expect(item.textContent).toBe("Show Warnings")
+    expect(item.getAttribute("aria-checked")).toBe("false")
+    await act(async () => {
+      item.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }))
+    })
+    expect(item.getAttribute("aria-checked")).toBe("true")
+    expect(
+      document.querySelector(".schematic-warning text")?.textContent,
+    ).toContain(message)
+    expect(
+      document.querySelector('[data-warning-reference="target"]'),
+    ).not.toBeNull()
+
+    await act(async () => {
+      item.dispatchEvent(
+        new dom.window.KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+        }),
+      )
+    })
+    expect(item.getAttribute("aria-checked")).toBe("false")
+    expect(document.querySelector(".schematic-warning")).toBeNull()
+  } finally {
+    await act(async () => reactRoot.unmount())
+    await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))
     restore()
   }
 })
