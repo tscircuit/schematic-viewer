@@ -1,6 +1,7 @@
 import type { CircuitJson } from "circuit-json"
 import { useMemo } from "react"
 import {
+  type ComponentWarning,
   type PcbBounds,
   type SourceComponent,
   getFootprintPreviewUrl,
@@ -11,6 +12,7 @@ import { zIndexMap } from "../utils/z-index-map"
 
 interface Props {
   sourceComponent: SourceComponent
+  warnings?: ComponentWarning[]
   footprinterString?: string
   footprintPreviewCircuitJson?: CircuitJson
   footprintPreviewViewBox?: PcbBounds
@@ -30,6 +32,7 @@ const detailLabelStyle: React.CSSProperties = {
 
 export const SchematicComponentDetailsTooltip = ({
   sourceComponent,
+  warnings = [],
   footprinterString,
   footprintPreviewCircuitJson,
   footprintPreviewViewBox,
@@ -167,6 +170,30 @@ export const SchematicComponentDetailsTooltip = ({
           </div>
         )}
       </dl>
+
+      {warnings.length > 0 && (
+        <section
+          aria-label="Component warnings"
+          style={{
+            margin: "0 8px 8px",
+            padding: "8px",
+            border: "1px solid #fcd34d",
+            borderRadius: "4px",
+            backgroundColor: "#fffbeb",
+            color: "#92400e",
+            fontSize: "12px",
+            lineHeight: 1.45,
+            overflowWrap: "anywhere",
+          }}
+        >
+          <strong>Warnings ({warnings.length})</strong>
+          <ul style={{ margin: "4px 0 0", paddingLeft: "18px" }}>
+            {warnings.map((warning, index) => (
+              <li key={`${warning.type}-${index}`}>{warning.message}</li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {footprintPreviewUrl && (
         <div style={{ padding: "0 4px 4px" }}>

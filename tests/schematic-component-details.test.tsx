@@ -4,10 +4,13 @@ import { gunzipSync, strFromU8 } from "fflate"
 import { JSDOM } from "jsdom"
 import { act } from "react"
 import { createRoot } from "react-dom/client"
+import { renderToStaticMarkup } from "react-dom/server"
+import { SchematicComponentDetailsTooltip } from "../lib/components/SchematicComponentDetailsTooltip"
 import { SchematicViewer } from "../lib/components/SchematicViewer"
 import { renderToCircuitJson } from "../lib/dev/render-to-circuit-json"
 import {
   type SourceComponent,
+  type ComponentWarning,
   getFootprintPreviewUrl,
   getPcbComponentPreview,
   getSchematicComponentDetails,
@@ -46,6 +49,88 @@ const circuitJson: CircuitJson = [
   },
 ]
 
+const componentWarnings: ComponentWarning[] = [
+  {
+    type: "source_property_ignored_warning",
+    source_property_ignored_warning_id: "ignored_property",
+    error_type: "source_property_ignored_warning",
+    source_component_id: "source_component_0",
+    property_name: "schWidth",
+    message: "R1 schWidth was ignored",
+  },
+  {
+    type: "schematic_manual_edit_conflict_warning",
+    schematic_manual_edit_conflict_warning_id: "manual_conflict",
+    warning_type: "schematic_manual_edit_conflict_warning",
+    schematic_component_id: "schematic_component_0",
+    source_component_id: "source_component_0",
+    message: "R1 has conflicting placements",
+  },
+  {
+    type: "schematic_component_overlap_warning",
+    schematic_component_overlap_warning_id: "overlap",
+    warning_type: "schematic_component_overlap_warning",
+    schematic_component_ids: ["schematic_component_0", "schematic_component_1"],
+    message: "R1 overlaps C1",
+  },
+  {
+    type: "schematic_element_outside_sheet_warning",
+    schematic_element_outside_sheet_warning_id: "outside_sheet",
+    warning_type: "schematic_element_outside_sheet_warning",
+    schematic_sheet_id: "sheet_0",
+    schematic_element_type: "schematic_component",
+    schematic_element_id: "schematic_component_0",
+    message: "R1 is outside its sheet",
+  },
+  {
+    type: "pcb_connector_not_in_accessible_orientation_warning",
+    pcb_connector_not_in_accessible_orientation_warning_id: "orientation",
+    warning_type: "pcb_connector_not_in_accessible_orientation_warning",
+    pcb_component_id: "pcb_component_0",
+    facing_direction: "x-",
+    recommended_facing_direction: "x+",
+    message: "R1 faces inward",
+  },
+  {
+    type: "source_property_ignored_warning",
+    source_property_ignored_warning_id: "other_property",
+    error_type: "source_property_ignored_warning",
+    source_component_id: "source_component_1",
+    property_name: "schWidth",
+    message: "C1 schWidth was ignored",
+  },
+]
+
+const circuitJsonWithoutWarnings = circuitJson.filter(
+  (element) => !element.type.endsWith("_warning"),
+)
+const circuitJsonWithWarnings = [
+  ...circuitJsonWithoutWarnings,
+  ...componentWarnings,
+]
+
+test("component warnings match source, schematic, PCB, and shared references once", () => {
+  const resistor = getSchematicComponentDetails(
+    circuitJsonWithWarnings,
+    "schematic_component_0",
+  )!
+  expect(resistor.warnings).toEqual(componentWarnings.slice(0, 5))
+  const capacitor = getSchematicComponentDetails(
+    circuitJsonWithWarnings,
+    "schematic_component_1",
+  )!
+  expect(capacitor.warnings).toEqual([
+    componentWarnings[2],
+    componentWarnings[5],
+  ])
+  expect(
+    getSchematicComponentDetails(
+      circuitJsonWithoutWarnings,
+      "schematic_component_0",
+    )!.warnings,
+  ).toEqual([])
+})
+
 const installDom = () => {
   const dom = new JSDOM('<div id="root"></div>', {
     url: "http://localhost",
@@ -61,6 +146,8 @@ const installDom = () => {
     Node: globalThis.Node,
     ResizeObserver: globalThis.ResizeObserver,
     getComputedStyle: globalThis.getComputedStyle,
+    requestAnimationFrame: globalThis.requestAnimationFrame,
+    cancelAnimationFrame: globalThis.cancelAnimationFrame,
   }
 
   class TestResizeObserver {
@@ -92,6 +179,11 @@ const installDom = () => {
     requestAnimationFrame: (callback: FrameRequestCallback) =>
       dom.window.setTimeout(() => callback(Date.now()), 0),
     cancelAnimationFrame: (frameId: number) => dom.window.clearTimeout(frameId),
+  })
+
+  Object.assign(globalThis, {
+    requestAnimationFrame: dom.window.requestAnimationFrame,
+    cancelAnimationFrame: dom.window.cancelAnimationFrame,
   })
 
   const originalGetBoundingClientRect =
@@ -290,7 +382,7 @@ test("component details use compact styling and close on zoom or outside click",
     await act(async () => {
       reactRoot.render(
         <SchematicViewer
-          circuitJson={circuitJson}
+          circuitJson={circuitJsonWithWarnings}
           containerStyle={{ width: 800, height: 600 }}
         />,
       )
@@ -325,6 +417,14 @@ test("component details use compact styling and close on zoom or outside click",
       "[data-schematic-component-details-tooltip]",
     )
     expect(tooltip).not.toBeNull()
+    const warnings = tooltip?.querySelector('[aria-label="Component warnings"]')
+    expect(warnings?.querySelectorAll("li")).toHaveLength(5)
+    expect(warnings?.textContent).toContain("Warnings (5)")
+    for (const warning of componentWarnings.slice(0, 5)) {
+      expect(warnings?.textContent).toContain(warning.message)
+    }
+    expect(warnings?.textContent).not.toContain("C1 schWidth was ignored")
+
     expect((tooltip as HTMLElement).style.borderRadius).toBe("4px")
     expect((tooltip?.firstElementChild as HTMLElement).style.padding).toBe(
       "8px",
@@ -409,4 +509,23 @@ test("component details use compact styling and close on zoom or outside click",
     await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))
     restore()
   }
+})
+
+test("the component popup omits its warnings section when no warnings apply", () => {
+  const details = getSchematicComponentDetails(
+    circuitJsonWithoutWarnings,
+    "schematic_component_0",
+  )!
+  const html = renderToStaticMarkup(
+    <SchematicComponentDetailsTooltip
+      sourceComponent={details.sourceComponent}
+      warnings={details.warnings}
+      left={0}
+      top={0}
+      width={300}
+      maxHeight={400}
+    />,
+  )
+  expect(html).toContain("R1 component details")
+  expect(html).not.toContain("Component warnings")
 })
