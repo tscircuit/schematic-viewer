@@ -342,6 +342,29 @@ test("the warnings menu toggles rendered callouts with mouse and keyboard", asyn
       document.querySelector('[data-warning-reference="target"]'),
     ).not.toBeNull()
 
+    const toggle = document.querySelector<HTMLButtonElement>(
+      ".schematic-viewer-toolbar button[aria-expanded]",
+    )!
+    expect(toggle.textContent).toBe("Minimize warnings")
+    await act(async () => toggle.click())
+    expect(toggle.getAttribute("aria-expanded")).toBe("false")
+    expect(toggle.textContent).toBe("Expand warnings")
+    expect(
+      getComputedStyle(document.querySelector(".schematic-warning text")!)
+        .display,
+    ).toBe("none")
+    expect(
+      getComputedStyle(
+        document.querySelector('[data-warning-reference="target"]')!,
+      ).display,
+    ).not.toBe("none")
+    await act(async () => toggle.click())
+    expect(toggle.getAttribute("aria-expanded")).toBe("true")
+    expect(
+      getComputedStyle(document.querySelector(".schematic-warning text")!)
+        .display,
+    ).not.toBe("none")
+
     await act(async () => {
       item.dispatchEvent(
         new dom.window.KeyboardEvent("keydown", {
