@@ -40,25 +40,23 @@ export const useSchematicWarnings = ({
         "transform",
         `translate(${callout.getAttribute("x")} ${callout.getAttribute("y")})`,
       )
-      const triangle = document.createElementNS(SVG_NS, "path")
-      triangle.setAttribute("d", "M 12 1 L 23 22 L 1 22 Z")
-      triangle.setAttribute("fill", callout.getAttribute("fill") ?? "#fffaeb")
-      triangle.setAttribute(
-        "stroke",
-        callout.getAttribute("stroke") ?? "#d99a00",
-      )
-      triangle.setAttribute("stroke-width", "1")
-      triangle.setAttribute("stroke-linejoin", "round")
+      const badge = document.createElementNS(SVG_NS, "rect")
+      badge.setAttribute("width", "24")
+      badge.setAttribute("height", "24")
+      badge.setAttribute("fill", callout.getAttribute("fill") ?? "#fffaeb")
+      badge.setAttribute("stroke", callout.getAttribute("stroke") ?? "#d99a00")
+      badge.setAttribute("stroke-width", "1")
       const mark = document.createElementNS(SVG_NS, "text")
       mark.setAttribute("x", "12")
-      mark.setAttribute("y", "18")
+      mark.setAttribute("y", "12")
+      mark.setAttribute("dominant-baseline", "central")
       mark.setAttribute("text-anchor", "middle")
       mark.setAttribute("font-size", "16")
       mark.setAttribute("font-family", "sans-serif")
       mark.setAttribute("font-weight", "bold")
       mark.setAttribute("fill", "#5c4300")
       mark.textContent = "!"
-      icon.append(triangle, mark)
+      icon.append(badge, mark)
       warning.append(icon)
       warning.setAttribute("role", "button")
       warning.setAttribute("tabindex", "0")
