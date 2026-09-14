@@ -366,6 +366,7 @@ test("the warnings menu toggles rendered callouts with mouse and keyboard", asyn
     expect(warning.getAttribute("role")).toBe("button")
     expect(warning.getAttribute("tabindex")).toBe("0")
     expect(getComputedStyle(warning).cursor).toBe("pointer")
+    expect(warning.style.outline).toBe("none")
     await act(async () => {
       click(warning.querySelector("text")!)
     })

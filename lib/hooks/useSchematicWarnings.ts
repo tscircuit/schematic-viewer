@@ -47,7 +47,7 @@ export const useSchematicWarnings = ({
         "stroke",
         callout.getAttribute("stroke") ?? "#d99a00",
       )
-      triangle.setAttribute("stroke-width", "2")
+      triangle.setAttribute("stroke-width", "1")
       triangle.setAttribute("stroke-linejoin", "round")
       const mark = document.createElementNS(SVG_NS, "text")
       mark.setAttribute("x", "12")
@@ -63,6 +63,8 @@ export const useSchematicWarnings = ({
       warning.setAttribute("role", "button")
       warning.setAttribute("tabindex", "0")
       warning.style.cursor = "pointer"
+      // Avoid the browser focus ring around the entire SVG warning group.
+      warning.style.outline = "none"
 
       const update = () => {
         const minimized = minimizedIds.current.has(id)
@@ -110,6 +112,7 @@ export const useSchematicWarnings = ({
         warning.removeAttribute("aria-expanded")
         warning.removeAttribute("tabindex")
         warning.style.removeProperty("cursor")
+        warning.style.removeProperty("outline")
       })
     }
     return () => cleanups.forEach((cleanup) => cleanup())
