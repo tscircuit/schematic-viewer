@@ -724,6 +724,7 @@ export const SchematicViewer = ({
         {selectedComponentDetails && componentTooltipLayout && (
           <SchematicComponentDetailsTooltip
             sourceComponent={selectedComponentDetails.sourceComponent}
+            warnings={selectedComponentDetails.warnings}
             footprinterString={selectedComponentDetails.footprinterString}
             footprintPreviewCircuitJson={
               selectedComponentDetails.footprintPreviewCircuitJson
