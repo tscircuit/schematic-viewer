@@ -29,6 +29,7 @@ import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
 import { SchematicSearch } from "./SchematicSearch"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
+import { SchematicWarningsButton } from "./SchematicWarningsButton"
 import { ViewMenu } from "./ViewMenu"
 
 interface Props {
@@ -156,6 +157,11 @@ export const SchematicViewer = ({
   const [analysisCircuitJson, setAnalysisCircuitJson] =
     useState<CircuitJson | null>(null)
   const [showWarnings, setShowWarnings] = useState(false)
+  const warningCount = circuitJson.filter(
+    (element) =>
+      element.type.startsWith("schematic_") &&
+      element.type.endsWith("_warning"),
+  ).length
   const showGrid = debugGrid || showGridInternal
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
     !clickToInteractEnabled,
@@ -283,7 +289,9 @@ export const SchematicViewer = ({
     (event: MouseEvent | TouchEvent | WheelEvent) => {
       if (
         event.target instanceof Element &&
-        event.target.closest("[data-schematic-search]")
+        event.target.closest(
+          "[data-schematic-search], [data-schematic-warnings]",
+        )
       ) {
         return false
       }
@@ -690,6 +698,13 @@ export const SchematicViewer = ({
               results={searchResults}
               onSelect={handleSearchResultSelect}
               viewerContainerRef={containerRef}
+            />
+          )}
+          {warningCount > 0 && (
+            <SchematicWarningsButton
+              count={warningCount}
+              showWarnings={showWarnings}
+              onToggle={() => setShowWarnings((show) => !show)}
             />
           )}
         </div>
