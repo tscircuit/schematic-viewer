@@ -293,6 +293,12 @@ test("the warnings menu toggles rendered callouts with mouse and keyboard", asyn
       schematic_component_id: "schematic_component_1",
       message,
     },
+    {
+      type: "schematic_manual_edit_conflict_warning",
+      schematic_manual_edit_conflict_warning_id: "warning_2",
+      schematic_component_id: "schematic_component_1",
+      message: "Another independent warning",
+    },
   ]
 
   try {
@@ -342,28 +348,48 @@ test("the warnings menu toggles rendered callouts with mouse and keyboard", asyn
       document.querySelector('[data-warning-reference="target"]'),
     ).not.toBeNull()
 
-    const toggle = document.querySelector<HTMLButtonElement>(
-      ".schematic-viewer-toolbar button[aria-expanded]",
+    const warning = document.querySelector<SVGGElement>(
+      '[data-warning-id="warning_1"]',
     )!
-    expect(toggle.textContent).toBe("Minimize warnings")
-    await act(async () => toggle.click())
-    expect(toggle.getAttribute("aria-expanded")).toBe("false")
-    expect(toggle.textContent).toBe("Expand warnings")
-    expect(
-      getComputedStyle(document.querySelector(".schematic-warning text")!)
-        .display,
-    ).toBe("none")
-    expect(
-      getComputedStyle(
-        document.querySelector('[data-warning-reference="target"]')!,
-      ).display,
-    ).not.toBe("none")
-    await act(async () => toggle.click())
-    expect(toggle.getAttribute("aria-expanded")).toBe("true")
-    expect(
-      getComputedStyle(document.querySelector(".schematic-warning text")!)
-        .display,
-    ).not.toBe("none")
+    const otherWarning = document.querySelector<SVGGElement>(
+      '[data-warning-id="warning_2"]',
+    )!
+    const click = (element: Element) =>
+      element.dispatchEvent(
+        new dom.window.MouseEvent("click", { bubbles: true }),
+      )
+    expect(warning.getAttribute("role")).toBe("button")
+    expect(warning.getAttribute("tabindex")).toBe("0")
+    expect(getComputedStyle(warning).cursor).toBe("pointer")
+    await act(async () => {
+      click(warning.querySelector("text")!)
+    })
+    expect(warning.getAttribute("aria-expanded")).toBe("false")
+    expect(otherWarning.getAttribute("aria-expanded")).toBe("true")
+    expect(getComputedStyle(warning.querySelector("text")!).display).toBe(
+      "none",
+    )
+    const icon = warning.querySelector<SVGGElement>("[data-warning-icon]")!
+    expect(getComputedStyle(icon).display).not.toBe("none")
+    expect(icon.textContent).toBe("!")
+    await act(async () => {
+      click(icon)
+    })
+    expect(warning.getAttribute("aria-expanded")).toBe("true")
+    expect(getComputedStyle(warning.querySelector("text")!).display).not.toBe(
+      "none",
+    )
+    for (const key of ["Enter", " "]) {
+      await act(async () => {
+        warning.dispatchEvent(
+          new dom.window.KeyboardEvent("keydown", { key, bubbles: true }),
+        )
+      })
+    }
+    expect(warning.getAttribute("aria-expanded")).toBe("true")
+    await act(async () => {
+      click(warning)
+    })
 
     await act(async () => {
       item.dispatchEvent(
@@ -375,6 +401,17 @@ test("the warnings menu toggles rendered callouts with mouse and keyboard", asyn
     })
     expect(item.getAttribute("aria-checked")).toBe("false")
     expect(document.querySelector(".schematic-warning")).toBeNull()
+    await act(async () => {
+      click(item)
+    })
+    const restored = document.querySelector('[data-warning-id="warning_1"]')!
+    expect(restored.getAttribute("aria-expanded")).toBe("false")
+    expect(restored.querySelectorAll("[data-warning-icon]")).toHaveLength(1)
+    expect(
+      document
+        .querySelector('[data-warning-id="warning_2"]')!
+        .getAttribute("aria-expanded"),
+    ).toBe("true")
   } finally {
     await act(async () => reactRoot.unmount())
     await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))

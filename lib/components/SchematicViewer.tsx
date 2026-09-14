@@ -14,6 +14,7 @@ import {
 } from "lib/hooks/useLocalStorage"
 import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
 import { useSchematicNetHover } from "lib/hooks/useSchematicNetHover"
+import { useSchematicWarnings } from "lib/hooks/useSchematicWarnings"
 import { useSchematicSearch } from "lib/hooks/useSchematicSearch"
 import { enableDebug } from "lib/utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -156,7 +157,6 @@ export const SchematicViewer = ({
   const [analysisCircuitJson, setAnalysisCircuitJson] =
     useState<CircuitJson | null>(null)
   const [showWarnings, setShowWarnings] = useState(false)
-  const [warningsMinimized, setWarningsMinimized] = useState(false)
   const showGrid = debugGrid || showGridInternal
   const [isInteractionEnabled, setIsInteractionEnabled] = useState<boolean>(
     !clickToInteractEnabled,
@@ -284,7 +284,7 @@ export const SchematicViewer = ({
     (event: MouseEvent | TouchEvent | WheelEvent) => {
       if (
         event.target instanceof Element &&
-        event.target.closest("[data-schematic-search]")
+        event.target.closest("[data-schematic-search], .schematic-warning")
       ) {
         return false
       }
@@ -505,18 +505,15 @@ export const SchematicViewer = ({
             : "auto",
           transformOrigin: "0 0",
         }}
-        className={`schematic-component-clickable${warningsMinimized ? " schematic-warnings-minimized" : ""}`}
+        className="schematic-component-clickable"
         // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
         dangerouslySetInnerHTML={{ __html: svgString }}
       />
     ),
-    [
-      svgString,
-      isInteractionEnabled,
-      clickToInteractEnabled,
-      warningsMinimized,
-    ],
+    [svgString, isInteractionEnabled, clickToInteractEnabled],
   )
+
+  useSchematicWarnings({ svgDivRef, svgContent: svgDiv, circuitJsonKey })
 
   return (
     <MouseTracker>
@@ -683,29 +680,6 @@ export const SchematicViewer = ({
             zIndex: zIndexMap.schematicSearch,
           }}
         >
-          {showWarnings && (
-            <button
-              type="button"
-              aria-expanded={!warningsMinimized}
-              onMouseDown={(event) => event.stopPropagation()}
-              onTouchStart={(event) => event.stopPropagation()}
-              onClick={(event) => {
-                event.stopPropagation()
-                setWarningsMinimized((minimized) => !minimized)
-              }}
-              style={{
-                background: "white",
-                border: "1px solid #d1d5db",
-                borderRadius: 6,
-                padding: "6px 8px",
-                fontSize: 12,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {warningsMinimized ? "Expand warnings" : "Minimize warnings"}
-            </button>
-          )}
           <SchematicSheetSelector
             sheets={schematicSheets}
             selectedSheetId={activeSheetId}
@@ -734,11 +708,6 @@ export const SchematicViewer = ({
             onComponentClick={handleSchematicComponentClick}
           />
         ))}
-        <style>{`
-          .schematic-warnings-minimized .schematic-warning > :not([data-warning-reference="target"]) {
-            display: none;
-          }
-        `}</style>
         {svgDiv}
         {selectedComponentDetails && componentTooltipLayout && (
           <SchematicComponentDetailsTooltip
