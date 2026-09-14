@@ -47,7 +47,7 @@
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@tscircuit/circuit-json-util": "^0.0.108",
     "circuit-json": "^0.0.479",
-    "circuit-to-svg": "^0.0.416",
+    "circuit-to-svg": "^0.0.421",
     "debug": "^4.4.0",
     "fflate": "^0.8.3",
     "performance-now": "^2.1.0",
