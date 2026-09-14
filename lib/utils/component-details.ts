@@ -25,7 +25,40 @@ export interface SchematicComponentDetails {
   footprinterString?: string
   footprintPreviewCircuitJson?: CircuitJson
   footprintPreviewViewBox?: PcbBounds
+  warnings: ComponentWarning[]
 }
+
+export type ComponentWarning = Extract<
+  CircuitJson[number],
+  { type: `${string}_warning` }
+>
+
+const getComponentWarnings = (
+  circuitJson: CircuitJson,
+  schematicComponent: SchematicComponent,
+  pcbComponent?: PcbComponent,
+): ComponentWarning[] =>
+  circuitJson.filter((element): element is ComponentWarning => {
+    if (!element.type.endsWith("_warning")) return false
+
+    const warning = element as unknown as Record<string, unknown>
+    const references = [
+      ["source_component", schematicComponent.source_component_id],
+      ["schematic_component", schematicComponent.schematic_component_id],
+      ["pcb_component", pcbComponent?.pcb_component_id],
+    ] as const
+
+    return references.some(([type, id]) => {
+      if (!id) return false
+      const ids = warning[`${type}_ids`]
+      return (
+        warning[`${type}_id`] === id ||
+        (Array.isArray(ids) && ids.includes(id)) ||
+        (warning.schematic_element_type === type &&
+          warning.schematic_element_id === id)
+      )
+    })
+  })
 
 export interface ComponentInfoEntry {
   key: string
@@ -212,6 +245,11 @@ export const getSchematicComponentDetails = (
     footprinterString,
     footprintPreviewCircuitJson: footprintPreview?.circuitJson,
     footprintPreviewViewBox: footprintPreview?.viewBox,
+    warnings: getComponentWarnings(
+      circuitJson,
+      schematicComponent,
+      pcbComponent,
+    ),
   }
 }
 

@@ -342,6 +342,11 @@ test("the warnings menu toggles rendered callouts with mouse and keyboard", asyn
     })
     expect(item.getAttribute("aria-checked")).toBe("true")
     expect(
+      document
+        .querySelector("[data-schematic-warnings]")
+        ?.getAttribute("aria-pressed"),
+    ).toBe("true")
+    expect(
       document.querySelector(".schematic-warning text")?.textContent,
     ).toContain(message)
     expect(
@@ -415,6 +420,85 @@ test("the warnings menu toggles rendered callouts with mouse and keyboard", asyn
   } finally {
     await act(async () => reactRoot.unmount())
     await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))
+    restore()
+  }
+})
+
+test("warning toolbar counts schematic warnings and toggles their callouts", async () => {
+  const { dom, restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const { SchematicViewer } = await import("../lib/components/SchematicViewer")
+  const warnings = [1, 2].map((id) => ({
+    type: "schematic_manual_edit_conflict_warning",
+    schematic_manual_edit_conflict_warning_id: `warning_${id}`,
+    schematic_component_id: "schematic_component_1",
+    message: `Manual edit conflict ${id}`,
+  }))
+  const pcbWarning = {
+    type: "pcb_manual_edit_conflict_warning",
+    pcb_manual_edit_conflict_warning_id: "pcb_warning_1",
+    pcb_component_id: "pcb_component_1",
+    message: "PCB warning",
+  }
+
+  try {
+    await act(async () =>
+      reactRoot.render(
+        <SchematicViewer circuitJson={[...circuitJsonWithPort, pcbWarning]} />,
+      ),
+    )
+    expect(document.querySelector("[data-schematic-warnings]")).toBeNull()
+
+    await act(async () =>
+      reactRoot.render(
+        <SchematicViewer
+          circuitJson={[...circuitJsonWithPort, pcbWarning, ...warnings]}
+        />,
+      ),
+    )
+    const button = document.querySelector("[data-schematic-warnings]")!
+    expect(button.textContent).toBe("2")
+    expect(button.getAttribute("aria-label")).toBe("Show 2 warnings")
+    expect(button.getAttribute("aria-pressed")).toBe("false")
+    expect(
+      button.previousElementSibling?.hasAttribute("data-schematic-search"),
+    ).toBe(true)
+    expect(document.querySelector(".schematic-warning")).toBeNull()
+
+    await act(async () => {
+      button.dispatchEvent(
+        new dom.window.MouseEvent("click", { bubbles: true }),
+      )
+    })
+    expect(button.getAttribute("aria-pressed")).toBe("true")
+    expect(button.getAttribute("aria-label")).toBe("Hide 2 warnings")
+    expect(document.querySelector(".schematic-warning")).not.toBeNull()
+
+    await act(async () => {
+      button.dispatchEvent(
+        new dom.window.MouseEvent("click", { bubbles: true }),
+      )
+    })
+    expect(button.getAttribute("aria-pressed")).toBe("false")
+    expect(document.querySelector(".schematic-warning")).toBeNull()
+
+    await act(async () =>
+      reactRoot.render(
+        <SchematicViewer
+          circuitJson={[...circuitJsonWithPort, warnings[0]!]}
+          searchEnabled={false}
+        />,
+      ),
+    )
+    expect(button.textContent).toBe("1")
+    expect(button.getAttribute("aria-label")).toBe("Show 1 warning")
+
+    await act(async () =>
+      reactRoot.render(<SchematicViewer circuitJson={circuitJsonWithPort} />),
+    )
+    expect(document.querySelector("[data-schematic-warnings]")).toBeNull()
+  } finally {
+    await act(async () => reactRoot.unmount())
     restore()
   }
 })
