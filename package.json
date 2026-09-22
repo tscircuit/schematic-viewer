@@ -36,7 +36,7 @@
     "tscircuit": "^0.0.2460",
     "tsup": "^8.3.5",
     "vite": "^6.0.3",
-    "@tscircuit/circuit-json-schematic-placement-analysis": "https://codeload.github.com/tscircuit/circuit-json-schematic-placement-analysis/tar.gz/refs/heads/main"
+    "@tscircuit/circuit-json-schematic-placement-analysis": "https://jscdn.tscircuit.com/@tscircuit/circuit-json-schematic-placement-analysis/0.0.11.tgz"
   },
   "peerDependencies": {
     "typescript": "^5.0.0",
