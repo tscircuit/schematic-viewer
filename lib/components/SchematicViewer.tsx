@@ -1,3 +1,4 @@
+import type { SchematicViewerController } from "../hooks/useSchematicViewerController"
 import { StyleAnalysisDialog } from "./StyleAnalysisDialog"
 import { su } from "@tscircuit/soup-util"
 import type { CircuitJson, SchematicSheet } from "circuit-json"
@@ -58,6 +59,8 @@ interface Props {
   onSchematicSheetChange?: (schematicSheetId: string) => void
   /** Show component and net-label search. Default true. */
   searchEnabled?: boolean
+  /** Connect the controller returned by useSchematicViewerController. */
+  controller?: SchematicViewerController
 }
 
 interface SelectedSchematicComponent {
@@ -80,6 +83,7 @@ export const SchematicViewer = ({
   onSchematicPortClicked,
   onSchematicSheetChange,
   searchEnabled = true,
+  controller,
   css,
   className,
 }: Props) => {
@@ -470,6 +474,7 @@ export const SchematicViewer = ({
     handleSearchResultSelect,
     handleCancelSearch,
   } = useSchematicSearch({
+    controller,
     circuitJson,
     circuitJsonKey,
     svgDivRef,
