@@ -1,3 +1,4 @@
+import type { SchematicViewerController } from "./useSchematicViewerController"
 import type { CircuitJson } from "circuit-json"
 import type { RefObject } from "react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -12,7 +13,7 @@ const MIN_SEARCH_RESULT_ZOOM = 1.8
 const SEARCH_FOCUS_ANIMATION_MS = 350
 
 export const useSchematicSearch = ({
-  focusSourceComponentId,
+  controller,
   circuitJson,
   circuitJsonKey,
   svgDivRef,
@@ -25,7 +26,7 @@ export const useSchematicSearch = ({
   setSvgToScreenProjection,
   setIsInteractionEnabled,
 }: {
-  focusSourceComponentId?: string
+  controller?: SchematicViewerController
   circuitJson: CircuitJson
   circuitJsonKey: string
   svgDivRef: RefObject<HTMLDivElement | null>
@@ -156,22 +157,28 @@ export const useSchematicSearch = ({
     }
   }, [svgDivRef])
 
+  const focusRequest = controller?.focusRequest
+  const onFocusRequestHandled = controller?.onFocusRequestHandled
   useEffect(() => {
-    if (!focusSourceComponentId) return
+    if (!focusRequest) return
     const component = circuitJson.find(
       (element) =>
         element.type === "schematic_component" &&
-        element.source_component_id === focusSourceComponentId,
+        element.schematic_component_id === focusRequest.schematicComponentId,
     )
-    if (component?.type !== "schematic_component") return
+    if (component?.type !== "schematic_component") {
+      setPendingSearchResult(null)
+      onFocusRequestHandled?.(focusRequest)
+      return
+    }
     setIsInteractionEnabled(true)
     if (component.schematic_sheet_id && hasMultipleSheets) {
       handleSelectSheet(component.schematic_sheet_id)
     }
-    // Queue until the SVG for the destination sheet has mounted and been sized.
+    // Keep the command queued until its sheet's SVG has mounted and been sized.
     setPendingSearchResult({
       kind: "component",
-      label: focusSourceComponentId,
+      label: component.schematic_component_id,
       schematicSheetId: component.schematic_sheet_id,
       target: {
         type: "schematic_component",
@@ -179,7 +186,8 @@ export const useSchematicSearch = ({
       },
     })
   }, [
-    focusSourceComponentId,
+    focusRequest,
+    onFocusRequestHandled,
     circuitJson,
     circuitJsonKey,
     hasMultipleSheets,
@@ -198,11 +206,18 @@ export const useSchematicSearch = ({
     const frame = requestAnimationFrame(() => {
       if (focusSearchResult(pendingSearchResult)) {
         setPendingSearchResult(null)
+        if (
+          focusRequest?.schematicComponentId === pendingSearchResult.target.id
+        ) {
+          onFocusRequestHandled?.(focusRequest)
+        }
       }
     })
     return () => cancelAnimationFrame(frame)
   }, [
     focusSearchResult,
+    focusRequest,
+    onFocusRequestHandled,
     pendingSearchResult,
     svgString,
     hasMultipleSheets,

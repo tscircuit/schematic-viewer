@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useSchematicViewerController } from "lib/hooks/useSchematicViewerController"
 import { SchematicViewer } from "lib/components/SchematicViewer"
 import { renderToCircuitJson } from "lib/dev/render-to-circuit-json"
 
@@ -15,29 +15,28 @@ const circuitJson = renderToCircuitJson(
   </board>,
 )
 const components = circuitJson.filter(
-  (element) =>
-    element.type === "source_component" && element.ftype === "simple_chip",
+  (element) => element.type === "schematic_component",
 )
 
-export default function FocusSourceComponent() {
-  const [sourceComponentId, setSourceComponentId] = useState(
-    components[1]?.source_component_id,
-  )
+export default function SchematicViewerControllerFixture() {
+  const { controller, focusSchematicComponent } = useSchematicViewerController()
   return (
     <div>
       <div style={{ padding: 12 }}>
-        {components.map((component) => (
+        {components.map((component, index) => (
           <button
-            key={component.source_component_id}
-            onClick={() => setSourceComponentId(component.source_component_id)}
+            key={component.schematic_component_id}
+            onClick={() =>
+              focusSchematicComponent(component.schematic_component_id)
+            }
           >
-            Focus {component.name}
+            Focus U{index + 1}
           </button>
         ))}
       </div>
       <SchematicViewer
         circuitJson={circuitJson}
-        focusSourceComponentId={sourceComponentId}
+        controller={controller}
         searchEnabled={false}
         containerStyle={{ height: "80vh" }}
       />
