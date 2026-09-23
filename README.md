@@ -33,3 +33,17 @@ release and network access to jscdn; the host page's Content Security Policy mus
 allow scripts from that origin. jscdn caches `latest` for up to ten minutes, and
 the browser reuses an imported module until the page reloads. Circuit JSON stays
 in the browser. The analyzer's GitHub dev dependency is used only by tests.
+
+### Focus a component from another viewer
+
+Pass `focusSourceComponentId` to center, zoom, and highlight a component using its
+Circuit JSON `source_component_id`. The viewer selects the component's schematic
+sheet automatically and waits for its SVG to render. This works on mount or when
+the ID changes, even with search hidden. Missing IDs leave the view unchanged.
+
+```tsx
+<SchematicViewer
+  circuitJson={circuitJson}
+  focusSourceComponentId={selectedSourceComponentId}
+/>
+```

@@ -12,6 +12,7 @@ const MIN_SEARCH_RESULT_ZOOM = 1.8
 const SEARCH_FOCUS_ANIMATION_MS = 350
 
 export const useSchematicSearch = ({
+  focusSourceComponentId,
   circuitJson,
   circuitJsonKey,
   svgDivRef,
@@ -24,6 +25,7 @@ export const useSchematicSearch = ({
   setSvgToScreenProjection,
   setIsInteractionEnabled,
 }: {
+  focusSourceComponentId?: string
   circuitJson: CircuitJson
   circuitJsonKey: string
   svgDivRef: RefObject<HTMLDivElement | null>
@@ -65,6 +67,7 @@ export const useSchematicSearch = ({
 
       const targetRect = target.getBoundingClientRect()
       const containerRect = container.getBoundingClientRect()
+      if (!containerRect.width || !containerRect.height) return false
       if (!targetRect.width && !targetRect.height) return false
 
       if (searchAnimationTimerRef.current) {
@@ -154,14 +157,57 @@ export const useSchematicSearch = ({
   }, [svgDivRef])
 
   useEffect(() => {
+    if (!focusSourceComponentId) return
+    const component = circuitJson.find(
+      (element) =>
+        element.type === "schematic_component" &&
+        element.source_component_id === focusSourceComponentId,
+    )
+    if (component?.type !== "schematic_component") return
+    setIsInteractionEnabled(true)
+    if (component.schematic_sheet_id && hasMultipleSheets) {
+      handleSelectSheet(component.schematic_sheet_id)
+    }
+    // Queue until the SVG for the destination sheet has mounted and been sized.
+    setPendingSearchResult({
+      kind: "component",
+      label: focusSourceComponentId,
+      schematicSheetId: component.schematic_sheet_id,
+      target: {
+        type: "schematic_component",
+        id: component.schematic_component_id,
+      },
+    })
+  }, [
+    focusSourceComponentId,
+    circuitJson,
+    circuitJsonKey,
+    hasMultipleSheets,
+    handleSelectSheet,
+    setIsInteractionEnabled,
+  ])
+
+  useEffect(() => {
     if (!pendingSearchResult || !svgString) return
+    if (
+      hasMultipleSheets &&
+      pendingSearchResult.schematicSheetId &&
+      pendingSearchResult.schematicSheetId !== activeSheetId
+    )
+      return
     const frame = requestAnimationFrame(() => {
       if (focusSearchResult(pendingSearchResult)) {
         setPendingSearchResult(null)
       }
     })
     return () => cancelAnimationFrame(frame)
-  }, [focusSearchResult, pendingSearchResult, svgString])
+  }, [
+    focusSearchResult,
+    pendingSearchResult,
+    svgString,
+    hasMultipleSheets,
+    activeSheetId,
+  ])
 
   useEffect(() => {
     if (searchQuery) return

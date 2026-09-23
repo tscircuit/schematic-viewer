@@ -58,6 +58,8 @@ interface Props {
   onSchematicSheetChange?: (schematicSheetId: string) => void
   /** Show component and net-label search. Default true. */
   searchEnabled?: boolean
+  /** Center and highlight this source component, selecting its sheet if needed. */
+  focusSourceComponentId?: string
 }
 
 interface SelectedSchematicComponent {
@@ -80,6 +82,7 @@ export const SchematicViewer = ({
   onSchematicPortClicked,
   onSchematicSheetChange,
   searchEnabled = true,
+  focusSourceComponentId,
   css,
   className,
 }: Props) => {
@@ -470,6 +473,7 @@ export const SchematicViewer = ({
     handleSearchResultSelect,
     handleCancelSearch,
   } = useSchematicSearch({
+    focusSourceComponentId,
     circuitJson,
     circuitJsonKey,
     svgDivRef,
