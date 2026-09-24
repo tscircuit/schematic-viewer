@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test"
 import type { CircuitJson } from "circuit-json"
+import { convertCircuitJsonToSchematicSvg } from "circuit-to-svg"
+import { JSDOM } from "jsdom"
 import circuitJson from "../examples/wifi-smart-switch.circuit.json"
 import am3352CircuitJson from "../examples/am3352-dev-board-4layer-dogbone.circuit.json"
 import { getSchematicSearchResults } from "../lib/utils/get-schematic-search-results"
@@ -42,4 +44,24 @@ test("does not search free-standing sheet annotations", () => {
       "Matching net labels",
     ),
   ).toEqual([])
+})
+
+test("renders selectable svg targets for inline search results", () => {
+  const results = getSchematicSearchResults(
+    am3352CircuitJson as CircuitJson,
+    "usb0_dm",
+  )
+  const svg = convertCircuitJsonToSchematicSvg(
+    am3352CircuitJson as CircuitJson,
+    { schematicSheetId: "schematic_sheet_2" },
+  )
+  const { document } = new JSDOM(svg).window
+
+  expect(
+    results.map(
+      (result) =>
+        document.querySelector(`[data-schematic-text-id="${result.target.id}"]`)
+          ?.textContent,
+    ),
+  ).toEqual(["USB0_DM", "USB0_DM"])
 })
