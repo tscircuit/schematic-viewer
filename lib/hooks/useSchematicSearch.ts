@@ -61,6 +61,9 @@ export const useSchematicSearch = ({
       if (result.target.type === "schematic_component") {
         attribute = "data-schematic-component-id"
       }
+      if (result.target.type === "schematic_text") {
+        attribute = "data-schematic-text-id"
+      }
       const target = Array.from(
         svgRoot.querySelectorAll<SVGGraphicsElement>(`[${attribute}]`),
       ).find((element) => element.getAttribute(attribute) === result.target.id)

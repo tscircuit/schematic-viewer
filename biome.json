@@ -12,7 +12,7 @@
       "cosmos-export",
       "dist",
       "package.json",
-      "examples/rp2040-motor-controller.circuit.json"
+      "examples/am3352-dev-board-4layer-dogbone.circuit.json"
     ]
   },
   "javascript": {

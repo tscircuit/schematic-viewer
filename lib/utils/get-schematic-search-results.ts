@@ -26,6 +26,7 @@ export type SchematicSearchResult = {
   target:
     | { type: "schematic_component"; id: string }
     | { type: "schematic_net_label"; id: string }
+    | { type: "schematic_text"; id: string }
 }
 
 const normalize = (value: unknown) => String(value ?? "").toLocaleLowerCase()
@@ -262,6 +263,25 @@ export const getSchematicSearchResults = (
     }
     results.push(result)
     resultScores.set(result, getTextMatchScore(netLabel.text, normalizedQuery))
+  }
+
+  for (const element of circuitJson) {
+    if (element.type !== "schematic_text" || !element.source_trace_id) continue
+    const score = getTextMatchScore(element.text, normalizedQuery)
+    if (!Number.isFinite(score)) continue
+
+    const result: SchematicSearchResult = {
+      label: element.text,
+      kind: "net",
+      schematicSheetId: element.schematic_sheet_id,
+      schematicSheetName: getSchematicSheetName({
+        schematicSheets,
+        schematicSheetId: element.schematic_sheet_id,
+      }),
+      target: { type: "schematic_text", id: element.schematic_text_id },
+    }
+    results.push(result)
+    resultScores.set(result, score)
   }
 
   return results.sort((a, b) => {

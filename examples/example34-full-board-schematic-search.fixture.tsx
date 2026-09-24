@@ -1,6 +1,6 @@
 import type { CircuitJson } from "circuit-json"
 import { SchematicViewer } from "lib/components/SchematicViewer"
-import circuitJson from "./wifi-smart-switch.circuit.json"
+import circuitJson from "./am3352-dev-board-4layer-dogbone.circuit.json"
 
 export default () => (
   <SchematicViewer
