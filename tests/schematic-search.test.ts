@@ -319,3 +319,26 @@ test("zooms in to the minimum search scale", () => {
   expect(transform.e).toBe(-796)
   expect(transform.f).toBe(-518)
 })
+
+test("ranks inline net labels alongside anchored net labels", () => {
+  const inlineLabels: CircuitJson = [
+    ...circuitJson,
+    {
+      type: "schematic_text",
+      schematic_text_id: "inline_gnd_sense",
+      source_trace_id: "source_trace_gnd_sense",
+      text: "GND_SENSE",
+      position: { x: 0, y: 0 },
+      anchor: "left",
+      rotation: 0,
+      color: "black",
+      font_size: 0.18,
+    },
+  ]
+
+  expect(
+    getSchematicSearchResults(inlineLabels, " gnd ").map(
+      (result) => result.label,
+    ),
+  ).toEqual(["GND", "GND_SENSE"])
+})
