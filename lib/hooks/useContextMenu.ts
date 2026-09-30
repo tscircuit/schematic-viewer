@@ -8,6 +8,7 @@ const LONG_PRESS_DURATION_MS = 600
 const MOVEMENT_THRESHOLD_PX = 10
 
 export const useContextMenu = ({ containerRef }: ContextMenuProps) => {
+  const [menuTarget, setMenuTarget] = useState<Element | null>(null)
   const [menuVisible, setMenuVisible] = useState(false)
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
@@ -36,6 +37,7 @@ export const useContextMenu = ({ containerRef }: ContextMenuProps) => {
     interactionOriginRef.current = null
     if (movedTooFar) return
 
+    setMenuTarget(event.target instanceof Element ? event.target : null)
     setMenuPos({ x: event.clientX, y: event.clientY })
     setMenuVisible(true)
   }, [])
@@ -51,6 +53,7 @@ export const useContextMenu = ({ containerRef }: ContextMenuProps) => {
 
       const touch = event.touches[0]
       if (!touch) return
+      const target = event.target instanceof Element ? event.target : null
 
       interactionOriginRef.current = {
         x: touch.clientX,
@@ -61,6 +64,7 @@ export const useContextMenu = ({ containerRef }: ContextMenuProps) => {
         const container = containerRef.current
         if (!container || !interactionOriginRef.current) return
 
+        setMenuTarget(target)
         const rect = container.getBoundingClientRect()
         setMenuPos({
           x: rect.left + rect.width / 2,
@@ -125,6 +129,7 @@ export const useContextMenu = ({ containerRef }: ContextMenuProps) => {
 
   return {
     menuVisible,
+    menuTarget,
     menuPos,
     menuRef,
     setMenuVisible,

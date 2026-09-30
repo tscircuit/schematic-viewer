@@ -637,3 +637,142 @@ test("style analysis reports CDN failures in a dismissible dialog", async () => 
     restore()
   }
 })
+
+test("net text highlights nearby and the locations submenu selects a destination", async () => {
+  const { dom, restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const { useSchematicNetHover } = await import(
+    "../lib/hooks/useSchematicNetHover"
+  )
+  const { ViewMenu } = await import("../lib/components/ViewMenu")
+  const selected: string[] = []
+  const Harness = () => {
+    const svgDivRef = useRef<HTMLDivElement>(null)
+    useSchematicNetHover({
+      svgDivRef,
+      circuitJsonKey: "net-text",
+      enabled: true,
+      circuitJson: [
+        {
+          type: "source_trace",
+          source_trace_id: "source",
+          connected_source_port_ids: [],
+          connected_source_net_ids: [],
+          subcircuit_connectivity_map_key: "power",
+        },
+        {
+          type: "schematic_text",
+          schematic_text_id: "text",
+          source_trace_id: "source",
+          text: "PWR",
+          position: { x: 0, y: 0 },
+        },
+      ] as any,
+    })
+    return (
+      <>
+        <div ref={svgDivRef}>
+          <svg>
+            <g className="trace" data-subcircuit-connectivity-map-key="power" />
+            <g className="trace" data-subcircuit-connectivity-map-key="other" />
+            <text data-schematic-text-id="text">PWR</text>
+            <rect data-background="true" />
+          </svg>
+        </div>
+        <ViewMenu
+          circuitJson={[]}
+          circuitJsonKey="net-menu"
+          menuRef={createRef()}
+          menuPos={{ x: 0, y: 0 }}
+          onOpenChange={() => {}}
+          onRunStyleAnalysis={() => {}}
+          showPorts={false}
+          onTogglePorts={() => {}}
+          showGroups={false}
+          onToggleGroups={() => {}}
+          showWarnings={false}
+          onToggleWarnings={() => {}}
+          showGrid={false}
+          onToggleGrid={() => {}}
+          netLocations={[
+            {
+              kind: "net",
+              label: "Sheet 3: J1.ETC",
+              schematicSheetId: "s3",
+              target: { type: "schematic_trace", id: "trace3" },
+            },
+          ]}
+          onSelectNetLocation={(location) => selected.push(location.target.id)}
+        />
+      </>
+    )
+  }
+  try {
+    await act(async () => reactRoot.render(<Harness />))
+    const text = document.querySelector('[data-schematic-text-id="text"]')!
+    text.getBoundingClientRect = () =>
+      ({
+        left: 100,
+        right: 140,
+        top: 100,
+        bottom: 120,
+        width: 40,
+        height: 20,
+      }) as DOMRect
+    const background = document.querySelector("[data-background]")!
+    await act(async () => {
+      background.dispatchEvent(
+        new dom.window.MouseEvent("mousemove", {
+          bubbles: true,
+          clientX: 96,
+          clientY: 110,
+        }),
+      )
+    })
+    expect(
+      document
+        .querySelector('[data-subcircuit-connectivity-map-key="other"]')!
+        .classList.contains("sch-net-faded"),
+    ).toBe(true)
+    expect(
+      document
+        .querySelector('[data-subcircuit-connectivity-map-key="power"]')!
+        .classList.contains("sch-net-faded"),
+    ).toBe(false)
+    await act(async () => {
+      background.dispatchEvent(
+        new dom.window.MouseEvent("mousemove", {
+          bubbles: true,
+          clientX: 80,
+          clientY: 110,
+        }),
+      )
+    })
+    expect(document.querySelector(".sch-net-faded")).toBeNull()
+    const trigger = Array.from(
+      document.querySelectorAll('[role="menuitem"]'),
+    ).find((e) => e.textContent?.includes("Net Locations"))!
+    await act(async () => {
+      trigger.dispatchEvent(
+        new dom.window.KeyboardEvent("keydown", {
+          key: "ArrowRight",
+          bubbles: true,
+        }),
+      )
+    })
+    const destination = Array.from(
+      document.querySelectorAll('[role="menuitem"]'),
+    ).find((e) => e.textContent === "Sheet 3: J1.ETC")!
+    expect(destination).toBeDefined()
+    await act(async () => {
+      destination.dispatchEvent(
+        new dom.window.MouseEvent("click", { bubbles: true }),
+      )
+    })
+    expect(selected).toEqual(["trace3"])
+  } finally {
+    await act(async () => reactRoot.unmount())
+    await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))
+    restore()
+  }
+})

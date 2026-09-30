@@ -1,3 +1,4 @@
+import type { SchematicSearchResult } from "../utils/get-schematic-search-results"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { su } from "@tscircuit/soup-util"
 import type { CircuitJson } from "circuit-json"
@@ -6,6 +7,8 @@ import packageJson from "../../package.json"
 import { zIndexMap } from "../utils/z-index-map"
 
 interface ViewMenuProps {
+  netLocations?: SchematicSearchResult[]
+  onSelectNetLocation?: (location: SchematicSearchResult) => void
   circuitJson: CircuitJson
   circuitJsonKey: string
   menuRef: React.RefObject<HTMLDivElement | null>
@@ -95,6 +98,8 @@ const CheckIcon = () => (
 )
 
 export const ViewMenu = ({
+  netLocations = [],
+  onSelectNetLocation,
   circuitJson,
   circuitJsonKey,
   menuRef,
@@ -177,6 +182,38 @@ export const ViewMenu = ({
             avoidCollisions={true}
           >
             <style>{HIGHLIGHT_CSS}</style>
+            {netLocations.length > 0 && (
+              <DropdownMenu.Sub>
+                <DropdownMenu.SubTrigger
+                  className="sv-vm-item"
+                  style={itemStyles}
+                >
+                  Net Locations <span style={{ marginLeft: "auto" }}>›</span>
+                </DropdownMenu.SubTrigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.SubContent
+                    style={{
+                      ...contentStyles,
+                      maxHeight:
+                        "min(400px, var(--radix-dropdown-menu-content-available-height))",
+                      overflowY: "auto",
+                    }}
+                    collisionPadding={10}
+                  >
+                    {netLocations.map((location, index) => (
+                      <DropdownMenu.Item
+                        key={index}
+                        className="sv-vm-item"
+                        style={itemStyles}
+                        onSelect={() => onSelectNetLocation?.(location)}
+                      >
+                        {location.label}
+                      </DropdownMenu.Item>
+                    ))}
+                  </DropdownMenu.SubContent>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Sub>
+            )}
 
             <DropdownMenu.Item
               className="sv-vm-item"

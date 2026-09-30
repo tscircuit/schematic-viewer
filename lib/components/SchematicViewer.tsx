@@ -1,3 +1,4 @@
+import { getNetKeyAtElement, getNetLocations } from "../utils/get-net-locations"
 import type { SchematicViewerController } from "../hooks/useSchematicViewerController"
 import { StyleAnalysisDialog } from "./StyleAnalysisDialog"
 import { su } from "@tscircuit/soup-util"
@@ -333,6 +334,7 @@ export const SchematicViewer = ({
     menuRef,
     setMenuVisible,
     contextMenuEventHandlers,
+    menuTarget,
   } = useContextMenu({ containerRef })
 
   const { containerWidth, containerHeight } = useResizeHandling(containerRef)
@@ -653,6 +655,14 @@ export const SchematicViewer = ({
           <ViewMenu
             circuitJson={circuitJson}
             circuitJsonKey={circuitJsonKey}
+            netLocations={(() => {
+              const key = getNetKeyAtElement(menuTarget, circuitJson)
+              return key ? getNetLocations(circuitJson, key) : []
+            })()}
+            onSelectNetLocation={(location) => {
+              setMenuVisible(false)
+              handleSearchResultSelect(location)
+            }}
             menuRef={menuRef}
             menuPos={menuPos}
             onOpenChange={setMenuVisible}
