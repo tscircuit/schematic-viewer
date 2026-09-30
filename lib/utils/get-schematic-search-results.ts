@@ -19,6 +19,7 @@ type SearchableSourceComponent = SourceComponentBase & {
 
 export type SchematicSearchResult = {
   label: string
+  focusPoint?: { x: number; y: number }
   detail?: string
   kind: "component" | "net"
   schematicSheetId?: string
@@ -27,6 +28,7 @@ export type SchematicSearchResult = {
     | { type: "schematic_component"; id: string }
     | { type: "schematic_net_label"; id: string }
     | { type: "schematic_text"; id: string }
+    | { type: "schematic_trace"; id: string }
 }
 
 const normalize = (value: unknown) => String(value ?? "").toLocaleLowerCase()

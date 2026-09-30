@@ -2,7 +2,7 @@ import type { SchematicViewerController } from "./useSchematicViewerController"
 import type { CircuitJson } from "circuit-json"
 import type { RefObject } from "react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { fromString, type Matrix } from "transformation-matrix"
+import { applyToPoint, fromString, type Matrix } from "transformation-matrix"
 import {
   getSchematicSearchResults,
   type SchematicSearchResult,
@@ -57,19 +57,31 @@ export const useSchematicSearch = ({
       const container = containerRef.current
       if (!svgRoot || !container) return false
 
-      let attribute = "data-schematic-net-label-id"
-      if (result.target.type === "schematic_component") {
-        attribute = "data-schematic-component-id"
-      }
-      if (result.target.type === "schematic_text") {
-        attribute = "data-schematic-text-id"
-      }
+      const attribute = `data-${result.target.type.replaceAll("_", "-")}-id`
       const target = Array.from(
         svgRoot.querySelectorAll<SVGGraphicsElement>(`[${attribute}]`),
       ).find((element) => element.getAttribute(attribute) === result.target.id)
       if (!target) return false
 
-      const targetRect = target.getBoundingClientRect()
+      let targetRect: Pick<DOMRect, "left" | "top" | "width" | "height"> =
+        target.getBoundingClientRect()
+      if (result.focusPoint) {
+        const svg = target.closest("svg")
+        const transform = svg?.getAttribute("data-real-to-screen-transform")
+        const screenMatrix = svg?.getScreenCTM?.()
+        if (transform && screenMatrix) {
+          const point = applyToPoint(
+            screenMatrix,
+            applyToPoint(fromString(transform), result.focusPoint),
+          )
+          targetRect = {
+            left: point.x - 1,
+            top: point.y - 1,
+            width: 2,
+            height: 2,
+          }
+        }
+      }
       const containerRect = container.getBoundingClientRect()
       if (!containerRect.width || !containerRect.height) return false
       if (!targetRect.width && !targetRect.height) return false
