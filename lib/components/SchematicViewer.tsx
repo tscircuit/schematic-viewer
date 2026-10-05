@@ -296,7 +296,7 @@ export const SchematicViewer = ({
       if (
         event.target instanceof Element &&
         event.target.closest(
-          "[data-schematic-search], [data-schematic-warnings], .schematic-warning",
+          "[data-schematic-search], [data-schematic-warnings], .schematic-warning, [data-schematic-component-details-tooltip]",
         )
       ) {
         return false

@@ -75,6 +75,8 @@ export const SchematicComponentDetailsTooltip = ({
         margin: 0,
         padding: 0,
         overflowY: "auto",
+        overscrollBehavior: "contain",
+        cursor: "auto",
         boxSizing: "border-box",
         border: "1px solid #cbd5e1",
         borderRadius: "4px",
@@ -91,6 +93,7 @@ export const SchematicComponentDetailsTooltip = ({
       }}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
+      onWheel={(event) => event.stopPropagation()}
     >
       <dl
         style={{
