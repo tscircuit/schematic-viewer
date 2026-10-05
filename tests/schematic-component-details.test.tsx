@@ -468,6 +468,26 @@ test("component details use compact styling and close on zoom or outside click",
         .borderRadius,
     ).toBe("2px")
 
+    const svgContainer = document.querySelector(
+      ".schematic-component-clickable",
+    ) as HTMLElement
+    const transformBeforeScroll = svgContainer.style.transform
+    for (const target of [tooltip!, tooltip!.querySelector("img")!]) {
+      const scrollEvent = new dom.window.WheelEvent("wheel", {
+        bubbles: true,
+        cancelable: true,
+        deltaY: 100,
+      })
+      await act(async () => {
+        target.dispatchEvent(scrollEvent)
+      })
+      expect(scrollEvent.defaultPrevented).toBe(false)
+      expect(svgContainer.style.transform).toBe(transformBeforeScroll)
+      expect(
+        document.querySelector("[data-schematic-component-details-tooltip]"),
+      ).toBe(tooltip)
+    }
+
     const viewerContainer = tooltip?.parentElement
     await act(async () => {
       viewerContainer?.dispatchEvent(
