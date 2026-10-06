@@ -216,6 +216,7 @@ test("Show on PCB navigates from the right-clicked component and closes the menu
     )!
     await openMenu(component)
     expect(getAction()).toBeUndefined()
+    expect(document.querySelector('[role="menu"]')).toBeNull()
 
     await act(async () =>
       reactRoot.render(
@@ -230,6 +231,12 @@ test("Show on PCB navigates from the right-clicked component and closes the menu
       await openMenu(component.firstElementChild ?? component)
       const action = getAction()!
       expect(action).toBeDefined()
+      expect(
+        Array.from(document.querySelectorAll('[role^="menuitem"]')).map(
+          (element) => element.textContent,
+        ),
+      ).toEqual(["↗Show on PCB"])
+      expect(document.querySelector('[role="separator"]')).toBeNull()
       await act(async () => {
         action.dispatchEvent(
           activation === "click"
@@ -259,6 +266,17 @@ test("Show on PCB navigates from the right-clicked component and closes the menu
 
     await openMenu(document.querySelector("svg")!)
     expect(getAction()).toBeUndefined()
+    for (const label of [
+      "Show Schematic Ports",
+      "View Schematic Groups",
+      "Show Grid",
+      "Show Warnings",
+      "Run Style Analysis",
+    ]) {
+      expect(document.querySelector('[role="menu"]')?.textContent).toContain(
+        label,
+      )
+    }
     await act(async () =>
       reactRoot.render(
         <SchematicViewer
@@ -273,6 +291,7 @@ test("Show on PCB navigates from the right-clicked component and closes the menu
       )!,
     )
     expect(getAction()).toBeUndefined()
+    expect(document.querySelector('[role="menu"]')).toBeNull()
     expect(selected).toHaveLength(2)
   } finally {
     await act(async () => reactRoot.unmount())
@@ -471,9 +490,7 @@ test("the warnings menu toggles rendered callouts with mouse and keyboard", asyn
     expect(document.querySelector("svg")).not.toBeNull()
     expect(document.querySelector(".schematic-warning")).toBeNull()
 
-    const component = document.querySelector(
-      '[data-schematic-component-id="schematic_component_1"]',
-    )!
+    const component = document.querySelector("svg")!
     await act(async () => {
       component.dispatchEvent(
         new dom.window.MouseEvent("mousedown", {
@@ -688,9 +705,7 @@ test("Run Style Analysis opens real issue SVGs and can be rerun", async () => {
     },
   ]
   const openAnalysis = async () => {
-    const component = document.querySelector(
-      '[data-schematic-component-id="schematic_component_1"]',
-    )!
+    const component = document.querySelector("svg")!
     await act(async () => {
       for (const type of ["mousedown", "contextmenu"]) {
         component.dispatchEvent(

@@ -27,6 +27,7 @@ import { useContextMenu } from "../hooks/useContextMenu"
 import { getSchematicComponentDetails } from "../utils/component-details"
 import {
   getPcbComponentAtElement,
+  getSchematicComponentAtElement,
   type ViewPcbComponentEvent,
 } from "../utils/get-pcb-component-at-element"
 import { zIndexMap } from "../utils/z-index-map"
@@ -660,6 +661,9 @@ export const SchematicViewer = ({
         )}
         {menuVisible && (
           <ViewMenu
+            isComponentMenu={
+              !!getSchematicComponentAtElement(menuTarget, circuitJson)
+            }
             pcbComponent={getPcbComponentAtElement(menuTarget, circuitJson)}
             onViewPcbComponent={onViewPcbComponent}
             circuitJson={circuitJson}

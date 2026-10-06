@@ -8,10 +8,10 @@ export interface ViewPcbComponentEvent {
   refdes: string
 }
 
-export const getPcbComponentAtElement = (
+export const getSchematicComponentAtElement = (
   target: Element | null,
   circuitJson: CircuitJson,
-): ViewPcbComponentEvent | undefined => {
+) => {
   const componentId = target
     ?.closest("[data-schematic-component-id]")
     ?.getAttribute("data-schematic-component-id")
@@ -47,6 +47,15 @@ export const getPcbComponentAtElement = (
       element.schematic_component_id === schematicComponentId,
   )
   if (schematicComponent?.type !== "schematic_component") return
+  return schematicComponent
+}
+
+export const getPcbComponentAtElement = (
+  target: Element | null,
+  circuitJson: CircuitJson,
+): ViewPcbComponentEvent | undefined => {
+  const schematicComponent = getSchematicComponentAtElement(target, circuitJson)
+  if (!schematicComponent) return
   const sourceComponent = circuitJson.find(
     (element) =>
       element.type === "source_component" &&
