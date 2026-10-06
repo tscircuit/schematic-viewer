@@ -9,6 +9,7 @@ import {
   getSupplierPartNumberEntries,
 } from "../utils/component-details"
 import { zIndexMap } from "../utils/z-index-map"
+import { JlcPartAvailability } from "./JlcPartAvailability"
 
 interface Props {
   sourceComponent: SourceComponent
@@ -138,8 +139,15 @@ export const SchematicComponentDetailsTooltip = ({
               }}
             >
               {entry.links.map((link, index) => (
-                <span key={link.href}>
-                  {index > 0 && ", "}
+                <span
+                  key={link.href}
+                  style={
+                    entry.label === "jlcpcb"
+                      ? { display: "block", marginTop: index > 0 ? 6 : 0 }
+                      : undefined
+                  }
+                >
+                  {entry.label !== "jlcpcb" && index > 0 && ", "}
                   <a
                     href={link.href}
                     target="_blank"
@@ -148,6 +156,12 @@ export const SchematicComponentDetailsTooltip = ({
                   >
                     {link.partNumber}
                   </a>
+                  {entry.label === "jlcpcb" && (
+                    <JlcPartAvailability
+                      key={`${sourceComponent.source_component_id}-${link.partNumber}`}
+                      partNumber={link.partNumber}
+                    />
+                  )}
                 </span>
               ))}
             </dd>
