@@ -5,8 +5,12 @@ import type { CircuitJson } from "circuit-json"
 import { useMemo } from "react"
 import packageJson from "../../package.json"
 import { zIndexMap } from "../utils/z-index-map"
+import type { ViewPcbComponentEvent } from "../utils/get-pcb-component-at-element"
 
 interface ViewMenuProps {
+  isComponentMenu?: boolean
+  pcbComponent?: ViewPcbComponentEvent
+  onViewPcbComponent?: (event: ViewPcbComponentEvent) => void
   netLocations?: SchematicSearchResult[]
   onSelectNetLocation?: (location: SchematicSearchResult) => void
   circuitJson: CircuitJson
@@ -98,6 +102,9 @@ const CheckIcon = () => (
 )
 
 export const ViewMenu = ({
+  isComponentMenu = false,
+  pcbComponent,
+  onViewPcbComponent,
   netLocations = [],
   onSelectNetLocation,
   circuitJson,
@@ -157,6 +164,8 @@ export const ViewMenu = ({
     }
   }, [circuitJsonKey])
 
+  if (isComponentMenu && (!pcbComponent || !onViewPcbComponent)) return null
+
   return (
     <div
       ref={menuRef}
@@ -182,7 +191,22 @@ export const ViewMenu = ({
             avoidCollisions={true}
           >
             <style>{HIGHLIGHT_CSS}</style>
-            {netLocations.length > 0 && (
+            {pcbComponent && onViewPcbComponent && (
+              <>
+                <DropdownMenu.Item
+                  className="sv-vm-item"
+                  style={itemStyles}
+                  onSelect={() => {
+                    onOpenChange(false)
+                    onViewPcbComponent(pcbComponent)
+                  }}
+                >
+                  <span style={iconSlotStyles}>↗</span>
+                  <span>Show on PCB</span>
+                </DropdownMenu.Item>
+              </>
+            )}
+            {!isComponentMenu && netLocations.length > 0 && (
               <DropdownMenu.Sub>
                 <DropdownMenu.SubTrigger
                   className="sv-vm-item"
@@ -215,89 +239,101 @@ export const ViewMenu = ({
               </DropdownMenu.Sub>
             )}
 
-            <DropdownMenu.Item
-              className="sv-vm-item"
-              style={itemStyles}
-              disabled={!hasPorts}
-              title={hasPorts ? undefined : "No ports found in this schematic"}
-              onSelect={(event) => event.preventDefault()}
-              onPointerDown={(event) => {
-                event.preventDefault()
-                if (hasPorts) onTogglePorts(!showPorts)
-              }}
-            >
-              <span style={iconSlotStyles}>{showPorts && <CheckIcon />}</span>
-              <span>Show Schematic Ports</span>
-            </DropdownMenu.Item>
+            {!isComponentMenu && (
+              <>
+                <DropdownMenu.Item
+                  className="sv-vm-item"
+                  style={itemStyles}
+                  disabled={!hasPorts}
+                  title={
+                    hasPorts ? undefined : "No ports found in this schematic"
+                  }
+                  onSelect={(event) => event.preventDefault()}
+                  onPointerDown={(event) => {
+                    event.preventDefault()
+                    if (hasPorts) onTogglePorts(!showPorts)
+                  }}
+                >
+                  <span style={iconSlotStyles}>
+                    {showPorts && <CheckIcon />}
+                  </span>
+                  <span>Show Schematic Ports</span>
+                </DropdownMenu.Item>
 
-            <DropdownMenu.Item
-              className="sv-vm-item"
-              style={itemStyles}
-              disabled={!hasGroups}
-              title={
-                hasGroups ? undefined : "No groups found in this schematic"
-              }
-              onSelect={(event) => event.preventDefault()}
-              onPointerDown={(event) => {
-                event.preventDefault()
-                if (hasGroups) onToggleGroups(!showGroups)
-              }}
-            >
-              <span style={iconSlotStyles}>{showGroups && <CheckIcon />}</span>
-              <span>View Schematic Groups</span>
-            </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  className="sv-vm-item"
+                  style={itemStyles}
+                  disabled={!hasGroups}
+                  title={
+                    hasGroups ? undefined : "No groups found in this schematic"
+                  }
+                  onSelect={(event) => event.preventDefault()}
+                  onPointerDown={(event) => {
+                    event.preventDefault()
+                    if (hasGroups) onToggleGroups(!showGroups)
+                  }}
+                >
+                  <span style={iconSlotStyles}>
+                    {showGroups && <CheckIcon />}
+                  </span>
+                  <span>View Schematic Groups</span>
+                </DropdownMenu.Item>
 
-            <DropdownMenu.Item
-              className="sv-vm-item"
-              style={itemStyles}
-              onSelect={(event) => event.preventDefault()}
-              onPointerDown={(event) => {
-                event.preventDefault()
-                onToggleGrid(!showGrid)
-              }}
-            >
-              <span style={iconSlotStyles}>{showGrid && <CheckIcon />}</span>
-              <span>Show Grid</span>
-            </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  className="sv-vm-item"
+                  style={itemStyles}
+                  onSelect={(event) => event.preventDefault()}
+                  onPointerDown={(event) => {
+                    event.preventDefault()
+                    onToggleGrid(!showGrid)
+                  }}
+                >
+                  <span style={iconSlotStyles}>
+                    {showGrid && <CheckIcon />}
+                  </span>
+                  <span>Show Grid</span>
+                </DropdownMenu.Item>
 
-            <DropdownMenu.CheckboxItem
-              className="sv-vm-item"
-              style={itemStyles}
-              checked={showWarnings}
-              onCheckedChange={onToggleWarnings}
-              onSelect={(event) => event.preventDefault()}
-            >
-              <span style={iconSlotStyles}>
-                <DropdownMenu.ItemIndicator>
-                  <CheckIcon />
-                </DropdownMenu.ItemIndicator>
-              </span>
-              <span>Show Warnings</span>
-            </DropdownMenu.CheckboxItem>
+                <DropdownMenu.CheckboxItem
+                  className="sv-vm-item"
+                  style={itemStyles}
+                  checked={showWarnings}
+                  onCheckedChange={onToggleWarnings}
+                  onSelect={(event) => event.preventDefault()}
+                >
+                  <span style={iconSlotStyles}>
+                    <DropdownMenu.ItemIndicator>
+                      <CheckIcon />
+                    </DropdownMenu.ItemIndicator>
+                  </span>
+                  <span>Show Warnings</span>
+                </DropdownMenu.CheckboxItem>
 
-            <DropdownMenu.Separator style={separatorStyles} />
-            <DropdownMenu.Item
-              className="sv-vm-item"
-              style={itemStyles}
-              onSelect={onRunStyleAnalysis}
-            >
-              <span style={iconSlotStyles} />
-              <span>Run Style Analysis</span>
-            </DropdownMenu.Item>
-            <DropdownMenu.Separator style={separatorStyles} />
+                <DropdownMenu.Separator style={separatorStyles} />
+                <DropdownMenu.Item
+                  className="sv-vm-item"
+                  style={itemStyles}
+                  onSelect={onRunStyleAnalysis}
+                >
+                  <span style={iconSlotStyles} />
+                  <span>Run Style Analysis</span>
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator style={separatorStyles} />
 
-            <div
-              style={{
-                padding: "4px 8px 4px 32px",
-                fontSize: 11,
-                opacity: 0.35,
-                color: "#a1a1aa",
-                letterSpacing: "0.2px",
-                fontFamily: FONT_FAMILY,
-              }}
-            >
-              @tscircuit/schematic-viewer@{String(packageJson?.version)}
-            </div>
+                <div
+                  style={{
+                    padding: "4px 8px 4px 32px",
+                    fontSize: 11,
+                    opacity: 0.35,
+                    color: "#a1a1aa",
+                    letterSpacing: "0.2px",
+                    fontFamily: FONT_FAMILY,
+                  }}
+                >
+                  @tscircuit/schematic-viewer@{String(packageJson?.version)}
+                </div>
+              </>
+            )}
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu.Root>

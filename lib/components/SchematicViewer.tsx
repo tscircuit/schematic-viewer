@@ -25,6 +25,11 @@ import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { useContextMenu } from "../hooks/useContextMenu"
 import { getSchematicComponentDetails } from "../utils/component-details"
+import {
+  getPcbComponentAtElement,
+  getSchematicComponentAtElement,
+  type ViewPcbComponentEvent,
+} from "../utils/get-pcb-component-at-element"
 import { zIndexMap } from "../utils/z-index-map"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentDetailsTooltip } from "./SchematicComponentDetailsTooltip"
@@ -62,6 +67,8 @@ interface Props {
   searchEnabled?: boolean
   /** Connect the controller returned by useSchematicViewerController. */
   controller?: SchematicViewerController
+  /** Omit when the host has no enabled PCB view. */
+  onViewPcbComponent?: (event: ViewPcbComponentEvent) => void
 }
 
 interface SelectedSchematicComponent {
@@ -85,6 +92,7 @@ export const SchematicViewer = ({
   onSchematicSheetChange,
   searchEnabled = true,
   controller,
+  onViewPcbComponent,
   css,
   className,
 }: Props) => {
@@ -653,6 +661,11 @@ export const SchematicViewer = ({
         )}
         {menuVisible && (
           <ViewMenu
+            isComponentMenu={
+              !!getSchematicComponentAtElement(menuTarget, circuitJson)
+            }
+            pcbComponent={getPcbComponentAtElement(menuTarget, circuitJson)}
+            onViewPcbComponent={onViewPcbComponent}
             circuitJson={circuitJson}
             circuitJsonKey={circuitJsonKey}
             netLocations={(() => {

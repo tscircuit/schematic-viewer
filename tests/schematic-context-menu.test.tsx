@@ -13,6 +13,7 @@ import { createRef, useRef, useState } from "react"
 import { act } from "react"
 import { createRoot } from "react-dom/client"
 import { useContextMenu } from "../lib/hooks/useContextMenu"
+import { getPcbComponentAtElement } from "../lib/utils/get-pcb-component-at-element"
 
 const installDom = () => {
   const dom = new JSDOM('<div id="root"></div>', {
@@ -117,6 +118,187 @@ const circuitJsonWithPort = [
     facing_direction: "right",
   },
 ] as any
+
+test("PCB navigation resolves reference labels and both port ID formats", () => {
+  const { dom, restore } = installDom()
+  const circuitJson = [
+    ...circuitJsonWithPort,
+    {
+      type: "schematic_text",
+      schematic_text_id: "text_1",
+      schematic_component_id: "schematic_component_1",
+    },
+    {
+      type: "schematic_port",
+      schematic_port_id: "schematic_port_2",
+      source_port_id: "source_port_2",
+      schematic_component_id: "schematic_component_1",
+    },
+    {
+      type: "pcb_component",
+      pcb_component_id: "pcb_component_1",
+      source_component_id: "source_component_1",
+    },
+  ] as any
+  try {
+    for (const [attribute, id] of [
+      ["data-schematic-component-id", "schematic_component_1"],
+      ["data-schematic-text-id", "text_1"],
+      ["data-schematic-port-id", "schematic_port_2"],
+      ["data-schematic-port-id", "source_port_2"],
+    ]) {
+      const parent = document.createElement("div")
+      parent.setAttribute(attribute!, id!)
+      const child = parent.appendChild(document.createElement("span"))
+      expect(getPcbComponentAtElement(child, circuitJson)).toEqual({
+        source_component_id: "source_component_1",
+        schematic_component_id: "schematic_component_1",
+        pcb_component_id: "pcb_component_1",
+        refdes: "R1",
+      })
+    }
+    expect(getPcbComponentAtElement(null, circuitJson)).toBeUndefined()
+    expect(getPcbComponentAtElement(document.body, circuitJson)).toBeUndefined()
+    const unknown = document.createElement("div")
+    unknown.setAttribute("data-schematic-component-id", "unknown")
+    expect(getPcbComponentAtElement(unknown, circuitJson)).toBeUndefined()
+  } finally {
+    restore()
+  }
+})
+
+test("Show on PCB navigates from the right-clicked component and closes the menu", async () => {
+  const { dom, restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const { SchematicViewer } = await import("../lib/components/SchematicViewer")
+  const circuitJson = [
+    ...circuitJsonWithPort,
+    {
+      type: "pcb_component",
+      pcb_component_id: "pcb_component_1",
+      source_component_id: "source_component_1",
+      center: { x: 10, y: 20 },
+      width: 2,
+      height: 1,
+      layer: "top",
+      rotation: 0,
+    },
+  ] as any
+  const selected: unknown[] = []
+  const getAction = () =>
+    Array.from(document.querySelectorAll('[role="menuitem"]')).find((element) =>
+      element.textContent?.includes("Show on PCB"),
+    )
+  const openMenu = async (target: Element) => {
+    await act(async () => {
+      for (const type of ["mousedown", "contextmenu"]) {
+        target.dispatchEvent(
+          new dom.window.MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            clientX: 100,
+            clientY: 100,
+          }),
+        )
+      }
+    })
+    await act(
+      () => new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0)),
+    )
+  }
+  try {
+    await act(async () =>
+      reactRoot.render(<SchematicViewer circuitJson={circuitJson} />),
+    )
+    const component = document.querySelector(
+      '[data-schematic-component-id="schematic_component_1"]',
+    )!
+    await openMenu(component)
+    expect(getAction()).toBeUndefined()
+    expect(document.querySelector('[role="menu"]')).toBeNull()
+
+    await act(async () =>
+      reactRoot.render(
+        <SchematicViewer
+          circuitJson={circuitJson}
+          onViewPcbComponent={(event) => selected.push(event)}
+        />,
+      ),
+    )
+    for (const activation of ["click", "keyboard"]) {
+      // A child of the SVG group must resolve to the same component.
+      await openMenu(component.firstElementChild ?? component)
+      const action = getAction()!
+      expect(action).toBeDefined()
+      expect(
+        Array.from(document.querySelectorAll('[role^="menuitem"]')).map(
+          (element) => element.textContent,
+        ),
+      ).toEqual(["↗Show on PCB"])
+      expect(document.querySelector('[role="separator"]')).toBeNull()
+      await act(async () => {
+        action.dispatchEvent(
+          activation === "click"
+            ? new dom.window.MouseEvent("click", { bubbles: true })
+            : new dom.window.KeyboardEvent("keydown", {
+                key: "Enter",
+                bubbles: true,
+              }),
+        )
+      })
+      expect(document.querySelector('[role="menu"]')).toBeNull()
+    }
+    expect(selected).toEqual([
+      {
+        source_component_id: "source_component_1",
+        schematic_component_id: "schematic_component_1",
+        pcb_component_id: "pcb_component_1",
+        refdes: "R1",
+      },
+      {
+        source_component_id: "source_component_1",
+        schematic_component_id: "schematic_component_1",
+        pcb_component_id: "pcb_component_1",
+        refdes: "R1",
+      },
+    ])
+
+    await openMenu(document.querySelector("svg")!)
+    expect(getAction()).toBeUndefined()
+    for (const label of [
+      "Show Schematic Ports",
+      "View Schematic Groups",
+      "Show Grid",
+      "Show Warnings",
+      "Run Style Analysis",
+    ]) {
+      expect(document.querySelector('[role="menu"]')?.textContent).toContain(
+        label,
+      )
+    }
+    await act(async () =>
+      reactRoot.render(
+        <SchematicViewer
+          circuitJson={circuitJsonWithPort}
+          onViewPcbComponent={(event) => selected.push(event)}
+        />,
+      ),
+    )
+    await openMenu(
+      document.querySelector(
+        '[data-schematic-component-id="schematic_component_1"]',
+      )!,
+    )
+    expect(getAction()).toBeUndefined()
+    expect(document.querySelector('[role="menu"]')).toBeNull()
+    expect(selected).toHaveLength(2)
+  } finally {
+    await act(async () => reactRoot.unmount())
+    await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))
+    restore()
+  }
+})
 
 test("the context menu toggles schematic ports", async () => {
   const { dom, restore } = installDom()
@@ -308,9 +490,7 @@ test("the warnings menu toggles rendered callouts with mouse and keyboard", asyn
     expect(document.querySelector("svg")).not.toBeNull()
     expect(document.querySelector(".schematic-warning")).toBeNull()
 
-    const component = document.querySelector(
-      '[data-schematic-component-id="schematic_component_1"]',
-    )!
+    const component = document.querySelector("svg")!
     await act(async () => {
       component.dispatchEvent(
         new dom.window.MouseEvent("mousedown", {
@@ -525,9 +705,7 @@ test("Run Style Analysis opens real issue SVGs and can be rerun", async () => {
     },
   ]
   const openAnalysis = async () => {
-    const component = document.querySelector(
-      '[data-schematic-component-id="schematic_component_1"]',
-    )!
+    const component = document.querySelector("svg")!
     await act(async () => {
       for (const type of ["mousedown", "contextmenu"]) {
         component.dispatchEvent(
