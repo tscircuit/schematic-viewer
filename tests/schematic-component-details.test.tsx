@@ -136,6 +136,7 @@ const installDom = () => {
     url: "http://localhost",
   })
   const previousGlobals = {
+    fetch: globalThis.fetch,
     window: globalThis.window,
     document: globalThis.document,
     Element: globalThis.Element,
@@ -161,6 +162,7 @@ const installDom = () => {
   }
 
   Object.assign(globalThis, {
+    fetch: async () => Response.json({ components: [] }),
     window: dom.window,
     document: dom.window.document,
     Element: dom.window.Element,
@@ -548,4 +550,83 @@ test("the component popup omits its warnings section when no warnings apply", ()
   )
   expect(html).toContain("R1 component details")
   expect(html).not.toContain("Component warnings")
+})
+
+test("JLC lookup shows a loader, ignores old selections, and refreshes on reopen", async () => {
+  const { restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const requests: {
+    url: string
+    signal: AbortSignal
+    resolve: (response: Response) => void
+  }[] = []
+  globalThis.fetch = ((url, options) =>
+    new Promise<Response>((resolve) => {
+      requests.push({
+        url: String(url),
+        signal: options!.signal!,
+        resolve,
+      })
+    })) as typeof fetch
+  const renderPart = (partNumber?: string) => (
+    <SchematicComponentDetailsTooltip
+      sourceComponent={{
+        type: "source_component",
+        source_component_id: partNumber ?? "no-jlc",
+        name: "R1",
+        ftype: "simple_resistor",
+        resistance: 1000,
+        supplier_part_numbers: partNumber ? { jlcpcb: [partNumber] } : {},
+      }}
+      left={0}
+      top={0}
+      width={300}
+      maxHeight={500}
+    />
+  )
+  try {
+    await act(async () => reactRoot.render(renderPart()))
+    expect(requests).toHaveLength(0)
+    await act(async () => reactRoot.render(renderPart("C1525")))
+    expect(
+      document.querySelector('[role="status"]')?.getAttribute("aria-busy"),
+    ).toBe("true")
+    expect(document.body.textContent).toContain("Loading price and stock")
+    expect(requests[0].url).toBe(
+      "https://jlcsearch.tscircuit.com/api/search?q=C1525&limit=1",
+    )
+
+    await act(async () => reactRoot.render(renderPart("C2040")))
+    expect(requests[0].signal.aborted).toBe(true)
+    await act(async () => {
+      requests[0].resolve(
+        Response.json({ components: [{ lcsc: 1525, price: 99, stock: 999 }] }),
+      )
+      requests[1].resolve(
+        Response.json({
+          components: [{ lcsc: 2040, price: 0.006, stock: 1234 }],
+        }),
+      )
+    })
+    expect(document.body.textContent).toContain("$0.006")
+    expect(document.body.textContent).toContain("1,234 in stock")
+    expect(document.body.textContent).not.toContain("$99")
+    expect(
+      document.querySelector('[role="status"]')?.getAttribute("aria-busy"),
+    ).toBe("false")
+
+    await act(async () => reactRoot.render(null))
+    expect(requests[1].signal.aborted).toBe(true)
+    await act(async () => reactRoot.render(renderPart("C2040")))
+    expect(requests).toHaveLength(3)
+    await act(async () =>
+      requests[2].resolve(new Response(null, { status: 503 })),
+    )
+    expect(document.body.textContent).toContain("Price unavailable")
+    expect(document.body.textContent).toContain("Stock unavailable")
+    expect(document.querySelector("a")?.textContent).toBe("C2040")
+  } finally {
+    await act(async () => reactRoot.unmount())
+    restore()
+  }
 })
