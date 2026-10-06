@@ -26,16 +26,6 @@ or style issue, or a message when no issues are found. Analysis runs locally in
 the browser and loads on demand. Close the modal and run the command again after
 editing the circuit to get fresh results.
 
-Pass `onViewPcbComponent` to enable **Show on PCB** when right-clicking a component,
-its reference designator, or a port with a matching PCB component. The menu closes
-and calls the handler with `source_component_id`, `schematic_component_id`,
-`pcb_component_id`, and `refdes`. The host uses these IDs to switch to its PCB view
-and locate the component. Omit the handler when no PCB view is available.
-
-Component context menus contain only component actions. Right-click the schematic
-background to access viewer settings and **Run Style Analysis**. If no component
-action is available, right-clicking that component does not open a menu.
-
 The analyzer is fetched at runtime from
 `https://jscdn.tscircuit.com/@tscircuit/circuit-json-schematic-placement-analysis/latest/dist/browser.js`.
 It is not included in the viewer bundle. This requires a published analyzer
