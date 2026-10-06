@@ -70,13 +70,16 @@ export const JlcPartAvailability = ({ partNumber }: { partNumber: string }) => {
         </span>
       ) : (
         <>
-          {result?.price != null
-            ? `$${result.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })} USD / unit`
-            : "Price unavailable"}
-          {" · "}
-          {result?.stock != null
-            ? `${result.stock.toLocaleString("en-US")} in stock`
-            : "Stock unavailable"}
+          <span style={{ display: "block" }}>
+            {result?.price != null
+              ? `$${result.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+              : "Price unavailable"}
+          </span>
+          <span style={{ display: "block" }}>
+            {result?.stock != null
+              ? `${result.stock.toLocaleString("en-US")} in stock`
+              : "Stock unavailable"}
+          </span>
         </>
       )}
     </span>

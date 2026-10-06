@@ -608,7 +608,7 @@ test("JLC lookup shows a loader, ignores old selections, and refreshes on reopen
         }),
       )
     })
-    expect(document.body.textContent).toContain("$0.006 USD / unit")
+    expect(document.body.textContent).toContain("$0.006")
     expect(document.body.textContent).toContain("1,234 in stock")
     expect(document.body.textContent).not.toContain("$99")
     expect(
