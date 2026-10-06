@@ -5,8 +5,11 @@ import type { CircuitJson } from "circuit-json"
 import { useMemo } from "react"
 import packageJson from "../../package.json"
 import { zIndexMap } from "../utils/z-index-map"
+import type { ViewPcbComponentEvent } from "../utils/get-pcb-component-at-element"
 
 interface ViewMenuProps {
+  pcbComponent?: ViewPcbComponentEvent
+  onViewPcbComponent?: (event: ViewPcbComponentEvent) => void
   netLocations?: SchematicSearchResult[]
   onSelectNetLocation?: (location: SchematicSearchResult) => void
   circuitJson: CircuitJson
@@ -98,6 +101,8 @@ const CheckIcon = () => (
 )
 
 export const ViewMenu = ({
+  pcbComponent,
+  onViewPcbComponent,
   netLocations = [],
   onSelectNetLocation,
   circuitJson,
@@ -182,6 +187,22 @@ export const ViewMenu = ({
             avoidCollisions={true}
           >
             <style>{HIGHLIGHT_CSS}</style>
+            {pcbComponent && onViewPcbComponent && (
+              <>
+                <DropdownMenu.Item
+                  className="sv-vm-item"
+                  style={itemStyles}
+                  onSelect={() => {
+                    onOpenChange(false)
+                    onViewPcbComponent(pcbComponent)
+                  }}
+                >
+                  <span style={iconSlotStyles}>↗</span>
+                  <span>Show on PCB</span>
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator style={separatorStyles} />
+              </>
+            )}
             {netLocations.length > 0 && (
               <DropdownMenu.Sub>
                 <DropdownMenu.SubTrigger
