@@ -6,10 +6,6 @@ import {
 import type { CircuitJson } from "circuit-json"
 import { useEffect, useState } from "react"
 import { zIndexMap } from "../utils/z-index-map"
-import type { SchematicViewerServices } from "../services"
-
-const defaultLoadStyleAnalyzer = () => styleAnalyzerLoader.load()
-
 type AnalysisState =
   | { status: "loading" }
   | { status: "error"; message: string }
@@ -18,11 +14,9 @@ type AnalysisState =
 export const StyleAnalysisDialog = ({
   circuitJson,
   onClose,
-  loadStyleAnalyzer = defaultLoadStyleAnalyzer,
 }: {
   circuitJson: CircuitJson
   onClose: () => void
-  loadStyleAnalyzer?: SchematicViewerServices["loadStyleAnalyzer"]
 }) => {
   const [state, setState] = useState<AnalysisState>({ status: "loading" })
 
@@ -33,7 +27,7 @@ export const StyleAnalysisDialog = ({
     const timer = window.setTimeout(async () => {
       try {
         const { createSchematicPlacementIssueArtifacts } =
-          await loadStyleAnalyzer()
+          await styleAnalyzerLoader.load()
         if (cancelled) return
         const artifacts = createSchematicPlacementIssueArtifacts(circuitJson)
         if (!cancelled) setState({ status: "complete", artifacts })
@@ -50,7 +44,7 @@ export const StyleAnalysisDialog = ({
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [circuitJson, loadStyleAnalyzer])
+  }, [circuitJson])
 
   return (
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>

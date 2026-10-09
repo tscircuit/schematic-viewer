@@ -39,12 +39,12 @@ import { SchematicSearch } from "./SchematicSearch"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
 import { SchematicWarningsButton } from "./SchematicWarningsButton"
 import { ViewMenu } from "./ViewMenu"
-import type { SchematicViewerServices } from "../services"
+import type { PlatformConfig } from "@tscircuit/props"
 
 interface Props {
   circuitJson: CircuitJson
-  /** Optional service implementations, such as bundled part data and analysis. */
-  services?: SchematicViewerServices
+  /** Platform providers used for supplier availability and requests. */
+  platformConfig?: PlatformConfig
   containerStyle?: React.CSSProperties
   debugGrid?: boolean
   debug?: boolean
@@ -82,7 +82,7 @@ interface SelectedSchematicComponent {
 
 export const SchematicViewer = ({
   circuitJson,
-  services,
+  platformConfig,
   containerStyle,
   debugGrid = false,
   debug = false,
@@ -659,7 +659,6 @@ export const SchematicViewer = ({
         )}
         {analysisCircuitJson && (
           <StyleAnalysisDialog
-            loadStyleAnalyzer={services?.loadStyleAnalyzer}
             circuitJson={analysisCircuitJson}
             onClose={() => setAnalysisCircuitJson(null)}
           />
@@ -759,7 +758,7 @@ export const SchematicViewer = ({
         {svgDiv}
         {selectedComponentDetails && componentTooltipLayout && (
           <SchematicComponentDetailsTooltip
-            services={services}
+            platformConfig={platformConfig}
             sourceComponent={selectedComponentDetails.sourceComponent}
             warnings={selectedComponentDetails.warnings}
             footprinterString={selectedComponentDetails.footprinterString}

@@ -9,7 +9,7 @@ import type {
   PcbComponent,
   SchematicComponent,
 } from "circuit-json"
-import { gzipSync, strToU8 } from "fflate"
+import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 
 export type { PcbBounds } from "@tscircuit/circuit-json-util"
 
@@ -263,7 +263,7 @@ interface PcbComponentPreview {
 /**
  * Select the real PCB context around a component. Elements only need to
  * intersect the view box, so long traces and the board remain available for
- * rendering while svg.tscircuit.com clips the parts outside the preview.
+ * rendering while the local SVG viewport clips parts outside the preview.
  */
 export const getPcbComponentPreview = (
   circuitJson: CircuitJson,
@@ -292,29 +292,16 @@ export const getPcbComponentPreview = (
   }
 }
 
-const bytesToBase64 = (bytes: Uint8Array) => {
-  let binary = ""
-  const chunkSize = 8192
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize))
-  }
-  return btoa(binary)
-}
-
 export const getFootprintPreviewUrl = (
   footprintPreviewCircuitJson: CircuitJson,
   viewBox: PcbBounds,
 ) => {
-  const encodedCircuitJson = bytesToBase64(
-    gzipSync(strToU8(JSON.stringify(footprintPreviewCircuitJson))),
-  )
-  const url = new URL("https://svg.tscircuit.com/")
-  url.searchParams.set("svg_type", "pcb")
-  url.searchParams.set("circuit_json", encodedCircuitJson)
-  url.searchParams.set(
-    "viewbox",
-    [viewBox.minX, viewBox.minY, viewBox.maxX, viewBox.maxY].join(","),
-  )
-  url.searchParams.set("background_color", "#f8fafc")
-  return url.toString()
+  const svg = convertCircuitJsonToPcbSvg(footprintPreviewCircuitJson, {
+    width: 320,
+    height: 240,
+    viewport: viewBox,
+    backgroundColor: "#f8fafc",
+    includeVersion: false,
+  })
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }

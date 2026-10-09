@@ -778,14 +778,14 @@ test("Run Style Analysis opens real issue SVGs and can be rerun", async () => {
   }
 })
 
-test("style analysis reports CDN failures in a dismissible dialog", async () => {
+test("style analysis reports module loading failures in a dismissible dialog", async () => {
   const { dom, restore } = installDom()
   const reactRoot = createRoot(document.getElementById("root")!)
   const { StyleAnalysisDialog } = await import(
     "../lib/components/StyleAnalysisDialog"
   )
   analyzerSpy.mockRejectedValueOnce(
-    new Error("Failed to load the analyzer from the CDN"),
+    new Error("Failed to load the analyzer module"),
   )
   const Harness = () => {
     const [open, setOpen] = useState(true)
@@ -809,98 +809,6 @@ test("style analysis reports CDN failures in a dismissible dialog", async () => 
     )
     await act(async () => document.querySelector("button")!.click())
     expect(document.querySelector('[role="dialog"]')).toBeNull()
-  } finally {
-    await act(async () => reactRoot.unmount())
-    await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))
-    restore()
-  }
-})
-
-test("style analysis uses supplied analyzers without loading the default service", async () => {
-  const { dom, restore } = installDom()
-  const reactRoot = createRoot(document.getElementById("root")!)
-  const { SchematicViewer } = await import("../lib/components/SchematicViewer")
-  const { StyleAnalysisDialog } = await import(
-    "../lib/components/StyleAnalysisDialog"
-  )
-  const loadCallsBefore = analyzerSpy.mock.calls.length
-  const analyzedCircuits: unknown[] = []
-  const loadStyleAnalyzer = async () => ({
-    createSchematicPlacementIssueArtifacts(circuitJson: unknown) {
-      analyzedCircuits.push(circuitJson)
-      return []
-    },
-  })
-  try {
-    await act(async () =>
-      reactRoot.render(
-        <SchematicViewer
-          circuitJson={circuitJsonWithPort}
-          services={{ loadStyleAnalyzer }}
-        />,
-      ),
-    )
-    await act(
-      () => new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
-    )
-    const component = document.querySelector("svg")!
-    await act(async () => {
-      for (const type of ["mousedown", "contextmenu"]) {
-        component.dispatchEvent(
-          new dom.window.MouseEvent(type, {
-            bubbles: true,
-            cancelable: true,
-            button: 2,
-            clientX: 100,
-            clientY: 100,
-          }),
-        )
-      }
-    })
-    await act(
-      () => new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0)),
-    )
-    const command = Array.from(
-      document.querySelectorAll('[role="menuitem"]'),
-    ).find((item) => item.textContent === "Run Style Analysis")!
-    expect(command).toBeDefined()
-    expect(command.getAttribute("aria-disabled")).not.toBe("true")
-    await act(async () => {
-      command.dispatchEvent(
-        new dom.window.MouseEvent("click", { bubbles: true }),
-      )
-    })
-    for (let i = 0; i < 100 && analyzedCircuits.length === 0; i++) {
-      await act(
-        () =>
-          new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
-      )
-    }
-    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
-      "No style issues found.",
-    )
-    expect(analyzedCircuits).toEqual([circuitJsonWithPort])
-    await act(async () =>
-      reactRoot.render(
-        <StyleAnalysisDialog
-          circuitJson={circuitJsonWithPort}
-          loadStyleAnalyzer={async () => {
-            throw new Error("Supplied analyzer failed")
-          }}
-          onClose={() => {}}
-        />,
-      ),
-    )
-    for (let i = 0; i < 100 && !document.querySelector('[role="alert"]'); i++) {
-      await act(
-        () =>
-          new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
-      )
-    }
-    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
-      "Supplied analyzer failed",
-    )
-    expect(analyzerSpy.mock.calls.length).toBe(loadCallsBefore)
   } finally {
     await act(async () => reactRoot.unmount())
     await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))

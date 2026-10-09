@@ -10,10 +10,10 @@ import {
 } from "../utils/component-details"
 import { zIndexMap } from "../utils/z-index-map"
 import { JlcPartAvailability } from "./JlcPartAvailability"
-import type { SchematicViewerServices } from "../services"
+import type { PlatformConfig } from "@tscircuit/props"
 
 interface Props {
-  services?: SchematicViewerServices
+  platformConfig?: PlatformConfig
   sourceComponent: SourceComponent
   warnings?: ComponentWarning[]
   footprinterString?: string
@@ -34,7 +34,7 @@ const detailLabelStyle: React.CSSProperties = {
 }
 
 export const SchematicComponentDetailsTooltip = ({
-  services,
+  platformConfig,
   sourceComponent,
   warnings = [],
   footprinterString,
@@ -53,21 +53,15 @@ export const SchematicComponentDetailsTooltip = ({
     () => getSupplierPartNumberEntries(sourceComponent),
     [sourceComponent],
   )
-  const resolveFootprintPreviewUrl =
-    services?.getFootprintPreviewUrl ?? getFootprintPreviewUrl
   const footprintPreviewUrl = useMemo(
     () =>
       footprintPreviewCircuitJson?.length && footprintPreviewViewBox
-        ? resolveFootprintPreviewUrl(
+        ? getFootprintPreviewUrl(
             footprintPreviewCircuitJson,
             footprintPreviewViewBox,
           )
         : undefined,
-    [
-      resolveFootprintPreviewUrl,
-      footprintPreviewCircuitJson,
-      footprintPreviewViewBox,
-    ],
+    [footprintPreviewCircuitJson, footprintPreviewViewBox],
   )
   return (
     <dialog
@@ -169,7 +163,7 @@ export const SchematicComponentDetailsTooltip = ({
                     <JlcPartAvailability
                       key={`${sourceComponent.source_component_id}-${link.partNumber}`}
                       partNumber={link.partNumber}
-                      fetchAvailability={services?.fetchJlcPartAvailability}
+                      platformConfig={platformConfig}
                     />
                   )}
                 </span>

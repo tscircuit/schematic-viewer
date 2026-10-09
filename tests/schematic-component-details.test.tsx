@@ -1,6 +1,9 @@
 import { expect, test } from "bun:test"
 import type { CircuitJson } from "circuit-json"
-import { gunzipSync, strFromU8 } from "fflate"
+import type {
+  FetchPartAvailabilityParams,
+  PlatformConfig,
+} from "@tscircuit/props"
 import { JSDOM } from "jsdom"
 import { act } from "react"
 import { createRoot } from "react-dom/client"
@@ -8,7 +11,6 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { SchematicComponentDetailsTooltip } from "../lib/components/SchematicComponentDetailsTooltip"
 import { SchematicViewer } from "../lib/components/SchematicViewer"
 import { renderToCircuitJson } from "../lib/dev/render-to-circuit-json"
-import type { SchematicViewerServices } from "../lib/services"
 import {
   type SourceComponent,
   type ComponentWarning,
@@ -326,29 +328,23 @@ test("footprint previews use the selected component's actual PCB elements", () =
     circuitJson,
     details.pcbComponent!.pcb_component_id,
   )!
-  const previewUrl = new URL(
-    getFootprintPreviewUrl(preview.circuitJson, preview.viewBox),
+  const previewUrl = getFootprintPreviewUrl(
+    preview.circuitJson,
+    preview.viewBox,
   )
-  const compressedCircuitJson = Uint8Array.from(
-    atob(previewUrl.searchParams.get("circuit_json")!),
-    (character) => character.charCodeAt(0),
-  )
-  const decodedCircuitJson = JSON.parse(
-    strFromU8(gunzipSync(compressedCircuitJson)),
-  )
-
-  expect(previewUrl.origin).toBe("https://svg.tscircuit.com")
-  expect(previewUrl.searchParams.get("svg_type")).toBe("pcb")
-  expect(previewUrl.searchParams.get("background_color")).toBe("#f8fafc")
-  expect(previewUrl.searchParams.get("viewbox")).toBe(
-    [
-      preview.viewBox.minX,
-      preview.viewBox.minY,
-      preview.viewBox.maxX,
-      preview.viewBox.maxY,
-    ].join(","),
-  )
-  expect(decodedCircuitJson).toEqual(preview.circuitJson)
+  expect(previewUrl).toStartWith("data:image/svg+xml;charset=utf-8,")
+  const svg = decodeURIComponent(previewUrl.split(",")[1]!)
+  const previewDocument = new JSDOM(svg, { contentType: "image/svg+xml" })
+    .window.document
+  expect(previewDocument.documentElement.getAttribute("width")).toBe("320")
+  expect(previewDocument.documentElement.getAttribute("height")).toBe("240")
+  expect(svg).toContain("R1")
+  expect(
+    previewDocument.querySelectorAll('[data-type="pcb_smtpad"]').length,
+  ).toBeGreaterThan(0)
+  expect(
+    previewDocument.querySelectorAll('[href^="http"], [src^="http"]'),
+  ).toHaveLength(0)
   expect(preview.circuitJson).toContainEqual(
     expect.objectContaining({
       type: "pcb_silkscreen_text",
@@ -461,7 +457,7 @@ test("component details use compact styling and close on zoom or outside click",
       ),
     ).toBe(true)
     expect(tooltip?.querySelector("img")?.getAttribute("src")).toContain(
-      "https://svg.tscircuit.com/",
+      "data:image/svg+xml;charset=utf-8,",
     )
     expect(tooltip?.querySelector("img")?.getAttribute("alt")).toBe(
       "R1 res0603 PCB footprint",
@@ -632,7 +628,7 @@ test("JLC lookup shows a loader, ignores old selections, and refreshes on reopen
   }
 })
 
-test("component inspection uses supplied services and preserves supplier links", async () => {
+test("component inspection forwards platform availability providers and keeps links and local previews", async () => {
   const { dom, restore } = installDom()
   const reactRoot = createRoot(document.getElementById("root")!)
   const requests: string[] = []
@@ -640,20 +636,17 @@ test("component inspection uses supplied services and preserves supplier links",
     requests.push(String(url))
     throw new Error("Unexpected default service request")
   }) as unknown as typeof fetch
-  const availabilityCalls: string[] = []
-  const previewCalls: CircuitJson[] = []
-  const previewUrl =
-    "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>"
-  const services: SchematicViewerServices = {
-    async fetchJlcPartAvailability(partNumber, signal) {
-      expect(signal.aborted).toBe(false)
-      availabilityCalls.push(partNumber)
-      return { price: 0.02, stock: 1234 }
-    },
-    getFootprintPreviewUrl(preview, viewBox) {
-      previewCalls.push(preview)
-      expect(viewBox.maxX).toBeGreaterThan(viewBox.minX)
-      return previewUrl
+  const availabilityCalls: FetchPartAvailabilityParams[] = []
+  const platformFetch = globalThis.fetch
+  const platformConfig: PlatformConfig = {
+    platformFetch,
+    partsEngine: {
+      findPart: () => ({}),
+      async fetchPartAvailability(params) {
+        expect(params.signal?.aborted).toBe(false)
+        availabilityCalls.push(params)
+        return { price: 0.02, stock: 1234, currency: "EUR" }
+      },
     },
   }
   try {
@@ -661,7 +654,7 @@ test("component inspection uses supplied services and preserves supplier links",
       reactRoot.render(
         <SchematicViewer
           circuitJson={circuitJsonWithWarnings}
-          services={services}
+          platformConfig={platformConfig}
           containerStyle={{ width: 800, height: 600 }}
         />,
       )
@@ -698,7 +691,9 @@ test("component inspection uses supplied services and preserves supplier links",
     expect(tooltip.textContent).toContain("RC0603FR-071KL")
     expect(tooltip.textContent).toContain("res0603")
     expect(tooltip.textContent).toContain("Warnings (5)")
-    expect(tooltip.querySelector("img")?.getAttribute("src")).toBe(previewUrl)
+    const previewUrl = tooltip.querySelector("img")?.getAttribute("src")!
+    expect(previewUrl).toStartWith("data:image/svg+xml;charset=utf-8,")
+    expect(decodeURIComponent(previewUrl.split(",")[1]!)).toContain("<svg")
     expect(
       tooltip.querySelector('a[href="https://jlcpcb.com/partdetail/C2040"]'),
     ).not.toBeNull()
@@ -707,11 +702,12 @@ test("component inspection uses supplied services and preserves supplier links",
         'a[href="https://www.lcsc.com/product-detail/C2040.html"]',
       ),
     ).not.toBeNull()
-    expect(tooltip.textContent).toContain("$0.02")
+    expect(tooltip.textContent).toContain("€0.02")
     expect(tooltip.textContent).toContain("1,234 in stock")
-    expect(availabilityCalls).toEqual(["C2040"])
-    expect(previewCalls).toHaveLength(1)
-    expect(previewCalls[0]!.length).toBeGreaterThan(0)
+    expect(availabilityCalls).toHaveLength(1)
+    expect(availabilityCalls[0]?.supplierName).toBe("jlcpcb")
+    expect(availabilityCalls[0]?.supplierPartNumber).toBe("C2040")
+    expect(availabilityCalls[0]?.platformFetch).toBe(platformFetch)
     expect(document.querySelector("svg")).not.toBeNull()
     expect(requests).toEqual([])
   } finally {
@@ -720,7 +716,7 @@ test("component inspection uses supplied services and preserves supplier links",
   }
 })
 
-test("empty service results omit the thumbnail and stock without online fallback", async () => {
+test("undefined platform availability stays unknown without fallback and retains its local thumbnail", async () => {
   const { restore } = installDom()
   const reactRoot = createRoot(document.getElementById("root")!)
   const details = getSchematicComponentDetails(
@@ -730,10 +726,9 @@ test("empty service results omit the thumbnail and stock without online fallback
   const requests: string[] = []
   globalThis.fetch = (async (url: RequestInfo | URL) => {
     requests.push(String(url))
-    throw new Error("Injected services must not fall back to fetch")
+    throw new Error("Platform availability must not fall back to fetch")
   }) as unknown as typeof fetch
   let lookupCalls = 0
-  let previewCalls = 0
   try {
     await act(async () =>
       reactRoot.render(
@@ -741,14 +736,13 @@ test("empty service results omit the thumbnail and stock without online fallback
           sourceComponent={details.sourceComponent}
           footprintPreviewCircuitJson={details.footprintPreviewCircuitJson}
           footprintPreviewViewBox={details.footprintPreviewViewBox}
-          services={{
-            async fetchJlcPartAvailability() {
-              lookupCalls++
-              return null
-            },
-            getFootprintPreviewUrl() {
-              previewCalls++
-              return undefined
+          platformConfig={{
+            partsEngine: {
+              findPart: () => ({}),
+              fetchPartAvailability() {
+                lookupCalls++
+                return undefined
+              },
             },
           }}
           left={0}
@@ -759,16 +753,62 @@ test("empty service results omit the thumbnail and stock without online fallback
       ),
     )
     expect(lookupCalls).toBe(1)
-    expect(previewCalls).toBe(1)
     expect(document.body.textContent).toContain("Price unavailable")
     expect(document.body.textContent).toContain("Stock unavailable")
-    expect(document.querySelector("img")).toBeNull()
+    expect(document.querySelector("img")?.getAttribute("src")).toStartWith(
+      "data:image/svg+xml;charset=utf-8,",
+    )
     expect(
       document.querySelector('a[href^="https://jlcpcb.com"]'),
     ).not.toBeNull()
     expect(requests).toEqual([])
   } finally {
     await act(async () => reactRoot.unmount())
+    restore()
+  }
+})
+
+test("component price lookup delegates to platformFetch when no availability provider is configured", async () => {
+  const { restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const details = getSchematicComponentDetails(
+    circuitJson,
+    "schematic_component_0",
+  )!
+  globalThis.fetch = (() => {
+    throw new Error("Configured component requests must use platformFetch")
+  }) as unknown as typeof fetch
+  const requests: Array<{ input: unknown; init?: RequestInit }> = []
+  const platformFetch = (async (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ) => {
+    requests.push({ input, init })
+    return Response.json({
+      components: [{ lcsc: 2040, price: 0.12, stock: 42 }],
+    })
+  }) as typeof fetch
+  try {
+    await act(async () =>
+      reactRoot.render(
+        <SchematicComponentDetailsTooltip
+          sourceComponent={details.sourceComponent}
+          platformConfig={{ platformFetch }}
+          left={0}
+          top={0}
+          width={300}
+          maxHeight={400}
+        />,
+      ),
+    )
+    expect(requests).toHaveLength(1)
+    expect(String(requests[0]!.input)).toContain("q=C2040")
+    expect(requests[0]!.init?.signal?.aborted).toBe(false)
+    expect(document.body.textContent).toContain("$0.12")
+    expect(document.body.textContent).toContain("42 in stock")
+  } finally {
+    await act(async () => reactRoot.unmount())
+    expect(requests[0]?.init?.signal?.aborted).toBe(true)
     restore()
   }
 })
