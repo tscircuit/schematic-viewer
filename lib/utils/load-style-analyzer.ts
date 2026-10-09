@@ -1,4 +1,5 @@
 import type { CircuitJson } from "circuit-json"
+import importer from "@tscircuit/internal-dynamic-import/source"
 
 export interface StyleAnalysisArtifact {
   issueIndex: number
@@ -14,14 +15,10 @@ export interface StyleAnalyzer {
   ) => StyleAnalysisArtifact[]
 }
 
-export const STYLE_ANALYZER_URL =
-  "https://jscdn.tscircuit.com/@tscircuit/circuit-json-schematic-placement-analysis/latest/dist/browser.js"
-
 export const styleAnalyzerLoader = {
   async load(): Promise<StyleAnalyzer> {
-    // Leave this URL import to the browser, including in downstream Vite/Webpack apps.
-    const analyzer = await import(
-      /* @vite-ignore */ /* webpackIgnore: true */ STYLE_ANALYZER_URL
+    const analyzer = await importer(
+      "@tscircuit/circuit-json-schematic-placement-analysis",
     )
     if (typeof analyzer.createSchematicPlacementIssueArtifacts !== "function") {
       throw new Error(

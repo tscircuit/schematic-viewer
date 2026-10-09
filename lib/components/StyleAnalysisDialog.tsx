@@ -6,7 +6,6 @@ import {
 import type { CircuitJson } from "circuit-json"
 import { useEffect, useState } from "react"
 import { zIndexMap } from "../utils/z-index-map"
-
 type AnalysisState =
   | { status: "loading" }
   | { status: "error"; message: string }
@@ -23,6 +22,7 @@ export const StyleAnalysisDialog = ({
 
   useEffect(() => {
     let cancelled = false
+    setState({ status: "loading" })
     // Let the dialog paint before loading and running the analyzer.
     const timer = window.setTimeout(async () => {
       try {

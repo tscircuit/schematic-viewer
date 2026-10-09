@@ -778,14 +778,14 @@ test("Run Style Analysis opens real issue SVGs and can be rerun", async () => {
   }
 })
 
-test("style analysis reports CDN failures in a dismissible dialog", async () => {
+test("style analysis reports module loading failures in a dismissible dialog", async () => {
   const { dom, restore } = installDom()
   const reactRoot = createRoot(document.getElementById("root")!)
   const { StyleAnalysisDialog } = await import(
     "../lib/components/StyleAnalysisDialog"
   )
   analyzerSpy.mockRejectedValueOnce(
-    new Error("Failed to load the analyzer from the CDN"),
+    new Error("Failed to load the analyzer module"),
   )
   const Harness = () => {
     const [open, setOpen] = useState(true)

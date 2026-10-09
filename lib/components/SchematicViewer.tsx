@@ -13,12 +13,12 @@ import {
   getStoredString,
   setStoredBoolean,
   setStoredString,
-} from "lib/hooks/useLocalStorage"
-import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
-import { useSchematicNetHover } from "lib/hooks/useSchematicNetHover"
-import { useSchematicWarnings } from "lib/hooks/useSchematicWarnings"
-import { useSchematicSearch } from "lib/hooks/useSchematicSearch"
-import { enableDebug } from "lib/utils/debug"
+} from "../hooks/useLocalStorage"
+import { useSchematicGroupsOverlay } from "../hooks/useSchematicGroupsOverlay"
+import { useSchematicNetHover } from "../hooks/useSchematicNetHover"
+import { useSchematicWarnings } from "../hooks/useSchematicWarnings"
+import { useSchematicSearch } from "../hooks/useSchematicSearch"
+import { enableDebug } from "../utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toString as transformToString } from "transformation-matrix"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
@@ -39,9 +39,12 @@ import { SchematicSearch } from "./SchematicSearch"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
 import { SchematicWarningsButton } from "./SchematicWarningsButton"
 import { ViewMenu } from "./ViewMenu"
+import type { PlatformConfig } from "@tscircuit/props"
 
 interface Props {
   circuitJson: CircuitJson
+  /** Platform providers used for supplier availability and requests. */
+  platformConfig?: PlatformConfig
   containerStyle?: React.CSSProperties
   debugGrid?: boolean
   debug?: boolean
@@ -79,6 +82,7 @@ interface SelectedSchematicComponent {
 
 export const SchematicViewer = ({
   circuitJson,
+  platformConfig,
   containerStyle,
   debugGrid = false,
   debug = false,
@@ -754,6 +758,7 @@ export const SchematicViewer = ({
         {svgDiv}
         {selectedComponentDetails && componentTooltipLayout && (
           <SchematicComponentDetailsTooltip
+            platformConfig={platformConfig}
             sourceComponent={selectedComponentDetails.sourceComponent}
             warnings={selectedComponentDetails.warnings}
             footprinterString={selectedComponentDetails.footprinterString}

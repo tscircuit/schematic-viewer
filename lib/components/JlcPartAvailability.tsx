@@ -3,10 +3,32 @@ import {
   type JlcPartAvailability as Availability,
   fetchJlcPartAvailability,
 } from "../utils/jlc-part-availability"
+import type { PlatformConfig } from "@tscircuit/props"
 
-export const JlcPartAvailability = ({ partNumber }: { partNumber: string }) => {
+const formatPrice = (availability: Availability | null) => {
+  if (availability?.price == null) return "Price unavailable"
+  const options = { minimumFractionDigits: 2, maximumFractionDigits: 6 }
+  if (availability.currency === null) {
+    return availability.price.toLocaleString("en-US", options)
+  }
+  return availability.price.toLocaleString("en-US", {
+    ...options,
+    style: "currency",
+    currency: availability.currency ?? "USD",
+  })
+}
+
+export const JlcPartAvailability = ({
+  partNumber,
+  platformConfig,
+}: {
+  partNumber: string
+  platformConfig?: PlatformConfig
+}) => {
   const [result, setResult] = useState<Availability | null>(null)
   const [loading, setLoading] = useState(true)
+  const partsEngine = platformConfig?.partsEngine
+  const platformFetch = platformConfig?.platformFetch
 
   useEffect(() => {
     const controller = new AbortController()
@@ -18,7 +40,26 @@ export const JlcPartAvailability = ({ partNumber }: { partNumber: string }) => {
       if (active) setLoading(false)
     }, 10_000)
 
-    fetchJlcPartAvailability(partNumber, controller.signal)
+    Promise.resolve()
+      .then(async () => {
+        if (partsEngine?.fetchPartAvailability) {
+          // A provider's missing result is authoritative, so local catalogs
+          // can leave inventory unknown without triggering a fallback request.
+          return (
+            (await partsEngine.fetchPartAvailability({
+              supplierName: "jlcpcb",
+              supplierPartNumber: partNumber,
+              signal: controller.signal,
+              platformFetch,
+            })) ?? null
+          )
+        }
+        return fetchJlcPartAvailability(
+          partNumber,
+          controller.signal,
+          platformFetch,
+        )
+      })
       .then((availability) => {
         if (active) setResult(availability)
       })
@@ -35,7 +76,7 @@ export const JlcPartAvailability = ({ partNumber }: { partNumber: string }) => {
       clearTimeout(timeout)
       controller.abort()
     }
-  }, [partNumber])
+  }, [partNumber, partsEngine, platformFetch])
 
   return (
     <span
@@ -70,11 +111,7 @@ export const JlcPartAvailability = ({ partNumber }: { partNumber: string }) => {
         </span>
       ) : (
         <>
-          <span style={{ display: "block" }}>
-            {result?.price != null
-              ? `$${result.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
-              : "Price unavailable"}
-          </span>
+          <span style={{ display: "block" }}>{formatPrice(result)}</span>
           <span style={{ display: "block" }}>
             {result?.stock != null
               ? `${result.stock.toLocaleString("en-US")} in stock`

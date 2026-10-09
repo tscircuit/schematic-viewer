@@ -37,3 +37,29 @@ test("missing, mismatched, and malformed JLC data stays unavailable", async () =
     stock: null,
   })
 })
+
+test("JLC lookup uses platformFetch with the requested part and abort signal", async () => {
+  globalThis.fetch = (() => {
+    throw new Error("A configured platformFetch must replace native fetch")
+  }) as unknown as typeof fetch
+  const controller = new AbortController()
+  const requests: Array<{ input: unknown; init?: RequestInit }> = []
+  const platformFetch = (async (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ) => {
+    requests.push({ input, init })
+    return Response.json({
+      components: [{ lcsc: 1525, price: 0.03, stock: 150 }],
+    })
+  }) as typeof fetch
+  expect(
+    await fetchJlcPartAvailability("C1525", controller.signal, platformFetch),
+  ).toEqual({ price: 0.03, stock: 150 })
+  expect(requests).toHaveLength(1)
+  expect(String(requests[0]!.input)).toBe(
+    "https://jlcsearch.tscircuit.com/api/search?q=C1525&limit=1",
+  )
+  expect(requests[0]!.init?.signal).toBe(controller.signal)
+  expect(requests[0]!.init?.cache).toBe("no-store")
+})

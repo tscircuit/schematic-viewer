@@ -1,6 +1,7 @@
 export interface JlcPartAvailability {
   price: number | null
   stock: number | null
+  currency?: string | null
 }
 
 const nonNegativeNumber = (value: unknown): number | null => {
@@ -40,8 +41,9 @@ const getPrice = (value: unknown): number | null => {
 export const fetchJlcPartAvailability = async (
   partNumber: string,
   signal: AbortSignal,
+  platformFetch: typeof fetch = fetch,
 ): Promise<JlcPartAvailability | null> => {
-  const response = await fetch(
+  const response = await platformFetch(
     `https://jlcsearch.tscircuit.com/api/search?q=${encodeURIComponent(partNumber)}&limit=1`,
     { signal, cache: "no-store" },
   )

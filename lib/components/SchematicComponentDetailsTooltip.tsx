@@ -10,8 +10,10 @@ import {
 } from "../utils/component-details"
 import { zIndexMap } from "../utils/z-index-map"
 import { JlcPartAvailability } from "./JlcPartAvailability"
+import type { PlatformConfig } from "@tscircuit/props"
 
 interface Props {
+  platformConfig?: PlatformConfig
   sourceComponent: SourceComponent
   warnings?: ComponentWarning[]
   footprinterString?: string
@@ -32,6 +34,7 @@ const detailLabelStyle: React.CSSProperties = {
 }
 
 export const SchematicComponentDetailsTooltip = ({
+  platformConfig,
   sourceComponent,
   warnings = [],
   footprinterString,
@@ -160,6 +163,7 @@ export const SchematicComponentDetailsTooltip = ({
                     <JlcPartAvailability
                       key={`${sourceComponent.source_component_id}-${link.partNumber}`}
                       partNumber={link.partNumber}
+                      platformConfig={platformConfig}
                     />
                   )}
                 </span>
