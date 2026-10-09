@@ -3,8 +3,15 @@ import {
   type JlcPartAvailability as Availability,
   fetchJlcPartAvailability,
 } from "../utils/jlc-part-availability"
+import type { SchematicViewerServices } from "../services"
 
-export const JlcPartAvailability = ({ partNumber }: { partNumber: string }) => {
+export const JlcPartAvailability = ({
+  partNumber,
+  fetchAvailability = fetchJlcPartAvailability,
+}: {
+  partNumber: string
+  fetchAvailability?: SchematicViewerServices["fetchJlcPartAvailability"]
+}) => {
   const [result, setResult] = useState<Availability | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -18,7 +25,8 @@ export const JlcPartAvailability = ({ partNumber }: { partNumber: string }) => {
       if (active) setLoading(false)
     }, 10_000)
 
-    fetchJlcPartAvailability(partNumber, controller.signal)
+    Promise.resolve()
+      .then(() => fetchAvailability(partNumber, controller.signal))
       .then((availability) => {
         if (active) setResult(availability)
       })
@@ -35,7 +43,7 @@ export const JlcPartAvailability = ({ partNumber }: { partNumber: string }) => {
       clearTimeout(timeout)
       controller.abort()
     }
-  }, [partNumber])
+  }, [partNumber, fetchAvailability])
 
   return (
     <span

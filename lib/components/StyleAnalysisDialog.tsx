@@ -6,6 +6,9 @@ import {
 import type { CircuitJson } from "circuit-json"
 import { useEffect, useState } from "react"
 import { zIndexMap } from "../utils/z-index-map"
+import type { SchematicViewerServices } from "../services"
+
+const defaultLoadStyleAnalyzer = () => styleAnalyzerLoader.load()
 
 type AnalysisState =
   | { status: "loading" }
@@ -15,28 +18,22 @@ type AnalysisState =
 export const StyleAnalysisDialog = ({
   circuitJson,
   onClose,
-  offline = false,
+  loadStyleAnalyzer = defaultLoadStyleAnalyzer,
 }: {
   circuitJson: CircuitJson
   onClose: () => void
-  offline?: boolean
+  loadStyleAnalyzer?: SchematicViewerServices["loadStyleAnalyzer"]
 }) => {
   const [state, setState] = useState<AnalysisState>({ status: "loading" })
 
   useEffect(() => {
-    if (offline) {
-      setState({
-        status: "error",
-        message: "Style analysis is unavailable offline.",
-      })
-      return
-    }
     let cancelled = false
+    setState({ status: "loading" })
     // Let the dialog paint before loading and running the analyzer.
     const timer = window.setTimeout(async () => {
       try {
         const { createSchematicPlacementIssueArtifacts } =
-          await styleAnalyzerLoader.load()
+          await loadStyleAnalyzer()
         if (cancelled) return
         const artifacts = createSchematicPlacementIssueArtifacts(circuitJson)
         if (!cancelled) setState({ status: "complete", artifacts })
@@ -53,7 +50,7 @@ export const StyleAnalysisDialog = ({
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [circuitJson, offline])
+  }, [circuitJson, loadStyleAnalyzer])
 
   return (
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>

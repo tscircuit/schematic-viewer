@@ -8,6 +8,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { SchematicComponentDetailsTooltip } from "../lib/components/SchematicComponentDetailsTooltip"
 import { SchematicViewer } from "../lib/components/SchematicViewer"
 import { renderToCircuitJson } from "../lib/dev/render-to-circuit-json"
+import type { SchematicViewerServices } from "../lib/services"
 import {
   type SourceComponent,
   type ComponentWarning,
@@ -631,20 +632,36 @@ test("JLC lookup shows a loader, ignores old selections, and refreshes on reopen
   }
 })
 
-test("offline component inspection preserves values without stock requests or external assets", async () => {
+test("component inspection uses supplied services and preserves supplier links", async () => {
   const { dom, restore } = installDom()
   const reactRoot = createRoot(document.getElementById("root")!)
   const requests: string[] = []
   globalThis.fetch = (async (url: RequestInfo | URL) => {
     requests.push(String(url))
-    throw new Error("Unexpected offline request")
+    throw new Error("Unexpected default service request")
   }) as unknown as typeof fetch
+  const availabilityCalls: string[] = []
+  const previewCalls: CircuitJson[] = []
+  const previewUrl =
+    "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>"
+  const services: SchematicViewerServices = {
+    async fetchJlcPartAvailability(partNumber, signal) {
+      expect(signal.aborted).toBe(false)
+      availabilityCalls.push(partNumber)
+      return { price: 0.02, stock: 1234 }
+    },
+    getFootprintPreviewUrl(preview, viewBox) {
+      previewCalls.push(preview)
+      expect(viewBox.maxX).toBeGreaterThan(viewBox.minX)
+      return previewUrl
+    },
+  }
   try {
     await act(async () => {
       reactRoot.render(
         <SchematicViewer
           circuitJson={circuitJsonWithWarnings}
-          offline
+          services={services}
           containerStyle={{ width: 800, height: 600 }}
         />,
       )
@@ -681,8 +698,74 @@ test("offline component inspection preserves values without stock requests or ex
     expect(tooltip.textContent).toContain("RC0603FR-071KL")
     expect(tooltip.textContent).toContain("res0603")
     expect(tooltip.textContent).toContain("Warnings (5)")
-    expect(tooltip.querySelector("img, a, [role='status']")).toBeNull()
+    expect(tooltip.querySelector("img")?.getAttribute("src")).toBe(previewUrl)
+    expect(
+      tooltip.querySelector('a[href="https://jlcpcb.com/partdetail/C2040"]'),
+    ).not.toBeNull()
+    expect(
+      tooltip.querySelector(
+        'a[href="https://www.lcsc.com/product-detail/C2040.html"]',
+      ),
+    ).not.toBeNull()
+    expect(tooltip.textContent).toContain("$0.02")
+    expect(tooltip.textContent).toContain("1,234 in stock")
+    expect(availabilityCalls).toEqual(["C2040"])
+    expect(previewCalls).toHaveLength(1)
+    expect(previewCalls[0]!.length).toBeGreaterThan(0)
     expect(document.querySelector("svg")).not.toBeNull()
+    expect(requests).toEqual([])
+  } finally {
+    await act(async () => reactRoot.unmount())
+    restore()
+  }
+})
+
+test("empty service results omit the thumbnail and stock without online fallback", async () => {
+  const { restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const details = getSchematicComponentDetails(
+    circuitJsonWithWarnings,
+    "schematic_component_0",
+  )!
+  const requests: string[] = []
+  globalThis.fetch = (async (url: RequestInfo | URL) => {
+    requests.push(String(url))
+    throw new Error("Injected services must not fall back to fetch")
+  }) as unknown as typeof fetch
+  let lookupCalls = 0
+  let previewCalls = 0
+  try {
+    await act(async () =>
+      reactRoot.render(
+        <SchematicComponentDetailsTooltip
+          sourceComponent={details.sourceComponent}
+          footprintPreviewCircuitJson={details.footprintPreviewCircuitJson}
+          footprintPreviewViewBox={details.footprintPreviewViewBox}
+          services={{
+            async fetchJlcPartAvailability() {
+              lookupCalls++
+              return null
+            },
+            getFootprintPreviewUrl() {
+              previewCalls++
+              return undefined
+            },
+          }}
+          left={0}
+          top={0}
+          width={300}
+          maxHeight={400}
+        />,
+      ),
+    )
+    expect(lookupCalls).toBe(1)
+    expect(previewCalls).toBe(1)
+    expect(document.body.textContent).toContain("Price unavailable")
+    expect(document.body.textContent).toContain("Stock unavailable")
+    expect(document.querySelector("img")).toBeNull()
+    expect(
+      document.querySelector('a[href^="https://jlcpcb.com"]'),
+    ).not.toBeNull()
     expect(requests).toEqual([])
   } finally {
     await act(async () => reactRoot.unmount())

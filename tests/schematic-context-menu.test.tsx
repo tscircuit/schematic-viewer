@@ -816,7 +816,7 @@ test("style analysis reports CDN failures in a dismissible dialog", async () => 
   }
 })
 
-test("offline style analysis is disabled and direct dialogs never load the CDN", async () => {
+test("style analysis uses supplied analyzers without loading the default service", async () => {
   const { dom, restore } = installDom()
   const reactRoot = createRoot(document.getElementById("root")!)
   const { SchematicViewer } = await import("../lib/components/SchematicViewer")
@@ -824,10 +824,20 @@ test("offline style analysis is disabled and direct dialogs never load the CDN",
     "../lib/components/StyleAnalysisDialog"
   )
   const loadCallsBefore = analyzerSpy.mock.calls.length
+  const analyzedCircuits: unknown[] = []
+  const loadStyleAnalyzer = async () => ({
+    createSchematicPlacementIssueArtifacts(circuitJson: unknown) {
+      analyzedCircuits.push(circuitJson)
+      return []
+    },
+  })
   try {
     await act(async () =>
       reactRoot.render(
-        <SchematicViewer circuitJson={circuitJsonWithPort} offline />,
+        <SchematicViewer
+          circuitJson={circuitJsonWithPort}
+          services={{ loadStyleAnalyzer }}
+        />,
       ),
     )
     await act(
@@ -854,33 +864,41 @@ test("offline style analysis is disabled and direct dialogs never load the CDN",
       document.querySelectorAll('[role="menuitem"]'),
     ).find((item) => item.textContent === "Run Style Analysis")!
     expect(command).toBeDefined()
-    expect(command.getAttribute("aria-disabled")).toBe("true")
+    expect(command.getAttribute("aria-disabled")).not.toBe("true")
     await act(async () => {
       command.dispatchEvent(
         new dom.window.MouseEvent("click", { bubbles: true }),
       )
-      command.dispatchEvent(
-        new dom.window.KeyboardEvent("keydown", {
-          key: "Enter",
-          bubbles: true,
-        }),
-      )
     })
-    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    for (let i = 0; i < 100 && analyzedCircuits.length === 0; i++) {
+      await act(
+        () =>
+          new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
+      )
+    }
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+      "No style issues found.",
+    )
+    expect(analyzedCircuits).toEqual([circuitJsonWithPort])
     await act(async () =>
       reactRoot.render(
         <StyleAnalysisDialog
           circuitJson={circuitJsonWithPort}
-          offline
+          loadStyleAnalyzer={async () => {
+            throw new Error("Supplied analyzer failed")
+          }}
           onClose={() => {}}
         />,
       ),
     )
-    await act(
-      () => new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
-    )
+    for (let i = 0; i < 100 && !document.querySelector('[role="alert"]'); i++) {
+      await act(
+        () =>
+          new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
+      )
+    }
     expect(document.querySelector('[role="alert"]')?.textContent).toContain(
-      "unavailable offline",
+      "Supplied analyzer failed",
     )
     expect(analyzerSpy.mock.calls.length).toBe(loadCallsBefore)
   } finally {

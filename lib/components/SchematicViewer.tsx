@@ -39,11 +39,12 @@ import { SchematicSearch } from "./SchematicSearch"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
 import { SchematicWarningsButton } from "./SchematicWarningsButton"
 import { ViewMenu } from "./ViewMenu"
+import type { SchematicViewerServices } from "../services"
 
 interface Props {
   circuitJson: CircuitJson
-  /** Disable external supplier lookups, footprint images, links and CDN analysis. */
-  offline?: boolean
+  /** Optional service implementations, such as bundled part data and analysis. */
+  services?: SchematicViewerServices
   containerStyle?: React.CSSProperties
   debugGrid?: boolean
   debug?: boolean
@@ -81,7 +82,7 @@ interface SelectedSchematicComponent {
 
 export const SchematicViewer = ({
   circuitJson,
-  offline = false,
+  services,
   containerStyle,
   debugGrid = false,
   debug = false,
@@ -658,14 +659,13 @@ export const SchematicViewer = ({
         )}
         {analysisCircuitJson && (
           <StyleAnalysisDialog
-            offline={offline}
+            loadStyleAnalyzer={services?.loadStyleAnalyzer}
             circuitJson={analysisCircuitJson}
             onClose={() => setAnalysisCircuitJson(null)}
           />
         )}
         {menuVisible && (
           <ViewMenu
-            offline={offline}
             isComponentMenu={
               !!getSchematicComponentAtElement(menuTarget, circuitJson)
             }
@@ -685,7 +685,6 @@ export const SchematicViewer = ({
             menuPos={menuPos}
             onOpenChange={setMenuVisible}
             onRunStyleAnalysis={() => {
-              if (offline) return
               setMenuVisible(false)
               setAnalysisCircuitJson(structuredClone(circuitJson))
             }}
@@ -760,7 +759,7 @@ export const SchematicViewer = ({
         {svgDiv}
         {selectedComponentDetails && componentTooltipLayout && (
           <SchematicComponentDetailsTooltip
-            offline={offline}
+            services={services}
             sourceComponent={selectedComponentDetails.sourceComponent}
             warnings={selectedComponentDetails.warnings}
             footprinterString={selectedComponentDetails.footprinterString}
