@@ -630,3 +630,62 @@ test("JLC lookup shows a loader, ignores old selections, and refreshes on reopen
     restore()
   }
 })
+
+test("offline component inspection preserves values without stock requests or external assets", async () => {
+  const { dom, restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const requests: string[] = []
+  globalThis.fetch = (async (url: RequestInfo | URL) => {
+    requests.push(String(url))
+    throw new Error("Unexpected offline request")
+  }) as unknown as typeof fetch
+  try {
+    await act(async () => {
+      reactRoot.render(
+        <SchematicViewer
+          circuitJson={circuitJsonWithWarnings}
+          offline
+          containerStyle={{ width: 800, height: 600 }}
+        />,
+      )
+    })
+    await act(
+      () => new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
+    )
+    const component = document.querySelector(
+      '[data-schematic-component-id="schematic_component_0"]',
+    )!
+    expect(component).not.toBeNull()
+    await act(async () => {
+      component.dispatchEvent(
+        new dom.window.MouseEvent("mousedown", {
+          bubbles: true,
+          clientX: 320,
+          clientY: 270,
+        }),
+      )
+      component.dispatchEvent(
+        new dom.window.MouseEvent("click", {
+          bubbles: true,
+          clientX: 320,
+          clientY: 270,
+        }),
+      )
+    })
+    const tooltip = document.querySelector(
+      "[data-schematic-component-details-tooltip]",
+    )!
+    expect(tooltip).not.toBeNull()
+    expect(tooltip.textContent).toContain("R1")
+    expect(tooltip.textContent).toContain("C2040")
+    expect(tooltip.textContent).toContain("RC0603FR-071KL")
+    expect(tooltip.textContent).toContain("res0603")
+    expect(tooltip.textContent).toContain("Warnings (5)")
+    expect(tooltip.querySelector("img, a, [role='status']")).toBeNull()
+    expect(document.querySelector("svg")).not.toBeNull()
+    expect(requests).toEqual([])
+  } finally {
+    await act(async () => reactRoot.unmount())
+    restore()
+  }
+})

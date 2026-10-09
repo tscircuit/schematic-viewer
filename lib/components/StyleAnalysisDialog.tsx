@@ -15,13 +15,22 @@ type AnalysisState =
 export const StyleAnalysisDialog = ({
   circuitJson,
   onClose,
+  offline = false,
 }: {
   circuitJson: CircuitJson
   onClose: () => void
+  offline?: boolean
 }) => {
   const [state, setState] = useState<AnalysisState>({ status: "loading" })
 
   useEffect(() => {
+    if (offline) {
+      setState({
+        status: "error",
+        message: "Style analysis is unavailable offline.",
+      })
+      return
+    }
     let cancelled = false
     // Let the dialog paint before loading and running the analyzer.
     const timer = window.setTimeout(async () => {
@@ -44,7 +53,7 @@ export const StyleAnalysisDialog = ({
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [circuitJson])
+  }, [circuitJson, offline])
 
   return (
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>

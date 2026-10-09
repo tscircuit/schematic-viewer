@@ -8,6 +8,7 @@ import { zIndexMap } from "../utils/z-index-map"
 import type { ViewPcbComponentEvent } from "../utils/get-pcb-component-at-element"
 
 interface ViewMenuProps {
+  offline?: boolean
   isComponentMenu?: boolean
   pcbComponent?: ViewPcbComponentEvent
   onViewPcbComponent?: (event: ViewPcbComponentEvent) => void
@@ -102,6 +103,7 @@ const CheckIcon = () => (
 )
 
 export const ViewMenu = ({
+  offline = false,
   isComponentMenu = false,
   pcbComponent,
   onViewPcbComponent,
@@ -313,7 +315,15 @@ export const ViewMenu = ({
                 <DropdownMenu.Item
                   className="sv-vm-item"
                   style={itemStyles}
-                  onSelect={onRunStyleAnalysis}
+                  disabled={offline}
+                  title={
+                    offline
+                      ? "Style analysis requires an online analyzer"
+                      : undefined
+                  }
+                  onSelect={() => {
+                    if (!offline) onRunStyleAnalysis()
+                  }}
                 >
                   <span style={iconSlotStyles} />
                   <span>Run Style Analysis</span>

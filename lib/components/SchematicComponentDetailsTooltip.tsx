@@ -12,6 +12,7 @@ import { zIndexMap } from "../utils/z-index-map"
 import { JlcPartAvailability } from "./JlcPartAvailability"
 
 interface Props {
+  offline?: boolean
   sourceComponent: SourceComponent
   warnings?: ComponentWarning[]
   footprinterString?: string
@@ -32,6 +33,7 @@ const detailLabelStyle: React.CSSProperties = {
 }
 
 export const SchematicComponentDetailsTooltip = ({
+  offline = false,
   sourceComponent,
   warnings = [],
   footprinterString,
@@ -52,13 +54,13 @@ export const SchematicComponentDetailsTooltip = ({
   )
   const footprintPreviewUrl = useMemo(
     () =>
-      footprintPreviewCircuitJson?.length && footprintPreviewViewBox
+      !offline && footprintPreviewCircuitJson?.length && footprintPreviewViewBox
         ? getFootprintPreviewUrl(
             footprintPreviewCircuitJson,
             footprintPreviewViewBox,
           )
         : undefined,
-    [footprintPreviewCircuitJson, footprintPreviewViewBox],
+    [offline, footprintPreviewCircuitJson, footprintPreviewViewBox],
   )
   return (
     <dialog
@@ -148,15 +150,19 @@ export const SchematicComponentDetailsTooltip = ({
                   }
                 >
                   {entry.label !== "jlcpcb" && index > 0 && ", "}
-                  <a
-                    href={link.href}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    style={{ color: "#2563eb", textDecoration: "underline" }}
-                  >
-                    {link.partNumber}
-                  </a>
-                  {entry.label === "jlcpcb" && (
+                  {offline ? (
+                    link.partNumber
+                  ) : (
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      style={{ color: "#2563eb", textDecoration: "underline" }}
+                    >
+                      {link.partNumber}
+                    </a>
+                  )}
+                  {!offline && entry.label === "jlcpcb" && (
                     <JlcPartAvailability
                       key={`${sourceComponent.source_component_id}-${link.partNumber}`}
                       partNumber={link.partNumber}

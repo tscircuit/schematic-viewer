@@ -13,12 +13,12 @@ import {
   getStoredString,
   setStoredBoolean,
   setStoredString,
-} from "lib/hooks/useLocalStorage"
-import { useSchematicGroupsOverlay } from "lib/hooks/useSchematicGroupsOverlay"
-import { useSchematicNetHover } from "lib/hooks/useSchematicNetHover"
-import { useSchematicWarnings } from "lib/hooks/useSchematicWarnings"
-import { useSchematicSearch } from "lib/hooks/useSchematicSearch"
-import { enableDebug } from "lib/utils/debug"
+} from "../hooks/useLocalStorage"
+import { useSchematicGroupsOverlay } from "../hooks/useSchematicGroupsOverlay"
+import { useSchematicNetHover } from "../hooks/useSchematicNetHover"
+import { useSchematicWarnings } from "../hooks/useSchematicWarnings"
+import { useSchematicSearch } from "../hooks/useSchematicSearch"
+import { enableDebug } from "../utils/debug"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toString as transformToString } from "transformation-matrix"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
@@ -42,6 +42,8 @@ import { ViewMenu } from "./ViewMenu"
 
 interface Props {
   circuitJson: CircuitJson
+  /** Disable external supplier lookups, footprint images, links and CDN analysis. */
+  offline?: boolean
   containerStyle?: React.CSSProperties
   debugGrid?: boolean
   debug?: boolean
@@ -79,6 +81,7 @@ interface SelectedSchematicComponent {
 
 export const SchematicViewer = ({
   circuitJson,
+  offline = false,
   containerStyle,
   debugGrid = false,
   debug = false,
@@ -655,12 +658,14 @@ export const SchematicViewer = ({
         )}
         {analysisCircuitJson && (
           <StyleAnalysisDialog
+            offline={offline}
             circuitJson={analysisCircuitJson}
             onClose={() => setAnalysisCircuitJson(null)}
           />
         )}
         {menuVisible && (
           <ViewMenu
+            offline={offline}
             isComponentMenu={
               !!getSchematicComponentAtElement(menuTarget, circuitJson)
             }
@@ -680,6 +685,7 @@ export const SchematicViewer = ({
             menuPos={menuPos}
             onOpenChange={setMenuVisible}
             onRunStyleAnalysis={() => {
+              if (offline) return
               setMenuVisible(false)
               setAnalysisCircuitJson(structuredClone(circuitJson))
             }}
@@ -754,6 +760,7 @@ export const SchematicViewer = ({
         {svgDiv}
         {selectedComponentDetails && componentTooltipLayout && (
           <SchematicComponentDetailsTooltip
+            offline={offline}
             sourceComponent={selectedComponentDetails.sourceComponent}
             warnings={selectedComponentDetails.warnings}
             footprinterString={selectedComponentDetails.footprinterString}

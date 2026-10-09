@@ -816,6 +816,80 @@ test("style analysis reports CDN failures in a dismissible dialog", async () => 
   }
 })
 
+test("offline style analysis is disabled and direct dialogs never load the CDN", async () => {
+  const { dom, restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const { SchematicViewer } = await import("../lib/components/SchematicViewer")
+  const { StyleAnalysisDialog } = await import(
+    "../lib/components/StyleAnalysisDialog"
+  )
+  const loadCallsBefore = analyzerSpy.mock.calls.length
+  try {
+    await act(async () =>
+      reactRoot.render(
+        <SchematicViewer circuitJson={circuitJsonWithPort} offline />,
+      ),
+    )
+    await act(
+      () => new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
+    )
+    const component = document.querySelector("svg")!
+    await act(async () => {
+      for (const type of ["mousedown", "contextmenu"]) {
+        component.dispatchEvent(
+          new dom.window.MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            clientX: 100,
+            clientY: 100,
+          }),
+        )
+      }
+    })
+    await act(
+      () => new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0)),
+    )
+    const command = Array.from(
+      document.querySelectorAll('[role="menuitem"]'),
+    ).find((item) => item.textContent === "Run Style Analysis")!
+    expect(command).toBeDefined()
+    expect(command.getAttribute("aria-disabled")).toBe("true")
+    await act(async () => {
+      command.dispatchEvent(
+        new dom.window.MouseEvent("click", { bubbles: true }),
+      )
+      command.dispatchEvent(
+        new dom.window.KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+        }),
+      )
+    })
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    await act(async () =>
+      reactRoot.render(
+        <StyleAnalysisDialog
+          circuitJson={circuitJsonWithPort}
+          offline
+          onClose={() => {}}
+        />,
+      ),
+    )
+    await act(
+      () => new Promise<void>((resolve) => dom.window.setTimeout(resolve, 10)),
+    )
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      "unavailable offline",
+    )
+    expect(analyzerSpy.mock.calls.length).toBe(loadCallsBefore)
+  } finally {
+    await act(async () => reactRoot.unmount())
+    await new Promise<void>((resolve) => dom.window.setTimeout(resolve, 0))
+    restore()
+  }
+})
+
 test("net text highlights nearby and the locations submenu selects a destination", async () => {
   const { dom, restore } = installDom()
   const reactRoot = createRoot(document.getElementById("root")!)
