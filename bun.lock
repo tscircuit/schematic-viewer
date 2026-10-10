@@ -8,7 +8,7 @@
         "@radix-ui/react-dialog": "^1.1.23",
         "@radix-ui/react-dropdown-menu": "^2.1.16",
         "@tscircuit/circuit-json-util": "^0.0.108",
-        "@tscircuit/internal-dynamic-import": "github:tscircuit/internal-dynamic-import#8ba51f4681dbc120853d4a078119ebbb13190779",
+        "@tscircuit/internal-dynamic-import": "^0.0.17",
         "@tscircuit/props": "^0.0.697",
         "@tscircuit/soup-util": "^0.0.41",
         "circuit-json": "^0.0.479",
@@ -383,7 +383,7 @@
 
     "@tscircuit/infgrid-ijump-astar": ["@tscircuit/infgrid-ijump-astar@0.0.35", "", {}, "sha512-PZx3GyD7mDNEhLJn8+7n8NjrieOvrX03g7Gx1cvwXv9mmgSC4M+yTA0WC4DgOvcRdTnarf0R8xvwtDeJ4tMK9Q=="],
 
-    "@tscircuit/internal-dynamic-import": ["@tscircuit/internal-dynamic-import@github:tscircuit/internal-dynamic-import#8ba51f4", {}, "tscircuit-internal-dynamic-import-8ba51f4", "sha512-V1aBmPHWlTdD9rC/rzun2rzSm8IRako0f0+0IY5krjlGxZ2XffgHGOfcym5JarhnT7JdrvbdGvcvKKJGhXf9rA=="],
+    "@tscircuit/internal-dynamic-import": ["@tscircuit/internal-dynamic-import@0.0.17", "", {}, "sha512-BlFdmtxwBTQjiau5BYKePaC6hWxMeiN/h2FmQGeqFMqEbAndz5rgW8TJMmigerJJ/engEhayndRveIrG89ahAA=="],
 
     "@tscircuit/krt-wasm": ["@tscircuit/krt-wasm@0.1.6", "", { "peerDependencies": { "tscircuit": "*" } }, "sha512-XRj8SIgWro1t56TieLhkOtRVsptq3cwzBtdbDEkRB2YiyX4V/r0zneii+c5I8F3D8rJUz4+GswGpPeO4eV8x8w=="],
 

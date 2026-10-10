@@ -10,22 +10,20 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./source": "./lib/index.ts",
-    "./*": "./*"
+    }
   },
   "type": "module",
   "scripts": {
     "start": "cosmos",
     "build": "tsup-node ./lib/index.ts --dts --format esm --sourcemap",
     "build:site": "cosmos-export",
+    "test:package": "bun run build && bun run scripts/test-package.ts",
     "vercel-build": "bun run build:site",
     "format": "biome format --write .",
     "format:check": "biome format ."
   },
   "files": [
-    "dist",
-    "lib"
+    "dist"
   ],
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -55,7 +53,7 @@
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@tscircuit/circuit-json-util": "^0.0.108",
-    "@tscircuit/internal-dynamic-import": "github:tscircuit/internal-dynamic-import#15adea43f691ec26fd89ffdd3b618d7ff1ae94f7",
+    "@tscircuit/internal-dynamic-import": "^0.0.17",
     "@tscircuit/props": "^0.0.697",
     "@tscircuit/soup-util": "^0.0.41",
     "circuit-json": "^0.0.479",
