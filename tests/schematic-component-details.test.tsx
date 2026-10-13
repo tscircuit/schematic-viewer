@@ -264,18 +264,18 @@ test("component details include source values and the footprinter string", () =>
   const resistorInfo = getSourceComponentInfoEntries(details!.sourceComponent)
   expect(resistorInfo[0]).toEqual({
     key: "name",
-    label: "name",
+    label: "Reference",
     value: "R1",
   })
   expect(resistorInfo).toContainEqual({
     key: "resistance",
-    label: "resistance",
-    value: '"1k"',
+    label: "Resistance",
+    value: "1kΩ",
   })
   expect(resistorInfo).toContainEqual({
     key: "manufacturer_part_number",
-    label: "manufacturer_part_number",
-    value: '"RC0603FR-071KL"',
+    label: "Part number",
+    value: "RC0603FR-071KL",
   })
   expect(
     resistorInfo.some((entry) => entry.key === "are_pins_interchangeable"),
@@ -314,8 +314,8 @@ test("component details include source values and the footprinter string", () =>
   )!
   expect(getSourceComponentInfoEntries(capacitor)).toContainEqual({
     key: "capacitance",
-    label: "capacitance",
-    value: '"1uF"',
+    label: "Capacitance",
+    value: "1uF",
   })
 })
 
@@ -429,13 +429,13 @@ test("component details use compact styling and close on zoom or outside click",
       "8px",
     )
     const nameLabel = Array.from(tooltip?.querySelectorAll("dt") ?? []).find(
-      (element) => element.textContent === "name",
+      (element) => element.textContent === "Reference",
     )
     expect(nameLabel?.nextElementSibling?.textContent).toBe("R1")
     expect(tooltip?.firstElementChild?.tagName).toBe("DL")
     expect(tooltip?.querySelector("button")).toBeNull()
     expect(tooltip?.textContent).not.toContain("Resistor")
-    expect(tooltip?.textContent).toContain('"1k"')
+    expect(tooltip?.textContent).toContain("1kΩ")
     expect(tooltip?.textContent).toContain("RC0603FR-071KL")
     expect(tooltip?.textContent).not.toContain("supplier_part_numbers")
     expect(tooltip?.textContent).toContain("res0603")
