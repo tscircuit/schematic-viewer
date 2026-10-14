@@ -12,7 +12,7 @@
         "@tscircuit/props": "^0.0.697",
         "@tscircuit/soup-util": "^0.0.41",
         "circuit-json": "^0.0.479",
-        "circuit-to-svg": "^0.0.432",
+        "circuit-to-svg": "^0.0.437",
         "debug": "^4.4.0",
         "performance-now": "^2.1.0",
         "transformation-matrix": "^2.16.1",
@@ -39,7 +39,6 @@
         "vite": "^6.0.3",
       },
       "peerDependencies": {
-        "tscircuit": "*",
         "typescript": "^5.0.0",
       },
     },
@@ -559,7 +558,7 @@
 
     "circuit-json-to-spice": ["circuit-json-to-spice@0.0.45", "", { "dependencies": { "circuit-json-to-connectivity-map": "^0.0.22" }, "peerDependencies": { "@tscircuit/circuit-json-util": "*", "circuit-json": "*", "spicets": "*", "typescript": "^5.0.0" } }, "sha512-e8THrj+jWK0BEjpw0relCYNCuEYEFAy5dFRYUQgMxdnrTjs2h5WoGWRNGPndqNkrpV5b63AzdX3wVR7Mtqi1HQ=="],
 
-    "circuit-to-svg": ["circuit-to-svg@0.0.432", "", { "dependencies": { "@types/node": "^22.5.5", "bun-types": "^1.1.40", "calculate-elbow": "0.0.12", "debug": "^4.4.3", "svg-path-commander": "^2.1.11", "svgson": "^5.3.1", "transformation-matrix": "^2.16.1" }, "peerDependencies": { "@tscircuit/alphabet": "*" } }, "sha512-B3ycFCH7/lKWfMi0RjYaCmMhC1zoipu4KKmHhjLlVooN0Cg7cXG5Dz1BQWA0E9PEY5oi3DndAGyu+z58txA74w=="],
+    "circuit-to-svg": ["circuit-to-svg@0.0.437", "", { "dependencies": { "@types/node": "^22.5.5", "bun-types": "^1.1.40", "calculate-elbow": "0.0.12", "debug": "^4.4.3", "svg-path-commander": "^2.1.11", "svgson": "^5.3.1", "transformation-matrix": "^2.16.1" }, "peerDependencies": { "@tscircuit/alphabet": "*", "@tscircuit/circuit-json-util": "*", "circuit-json": "*", "circuit-json-to-connectivity-map": "*", "schematic-symbols": "*" } }, "sha512-fg89hd6B3GzB2cON58Ey9WKQb96LwHfBXS+9vML1Ez6AZudNxmM3/Vn8fUSmAITMyUk/zCdkbqlYSIAgY4BiXw=="],
 
     "cliui": ["cliui@8.0.1", "", { "dependencies": { "string-width": "^4.2.0", "strip-ansi": "^6.0.1", "wrap-ansi": "^7.0.0" } }, "sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ=="],
 
