@@ -75,30 +75,23 @@ export interface SupplierPartNumberEntry {
   }>
 }
 
-const hiddenSourceComponentKeys = new Set([
-  "type",
-  "source_component_id",
-  "source_group_id",
-  "subcircuit_id",
-  "display_name",
-  "ftype",
-  "are_pins_interchangeable",
-  "supplier_part_numbers",
-])
+// Only product-facing properties belong in the tooltip. In particular, never
+// serialize circuit relationships such as internally_connected_source_port_ids.
+const componentInfoLabels: Record<string, string> = {
+  name: "Reference",
+  resistance: "Resistance",
+  capacitance: "Capacitance",
+  inductance: "Inductance",
+  frequency: "Frequency",
+  voltage: "Voltage",
+  current: "Current",
+  max_voltage_rating: "Max voltage",
+  max_current_rating: "Max current",
+  power_rating: "Power rating",
+  manufacturer_part_number: "Part number",
+}
 
-const priorityKeys = [
-  "name",
-  "resistance",
-  "capacitance",
-  "inductance",
-  "frequency",
-  "voltage",
-  "current",
-  "max_voltage_rating",
-  "max_current_rating",
-  "power_rating",
-  "manufacturer_part_number",
-]
+const priorityKeys = Object.keys(componentInfoLabels)
 
 const supplierPartNumberUrls = {
   jlcpcb: (partNumber: string) =>
@@ -123,40 +116,29 @@ const formatComponentValue = (
   key: string,
   value: unknown,
 ) => {
-  if (key === "name") return String(value)
-
   const displayValue = (sourceComponent as Record<string, unknown>)[
     `display_${key}`
   ]
   if (typeof displayValue === "string" && displayValue.trim()) {
-    const propValue =
-      key === "resistance" ? displayValue.replace(/Ω$/, "") : displayValue
-    return JSON.stringify(propValue)
+    return displayValue
   }
-  return JSON.stringify(value) ?? String(value)
+  return String(value)
 }
 
 export const getSourceComponentInfoEntries = (
   sourceComponent: SourceComponent,
 ): ComponentInfoEntry[] =>
   Object.entries(sourceComponent as Record<string, unknown>)
-    .filter(([key, value]) => {
-      if (hiddenSourceComponentKeys.has(key)) return false
-      if (
-        key.startsWith("display_") &&
-        key.slice("display_".length) in sourceComponent
-      ) {
-        return false
-      }
-      return value !== undefined && value !== null && value !== ""
-    })
-    .sort(([keyA], [keyB]) => {
-      const priorityDifference = getKeyPriority(keyA) - getKeyPriority(keyB)
-      return priorityDifference || keyA.localeCompare(keyB)
-    })
+    .filter(
+      ([key, value]) =>
+        Object.hasOwn(componentInfoLabels, key) &&
+        (typeof value === "string" || typeof value === "number") &&
+        String(value).trim() !== "",
+    )
+    .sort(([keyA], [keyB]) => getKeyPriority(keyA) - getKeyPriority(keyB))
     .map(([key, value]) => ({
       key,
-      label: key,
+      label: componentInfoLabels[key]!,
       value: formatComponentValue(sourceComponent, key, value),
     }))
 

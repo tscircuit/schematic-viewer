@@ -27,10 +27,10 @@ interface Props {
 
 const detailLabelStyle: React.CSSProperties = {
   color: "#64748b",
-  fontFamily:
-    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
   fontSize: "12px",
-  lineHeight: 1.45,
+  lineHeight: 1.5,
+  minWidth: 0,
+  overflowWrap: "anywhere",
 }
 
 export const SchematicComponentDetailsTooltip = ({
@@ -79,11 +79,12 @@ export const SchematicComponentDetailsTooltip = ({
         margin: 0,
         padding: 0,
         overflowY: "auto",
+        overflowX: "hidden",
         overscrollBehavior: "contain",
         cursor: "auto",
         boxSizing: "border-box",
         border: "1px solid #cbd5e1",
-        borderRadius: "4px",
+        borderRadius: "8px",
         backgroundColor: "rgba(255, 255, 255, 0.98)",
         boxShadow:
           "0 20px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.12)",
@@ -102,10 +103,10 @@ export const SchematicComponentDetailsTooltip = ({
       <dl
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(110px, 0.8fr) minmax(0, 1.2fr)",
-          gap: "6px 12px",
+          gridTemplateColumns: "minmax(0, 2fr) minmax(0, 3fr)",
+          gap: "10px 12px",
           margin: 0,
-          padding: "8px",
+          padding: "12px",
         }}
       >
         {infoEntries.map((entry) => (
@@ -116,8 +117,6 @@ export const SchematicComponentDetailsTooltip = ({
                 minWidth: 0,
                 margin: 0,
                 color: "#1e293b",
-                fontFamily:
-                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
                 fontSize: "12px",
                 lineHeight: 1.45,
                 overflowWrap: "anywhere",
@@ -129,13 +128,13 @@ export const SchematicComponentDetailsTooltip = ({
         ))}
         {supplierPartNumberEntries.map((entry) => (
           <div key={entry.key} style={{ display: "contents" }}>
-            <dt style={detailLabelStyle}>{entry.label}</dt>
+            <dt style={detailLabelStyle}>
+              {entry.label === "jlcpcb" ? "JLCPCB" : "LCSC"}
+            </dt>
             <dd
               style={{
                 minWidth: 0,
                 margin: 0,
-                fontFamily:
-                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
                 fontSize: "12px",
                 lineHeight: 1.45,
                 overflowWrap: "anywhere",
@@ -173,20 +172,18 @@ export const SchematicComponentDetailsTooltip = ({
         ))}
         {footprinterString && (
           <div style={{ display: "contents" }}>
-            <dt style={detailLabelStyle}>footprint</dt>
+            <dt style={detailLabelStyle}>Footprint</dt>
             <dd
               style={{
                 minWidth: 0,
                 margin: 0,
                 color: "#1e293b",
-                fontFamily:
-                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
                 fontSize: "12px",
                 lineHeight: 1.45,
                 overflowWrap: "anywhere",
               }}
             >
-              {JSON.stringify(footprinterString)}
+              {footprinterString}
             </dd>
           </div>
         )}
@@ -196,7 +193,7 @@ export const SchematicComponentDetailsTooltip = ({
         <section
           aria-label="Component warnings"
           style={{
-            margin: "0 8px 8px",
+            margin: "0 12px 12px",
             padding: "8px",
             border: "1px solid #fcd34d",
             borderRadius: "4px",
@@ -217,13 +214,13 @@ export const SchematicComponentDetailsTooltip = ({
       )}
 
       {footprintPreviewUrl && (
-        <div style={{ padding: "0 4px 4px" }}>
+        <div style={{ padding: "0 12px 12px" }}>
           <div
             style={{
               height: "210px",
               overflow: "hidden",
               border: "1px solid #e2e8f0",
-              borderRadius: "2px",
+              borderRadius: "6px",
               background: "#f8fafc",
             }}
           >
