@@ -547,7 +547,17 @@ export const SchematicViewer = ({
       {netHoverHighlightEnabled && (
         <style>
           {`.sch-net-faded { opacity: 0.35; }
-            svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id]) { transition: opacity 0.12s ease-in-out; }`}
+            .sch-net-highlighted [stroke]:not(text):not([stroke="none"]),
+            [stroke]:not(text):not([stroke="none"]).sch-net-highlighted {
+              stroke: #ff00d4 !important;
+            }
+            .sch-net-highlighted text,
+            text.sch-net-highlighted {
+              fill: #ff00d4 !important;
+            }
+            svg :is(g.trace, g.trace-overlays, g[data-schematic-component-id], [data-schematic-net-label-id]) {
+              transition: opacity 0.12s ease-in-out, stroke 0.12s ease-in-out;
+            }`}
         </style>
       )}
       {searchEnabled && (

@@ -3,6 +3,7 @@ import type { CircuitJson } from "circuit-json"
 import { useEffect } from "react"
 
 const FADED_CLASS = "sch-net-faded"
+const HIGHLIGHTED_CLASS = "sch-net-highlighted"
 
 const TRACE_SELECTOR =
   "g.trace[data-subcircuit-connectivity-map-key], g.trace-overlays[data-subcircuit-connectivity-map-key]"
@@ -49,7 +50,10 @@ export const useSchematicNetHover = ({
     let hoveredNetKey: string | null = null
 
     const collectNetElements = () => {
-      for (const { el } of netElements) el.classList.remove(FADED_CLASS)
+      for (const { el } of netElements) {
+        el.classList.remove(FADED_CLASS)
+        el.classList.remove(HIGHLIGHTED_CLASS)
+      }
       netElements = []
       triggerNetKeys.clear()
       hoveredNetKey = null
@@ -91,7 +95,9 @@ export const useSchematicNetHover = ({
       if (key === hoveredNetKey) return
       hoveredNetKey = key
       for (const { el, keys } of netElements) {
-        el.classList.toggle(FADED_CLASS, key !== null && !keys.has(key))
+        const isMember = key !== null && keys.has(key)
+        el.classList.toggle(FADED_CLASS, key !== null && !isMember)
+        el.classList.toggle(HIGHLIGHTED_CLASS, isMember)
       }
     }
 
@@ -138,7 +144,10 @@ export const useSchematicNetHover = ({
       observer.disconnect()
       svgDiv.removeEventListener("mousemove", handleMouseMove)
       svgDiv.removeEventListener("mouseleave", handleMouseLeave)
-      for (const { el } of netElements) el.classList.remove(FADED_CLASS)
+      for (const { el } of netElements) {
+        el.classList.remove(FADED_CLASS)
+        el.classList.remove(HIGHLIGHTED_CLASS)
+      }
     }
     // Keyed on circuitJsonKey (content hash) rather than the circuitJson
     // reference, matching the other post-render SVG hooks.
