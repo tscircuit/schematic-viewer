@@ -15,7 +15,7 @@ const fuse = circuitJson.find(
 )
 if (!fuse) throw new Error("Expected fuse F1")
 
-test.failing("fuse details show each rating once with units", () => {
+test("fuse details show each rating once with units", () => {
   const html = renderToStaticMarkup(
     <SchematicComponentDetailsTooltip
       sourceComponent={fuse}

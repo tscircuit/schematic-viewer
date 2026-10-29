@@ -100,6 +100,11 @@ const priorityKeys = [
   "manufacturer_part_number",
 ]
 
+const displayKeyAliases: Record<string, string> = {
+  current_rating_amps: "display_current_rating",
+  voltage_rating_volts: "display_voltage_rating",
+}
+
 const supplierPartNumberUrls = {
   jlcpcb: (partNumber: string) =>
     `https://jlcpcb.com/partdetail/${encodeURIComponent(partNumber)}`,
@@ -125,9 +130,10 @@ const formatComponentValue = (
 ) => {
   if (key === "name") return String(value)
 
-  const displayValue = (sourceComponent as Record<string, unknown>)[
-    `display_${key}`
-  ]
+  const sourceComponentFields = sourceComponent as Record<string, unknown>
+  const displayValue =
+    sourceComponentFields[`display_${key}`] ??
+    sourceComponentFields[displayKeyAliases[key]]
   if (typeof displayValue === "string" && displayValue.trim()) {
     const propValue =
       key === "resistance" ? displayValue.replace(/Ω$/, "") : displayValue
@@ -144,7 +150,11 @@ export const getSourceComponentInfoEntries = (
       if (hiddenSourceComponentKeys.has(key)) return false
       if (
         key.startsWith("display_") &&
-        key.slice("display_".length) in sourceComponent
+        (key.slice("display_".length) in sourceComponent ||
+          Object.entries(displayKeyAliases).some(
+            ([sourceKey, displayKey]) =>
+              displayKey === key && sourceKey in sourceComponent,
+          ))
       ) {
         return false
       }
