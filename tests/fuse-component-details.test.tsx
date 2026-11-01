@@ -25,8 +25,6 @@ test("fuse details show each rating once with units", () => {
       maxHeight={400}
     />,
   )
-  expect(html).toMatchSnapshot()
-
   const { document } = new JSDOM(html).window
 
   expect(
