@@ -668,6 +668,18 @@ export const SchematicViewer = ({
             isComponentMenu={
               !!getSchematicComponentAtElement(menuTarget, circuitJson)
             }
+            sourceComponent={circuitJson.find(
+              (
+                element,
+              ): element is Extract<
+                CircuitJson[number],
+                { type: "source_component" }
+              > =>
+                element.type === "source_component" &&
+                element.source_component_id ===
+                  getSchematicComponentAtElement(menuTarget, circuitJson)
+                    ?.source_component_id,
+            )}
             pcbComponent={getPcbComponentAtElement(menuTarget, circuitJson)}
             onViewPcbComponent={onViewPcbComponent}
             circuitJson={circuitJson}
