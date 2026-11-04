@@ -148,6 +148,9 @@ export const getSourceComponentInfoEntries = (
   Object.entries(sourceComponent as Record<string, unknown>)
     .filter(([key, value]) => {
       if (hiddenSourceComponentKeys.has(key)) return false
+      if (key === "id" || key.endsWith("_id") || key.endsWith("_ids")) {
+        return false
+      }
       if (
         key.startsWith("display_") &&
         (key.slice("display_".length) in sourceComponent ||

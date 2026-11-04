@@ -1,4 +1,4 @@
-# Repro: long component-detail label overlaps its value
+# Repro: internal Circuit JSON IDs shown in component details
 
 ## Steps
 
@@ -6,27 +6,32 @@
 2. Open the `example40-long-component-details-label` fixture in React Cosmos.
 3. Inspect the `SW1` details popup at a width of 560px.
 
-The `internally_connected_source_port_ids` label is longer than the first grid
-column. Without wrapping, it overlaps the array value displayed in the second
-column. The field is valid Circuit JSON; this is a presentation bug.
+The switch includes `internally_connected_source_port_ids` in its Circuit JSON.
+Previously, the details popup displayed this internal field and its source-port
+IDs, which are not useful to people inspecting a component. The long field name
+could also overlap the value column.
 
 ## Expected behavior
 
-Property names and values remain legible even when a property name exceeds its
-column width. Long labels may wrap to a second line.
+Only user-relevant component information, such as `name` and
+`manufacturer_part_number`, is visible. Internal fields named `id`, ending in
+`_id`, or ending in `_ids` are hidden from this popup, but they are still
+available in the underlying Circuit JSON for circuit operations.
+
+Long non-ID property labels may still wrap inside their own column.
 
 ## Screenshots
 
-Before (the original label wrapping behavior):
+Before (original implementation exposes internal IDs):
 
 ![Before: label overlaps value](before.png)
 
-After (`overflow-wrap: anywhere` on the label):
+After (the ID fields are hidden, while `SW1` and `TL3342` remain):
 
-![After: label wraps inside its column](after.png)
+![After: internal IDs hidden](https://cdn.creativeclaw.co/u/ab2b5820/images/01e70fad-ca34-40a8-be68-87536c74c132.png)
 
-The screenshots show the same `SchematicComponentDetailsTooltip` fixture. The
-before image overrides only the new label wrapping property to reproduce the
-original behavior; the after image uses the fixed component style.
+Both screenshots render the `SchematicComponentDetailsTooltip` React component.
+The before image demonstrates the original ID exposure and overlap. The after
+image shows the updated fixture with the IDs filtered out.
 
 Regression test: `tests/schematic-component-details-long-label.test.tsx`.
