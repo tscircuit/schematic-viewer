@@ -2,18 +2,29 @@ import { expect, test } from "bun:test"
 import { JSDOM } from "jsdom"
 import { renderToStaticMarkup } from "react-dom/server"
 import { SchematicComponentDetailsTooltip } from "../lib/components/SchematicComponentDetailsTooltip"
-import type { SourceComponent } from "../lib/utils/component-details"
+import { renderToCircuitJson } from "../lib/dev/render-to-circuit-json"
 
 test("internal source component IDs are hidden from the details popup", () => {
-  const sourceComponent: SourceComponent = {
-    type: "source_component",
-    source_component_id: "source_component_sw1",
-    ftype: "simple_switch",
-    name: "SW1",
-    internally_connected_source_port_ids: [["source_port_0", "source_port_2"]],
-    manufacturer_part_number: "TL3342",
-    related_component_id: "source_component_other",
-  } as SourceComponent
+  const circuitJson = renderToCircuitJson(
+    <board>
+      <pushbutton
+        name="SW1"
+        pinLabels={{ pin1: ["A"], pin2: ["B"], pin3: ["A2"], pin4: ["B2"] }}
+        internallyConnectedPins={[
+          ["pin1", "pin3"],
+          ["pin2", "pin4"],
+        ]}
+      />
+    </board>,
+  )
+  const sourceComponent = circuitJson.find(
+    (element) => element.type === "source_component" && element.name === "SW1",
+  )
+  if (sourceComponent?.type !== "source_component") {
+    throw new Error("Expected the generated SW1 source component")
+  }
+  expect(sourceComponent.internally_connected_source_port_ids).toHaveLength(2)
+  const originalSourceComponent = structuredClone(sourceComponent)
 
   const html = renderToStaticMarkup(
     <SchematicComponentDetailsTooltip
@@ -24,27 +35,37 @@ test("internal source component IDs are hidden from the details popup", () => {
       maxHeight={300}
     />,
   )
-  const document = new JSDOM(html).window.document
+  const dom = new JSDOM(html)
+  const document = dom.window.document
   const labels = Array.from(document.querySelectorAll("dt")).map(
     (element) => element.textContent,
   )
 
-  expect(labels).toContain("name")
-  expect(labels).toContain("manufacturer_part_number")
-  expect(labels).not.toContain("internally_connected_source_port_ids")
-  expect(labels).not.toContain("related_component_id")
-  expect(document.querySelector("dialog")?.textContent).not.toContain(
-    "source_port_0",
-  )
+  expect(labels).toEqual(["name"])
+  expect(
+    Array.from(document.querySelectorAll("dd")).map(
+      (element) => element.textContent,
+    ),
+  ).toEqual(["SW1"])
+  expect(sourceComponent).toEqual(originalSourceComponent)
+  dom.window.close()
 })
 
-test("long non-ID detail labels can wrap within their column", () => {
-  const sourceComponent: SourceComponent = {
-    type: "source_component",
-    source_component_id: "source_component_sw1",
-    ftype: "simple_switch",
-    name: "SW1",
-    manufacturer_part_number: "TL3342",
+test("long non-ID detail labels declare overflow wrapping", () => {
+  const circuitJson = renderToCircuitJson(
+    <board>
+      <resistor
+        name="R1"
+        resistance="1k"
+        manufacturerPartNumber="RC0603FR-071KL"
+      />
+    </board>,
+  )
+  const sourceComponent = circuitJson.find(
+    (element) => element.type === "source_component" && element.name === "R1",
+  )
+  if (sourceComponent?.type !== "source_component") {
+    throw new Error("Expected the generated R1 source component")
   }
 
   const html = renderToStaticMarkup(
@@ -56,12 +77,14 @@ test("long non-ID detail labels can wrap within their column", () => {
       maxHeight={300}
     />,
   )
-  const document = new JSDOM(html).window.document
-  const label = Array.from(document.querySelectorAll("dt")).find(
+  const dom = new JSDOM(html)
+  const document = dom.window.document
+  const label = Array.from(document.querySelectorAll<HTMLElement>("dt")).find(
     (element) => element.textContent === "manufacturer_part_number",
   )
 
   expect(label).toBeDefined()
-  expect(label?.nextElementSibling?.textContent).toContain("TL3342")
-  expect((label as HTMLElement).style.overflowWrap).toBe("anywhere")
+  expect(label?.nextElementSibling?.textContent).toBe('"RC0603FR-071KL"')
+  expect(label?.style.overflowWrap).toBe("anywhere")
+  dom.window.close()
 })
