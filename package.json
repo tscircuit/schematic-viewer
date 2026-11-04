@@ -46,8 +46,7 @@
     "@tscircuit/circuit-json-schematic-placement-analysis": "https://jscdn.tscircuit.com/@tscircuit/circuit-json-schematic-placement-analysis/0.0.46.tgz"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0",
-    "tscircuit": "*"
+    "typescript": "^5.0.0"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
@@ -57,7 +56,7 @@
     "@tscircuit/props": "^0.0.697",
     "@tscircuit/soup-util": "^0.0.41",
     "circuit-json": "^0.0.479",
-    "circuit-to-svg": "^0.0.432",
+    "circuit-to-svg": "^0.0.437",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
     "transformation-matrix": "^2.16.1",

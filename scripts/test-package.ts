@@ -36,7 +36,6 @@ try {
       dependencies: {
         "@tscircuit/schematic-viewer": `file:./${archiveName}`,
         react: packageJson.devDependencies.react,
-        tscircuit: packageJson.devDependencies.tscircuit,
         typescript: packageJson.peerDependencies.typescript,
         "@types/react": packageJson.devDependencies["@types/react"],
       },
@@ -46,6 +45,15 @@ try {
     join(temporaryDirectory, "consume.tsx"),
     `import type { ComponentProps } from "react"
 import { SchematicViewer, useSchematicViewerController } from "@tscircuit/schematic-viewer"
+
+let tscircuitIsInstalled = false
+try {
+  import.meta.resolve("tscircuit")
+  tscircuitIsInstalled = true
+} catch {}
+if (tscircuitIsInstalled) {
+  throw new Error("Installing the viewer must not auto-install the tscircuit toolchain")
+}
 
 const props: ComponentProps<typeof SchematicViewer> = {
   circuitJson: [],
