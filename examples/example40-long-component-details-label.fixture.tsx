@@ -4,7 +4,14 @@ import { renderToCircuitJson } from "lib/dev/render-to-circuit-json"
 // Compile a real component. The core creates the internal source-port IDs.
 const circuitJson = renderToCircuitJson(
   <board>
-    <pushbutton name="SW1" internallyConnectedPins={[[1, 2]]} />
+    <pushbutton
+      name="SW1"
+      pinLabels={{ pin1: ["A"], pin2: ["B"], pin3: ["A2"], pin4: ["B2"] }}
+      internallyConnectedPins={[
+        ["pin1", "pin3"],
+        ["pin2", "pin4"],
+      ]}
+    />
   </board>,
 )
 
