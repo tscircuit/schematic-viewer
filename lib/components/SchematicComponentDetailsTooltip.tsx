@@ -26,11 +26,13 @@ interface Props {
 }
 
 const detailLabelStyle: React.CSSProperties = {
+  minWidth: 0,
   color: "#64748b",
   fontFamily:
     'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
   fontSize: "12px",
   lineHeight: 1.45,
+  overflowWrap: "anywhere",
 }
 
 export const SchematicComponentDetailsTooltip = ({
