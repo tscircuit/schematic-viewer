@@ -11,14 +11,33 @@ const nonNegativeNumber = (value: unknown): number | null => {
   return Number.isFinite(number) && number >= 0 ? number : null
 }
 
+const getTierArrayPrice = (tiers: unknown[]): number | null => {
+  const validTiers = tiers
+    .map((tier, index) => {
+      if (!tier || typeof tier !== "object") return null
+      const record = tier as { qFrom?: unknown; price?: unknown }
+      const price = nonNegativeNumber(record.price)
+      if (price === null) return null
+      return {
+        quantity: nonNegativeNumber(record.qFrom) ?? Number.POSITIVE_INFINITY,
+        index,
+        price,
+      }
+    })
+    .filter((tier): tier is NonNullable<typeof tier> => tier !== null)
+    .sort((a, b) => a.quantity - b.quantity || a.index - b.index)
+  return validTiers[0]?.price ?? null
+}
+
 const getPrice = (value: unknown): number | null => {
   const number = nonNegativeNumber(value)
   if (number !== null) return number
+  if (Array.isArray(value)) return getTierArrayPrice(value)
   if (typeof value !== "string") return null
   try {
     const tiers = JSON.parse(value)
     if (Array.isArray(tiers)) {
-      return nonNegativeNumber(tiers[0]?.price)
+      return getTierArrayPrice(tiers)
     }
   } catch {
     // Older catalog entries store quantity ranges as "1-9:0.02,10-99:0.01".
