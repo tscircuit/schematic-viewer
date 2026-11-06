@@ -17,6 +17,13 @@ test("JLC prices support numeric, price1, JSON tiers, and legacy quantity ranges
     { price: 0.006 },
     { price1: 0.006, price: "bad" },
     { price: '[{"qFrom":1,"price":0.006},{"qFrom":10,"price":0.001}]' },
+    { price: '[{"qFrom":10,"price":0.001},{"qFrom":1,"price":0.006}]' },
+    {
+      price: [
+        { qFrom: 10, price: 0.001 },
+        { qFrom: 1, price: 0.006 },
+      ],
+    },
     { price: "10-99:0.001,1-9:0.006" },
   ]) {
     expect(await lookup([{ lcsc: 1525, stock: 0, ...fields }])).toEqual({
