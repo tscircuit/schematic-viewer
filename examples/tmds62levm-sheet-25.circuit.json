@@ -1,0 +1,25 @@
+[
+  {
+    "type": "schematic_sheet",
+    "schematic_sheet_id": "schematic_sheet_altium",
+    "name": "TMDS62LEVM",
+    "outline_color": "#334155",
+    "sheet_index": 0,
+    "sheet_width": 265.7894736842106,
+    "sheet_height": 200
+  },
+  {
+    "type": "schematic_text",
+    "schematic_text_id": "schematic_text_frame_line_altium_3252_1",
+    "schematic_sheet_id": "schematic_sheet_altium",
+    "text": "to SOC's DQS",
+    "font_size": 0.22793203481143806,
+    "position": {
+      "x": -8.832365636655616,
+      "y": -18.60495305377124
+    },
+    "rotation": 0,
+    "anchor": "top_left",
+    "color": "#1f2937"
+  }
+]

@@ -570,11 +570,10 @@ export const SchematicViewer = ({
             }`}
         </style>
       )}
-      <style>
-        {
-          ".schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }"
-        }
-      </style>
+      <style>{`
+        .schematic-component-clickable > svg { overflow: visible; }
+        .schematic-component-clickable [data-schematic-component-id]:hover { cursor: pointer !important; }
+      `}</style>
       {onSchematicPortClicked && (
         <style>
           {"[data-schematic-port-id]:hover { cursor: pointer !important; }"}
