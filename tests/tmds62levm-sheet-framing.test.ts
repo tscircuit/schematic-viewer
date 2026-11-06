@@ -22,9 +22,9 @@ test("fits TMDS62LEVM sheet 25 while retaining the off-page DQS note", () => {
     const transformAttribute = "data-real-to-screen-transform"
     const schematicSvg = renderedSheet.window.document.querySelector("svg")
     const frameSvg = renderedFrame.window.document.querySelector("svg")
-    expect(schematicSvg?.getAttribute(transformAttribute)).toBe(
-      frameSvg?.getAttribute(transformAttribute),
-    )
+    const frameTransform = frameSvg?.getAttribute(transformAttribute)
+    expect(frameTransform).toBeTruthy()
+    expect(schematicSvg?.getAttribute(transformAttribute)).toBe(frameTransform)
     expect(schematicSvg?.textContent).toContain("to SOC's DQS")
   } finally {
     renderedSheet.window.close()
