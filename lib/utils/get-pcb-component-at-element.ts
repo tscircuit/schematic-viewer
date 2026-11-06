@@ -39,13 +39,41 @@ export const getSchematicComponentAtElement = (
       ? text.schematic_component_id
       : undefined) ??
     (port?.type === "schematic_port" ? port.schematic_component_id : undefined)
-  if (!schematicComponentId) return
+  if (schematicComponentId) {
+    const schematicComponent = circuitJson.find(
+      (element) =>
+        element.type === "schematic_component" &&
+        element.schematic_component_id === schematicComponentId,
+    )
+    if (schematicComponent?.type === "schematic_component") {
+      return schematicComponent
+    }
+  }
 
-  const schematicComponent = circuitJson.find(
+  const sourcePortId =
+    port?.type === "schematic_port" ? port.source_port_id : portId
+  if (!sourcePortId) return
+  const sourcePort = circuitJson.find(
     (element) =>
-      element.type === "schematic_component" &&
-      element.schematic_component_id === schematicComponentId,
+      element.type === "source_port" && element.source_port_id === sourcePortId,
   )
+  if (sourcePort?.type !== "source_port" || !sourcePort.source_component_id)
+    return
+
+  const portSheetId =
+    port?.type === "schematic_port" ? port.schematic_sheet_id : undefined
+  const schematicComponent =
+    circuitJson.find(
+      (element) =>
+        element.type === "schematic_component" &&
+        element.source_component_id === sourcePort.source_component_id &&
+        (!portSheetId || element.schematic_sheet_id === portSheetId),
+    ) ??
+    circuitJson.find(
+      (element) =>
+        element.type === "schematic_component" &&
+        element.source_component_id === sourcePort.source_component_id,
+    )
   if (schematicComponent?.type !== "schematic_component") return
   return schematicComponent
 }

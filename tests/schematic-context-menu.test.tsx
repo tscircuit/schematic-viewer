@@ -144,6 +144,8 @@ test("PCB navigation resolves reference labels and both port ID formats", () => 
     for (const [attribute, id] of [
       ["data-schematic-component-id", "schematic_component_1"],
       ["data-schematic-text-id", "text_1"],
+      ["data-schematic-port-id", "schematic_port_1"],
+      ["data-schematic-port-id", "source_port_1"],
       ["data-schematic-port-id", "schematic_port_2"],
       ["data-schematic-port-id", "source_port_2"],
     ]) {
