@@ -3,11 +3,15 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { su } from "@tscircuit/soup-util"
 import type { CircuitJson } from "circuit-json"
 import { useMemo } from "react"
+import type { SourceComponent } from "../utils/component-details"
+import { getDescriptionPreview } from "../utils/datasheet-description"
+import { useDatasheetDescription } from "../hooks/useDatasheetDescription"
 import packageJson from "../../package.json"
 import { zIndexMap } from "../utils/z-index-map"
 import type { ViewPcbComponentEvent } from "../utils/get-pcb-component-at-element"
 
 interface ViewMenuProps {
+  sourceComponent?: SourceComponent
   isComponentMenu?: boolean
   pcbComponent?: ViewPcbComponentEvent
   onViewPcbComponent?: (event: ViewPcbComponentEvent) => void
@@ -103,6 +107,7 @@ const CheckIcon = () => (
 
 export const ViewMenu = ({
   isComponentMenu = false,
+  sourceComponent,
   pcbComponent,
   onViewPcbComponent,
   netLocations = [],
@@ -122,6 +127,11 @@ export const ViewMenu = ({
   showWarnings,
   onToggleWarnings,
 }: ViewMenuProps) => {
+  const { description, loading, expanded, toggleExpanded } =
+    useDatasheetDescription(
+      isComponentMenu ? sourceComponent?.manufacturer_part_number : undefined,
+    )
+
   const hasGroups = useMemo(() => {
     if (!circuitJson || circuitJson.length === 0) return false
 
@@ -164,7 +174,13 @@ export const ViewMenu = ({
     }
   }, [circuitJsonKey])
 
-  if (isComponentMenu && (!pcbComponent || !onViewPcbComponent)) return null
+  if (
+    isComponentMenu &&
+    !description &&
+    !loading &&
+    (!pcbComponent || !onViewPcbComponent)
+  )
+    return null
 
   return (
     <div
@@ -184,13 +200,84 @@ export const ViewMenu = ({
 
         <DropdownMenu.Portal>
           <DropdownMenu.Content
-            style={contentStyles}
+            style={{
+              ...contentStyles,
+              maxHeight: "var(--radix-dropdown-menu-content-available-height)",
+              overflowY: "auto",
+            }}
             align="start"
             sideOffset={0}
             collisionPadding={10}
             avoidCollisions={true}
           >
             <style>{HIGHLIGHT_CSS}</style>
+            {isComponentMenu && loading && (
+              <div
+                role="status"
+                style={{ padding: "8px", maxWidth: 300, fontSize: 12 }}
+              >
+                Loading description…
+              </div>
+            )}
+            {isComponentMenu && description && (
+              <>
+                {Array.from(description).length > 140 ? (
+                  <DropdownMenu.Item
+                    className="sv-vm-item"
+                    aria-label="Component description"
+                    aria-expanded={expanded}
+                    style={{
+                      ...itemStyles,
+                      display: "block",
+                      width: 300,
+                      maxWidth: "calc(100vw - 40px)",
+                      whiteSpace: "normal",
+                      overflowWrap: "anywhere",
+                      lineHeight: 1.5,
+                      cursor: "pointer",
+                    }}
+                    onSelect={(event) => {
+                      event.preventDefault()
+                      toggleExpanded()
+                    }}
+                  >
+                    <span>
+                      {expanded
+                        ? description
+                        : `${getDescriptionPreview(description)}…`}
+                    </span>
+                    <span
+                      style={{
+                        display: "block",
+                        marginTop: 4,
+                        color: "#93c5fd",
+                        fontSize: 12,
+                      }}
+                    >
+                      {expanded ? "Show less" : "Show more"}
+                    </span>
+                  </DropdownMenu.Item>
+                ) : (
+                  <div
+                    aria-label="Component description"
+                    style={{
+                      padding: "8px",
+                      width: 300,
+                      maxWidth: "calc(100vw - 40px)",
+                      boxSizing: "border-box",
+                      whiteSpace: "normal",
+                      overflowWrap: "anywhere",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {description}
+                  </div>
+                )}
+                {pcbComponent && onViewPcbComponent && (
+                  <DropdownMenu.Separator style={separatorStyles} />
+                )}
+              </>
+            )}
             {pcbComponent && onViewPcbComponent && (
               <>
                 <DropdownMenu.Item
