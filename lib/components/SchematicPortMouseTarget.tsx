@@ -1,34 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect } from "react"
 import { useMouseEventsOverBoundingBox } from "../hooks/useMouseEventsOverBoundingBox"
-import type { BoundingBoxBounds } from "./MouseTracker"
+import { useSvgElementMeasurement } from "../hooks/useSvgElementMeasurement"
 import { zIndexMap } from "../utils/z-index-map"
-
-interface RelativeRect {
-  left: number
-  top: number
-  width: number
-  height: number
-}
-
-interface Measurement {
-  bounds: BoundingBoxBounds
-  rect: RelativeRect
-}
-
-const areMeasurementsEqual = (a: Measurement | null, b: Measurement | null) => {
-  if (!a && !b) return true
-  if (!a || !b) return false
-  return (
-    Math.abs(a.bounds.minX - b.bounds.minX) < 0.5 &&
-    Math.abs(a.bounds.maxX - b.bounds.maxX) < 0.5 &&
-    Math.abs(a.bounds.minY - b.bounds.minY) < 0.5 &&
-    Math.abs(a.bounds.maxY - b.bounds.maxY) < 0.5 &&
-    Math.abs(a.rect.left - b.rect.left) < 0.5 &&
-    Math.abs(a.rect.top - b.rect.top) < 0.5 &&
-    Math.abs(a.rect.width - b.rect.width) < 0.5 &&
-    Math.abs(a.rect.height - b.rect.height) < 0.5
-  )
-}
 
 interface Props {
   portId: string
@@ -51,102 +24,14 @@ export const SchematicPortMouseTarget = ({
   showOutline,
   circuitJsonKey,
 }: Props) => {
-  const [measurement, setMeasurement] = useState<Measurement | null>(null)
-  const frameRef = useRef<number | null>(null)
-
-  const measure = useCallback(() => {
-    frameRef.current = null
-    const svgDiv = svgDivRef.current
-    const container = containerRef.current
-    if (!svgDiv || !container) {
-      setMeasurement((prev) => (prev ? null : prev))
-      return
-    }
-    const element = svgDiv.querySelector<SVGGraphicsElement | HTMLElement>(
-      `[data-schematic-port-id="${portId}"]`,
-    )
-    if (!element) {
-      setMeasurement((prev) => (prev ? null : prev))
-      return
-    }
-
-    const elementRect = element.getBoundingClientRect()
-    const containerRect = container.getBoundingClientRect()
-
+  const measurement = useSvgElementMeasurement({
+    selector: `[data-schematic-port-id="${portId}"]`,
+    svgDivRef,
+    containerRef,
+    circuitJsonKey,
     // Add some padding around the port for easier interaction
-    const padding = 4
-
-    const nextMeasurement: Measurement = {
-      bounds: {
-        minX: elementRect.left - padding,
-        maxX: elementRect.right + padding,
-        minY: elementRect.top - padding,
-        maxY: elementRect.bottom + padding,
-      },
-      rect: {
-        left: elementRect.left - containerRect.left - padding,
-        top: elementRect.top - containerRect.top - padding,
-        width: elementRect.width + padding * 2,
-        height: elementRect.height + padding * 2,
-      },
-    }
-
-    setMeasurement((prev) =>
-      areMeasurementsEqual(prev, nextMeasurement) ? prev : nextMeasurement,
-    )
-  }, [portId, containerRef, svgDivRef])
-
-  const scheduleMeasure = useCallback(() => {
-    if (frameRef.current !== null) return
-    frameRef.current = window.requestAnimationFrame(measure)
-  }, [measure])
-
-  useEffect(() => {
-    scheduleMeasure()
-  }, [scheduleMeasure, circuitJsonKey])
-
-  useEffect(() => {
-    scheduleMeasure()
-    const svgDiv = svgDivRef.current
-    const container = containerRef.current
-    if (!svgDiv || !container) return
-
-    const resizeObserver =
-      typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(() => {
-            scheduleMeasure()
-          })
-        : null
-    resizeObserver?.observe(container)
-    resizeObserver?.observe(svgDiv)
-
-    const mutationObserver =
-      typeof MutationObserver !== "undefined"
-        ? new MutationObserver(() => {
-            scheduleMeasure()
-          })
-        : null
-    mutationObserver?.observe(svgDiv, {
-      attributes: true,
-      attributeFilter: ["style", "transform"],
-      subtree: true,
-      childList: true,
-    })
-
-    window.addEventListener("scroll", scheduleMeasure, true)
-    window.addEventListener("resize", scheduleMeasure)
-
-    return () => {
-      resizeObserver?.disconnect()
-      mutationObserver?.disconnect()
-      window.removeEventListener("scroll", scheduleMeasure, true)
-      window.removeEventListener("resize", scheduleMeasure)
-      if (frameRef.current !== null) {
-        cancelAnimationFrame(frameRef.current)
-        frameRef.current = null
-      }
-    }
-  }, [scheduleMeasure, svgDivRef, containerRef])
+    padding: 4,
+  })
 
   const handleClick = useCallback(
     (event: MouseEvent) => {

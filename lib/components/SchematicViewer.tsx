@@ -34,6 +34,7 @@ import { zIndexMap } from "../utils/z-index-map"
 import { MouseTracker } from "./MouseTracker"
 import { SchematicComponentDetailsTooltip } from "./SchematicComponentDetailsTooltip"
 import { SchematicComponentMouseTarget } from "./SchematicComponentMouseTarget"
+import { SchematicElementHighlight } from "./SchematicElementHighlight"
 import { SchematicPortMouseTarget } from "./SchematicPortMouseTarget"
 import { SchematicSearch } from "./SchematicSearch"
 import { SchematicSheetSelector } from "./SchematicSheetSelector"
@@ -72,6 +73,10 @@ interface Props {
   controller?: SchematicViewerController
   /** Omit when the host has no enabled PCB view. */
   onViewPcbComponent?: (event: ViewPcbComponentEvent) => void
+  /** Outline these components, e.g. to show what changed between two circuits. */
+  highlightedSchematicComponentIds?: string[]
+  /** Outline these schematic_text elements. */
+  highlightedSchematicTextIds?: string[]
 }
 
 interface SelectedSchematicComponent {
@@ -97,6 +102,8 @@ export const SchematicViewer = ({
   searchEnabled = true,
   controller,
   onViewPcbComponent,
+  highlightedSchematicComponentIds,
+  highlightedSchematicTextIds,
   css,
   className,
 }: Props) => {
@@ -752,6 +759,24 @@ export const SchematicViewer = ({
             circuitJsonKey={circuitJsonKey}
             onHoverChange={handleComponentHoverChange}
             onComponentClick={handleSchematicComponentClick}
+          />
+        ))}
+        {highlightedSchematicComponentIds?.map((componentId) => (
+          <SchematicElementHighlight
+            key={`component-${componentId}`}
+            selector={`[data-schematic-component-id="${componentId}"]`}
+            svgDivRef={svgDivRef}
+            containerRef={containerRef}
+            circuitJsonKey={circuitJsonKey}
+          />
+        ))}
+        {highlightedSchematicTextIds?.map((textId) => (
+          <SchematicElementHighlight
+            key={`text-${textId}`}
+            selector={`[data-schematic-text-id="${textId}"]`}
+            svgDivRef={svgDivRef}
+            containerRef={containerRef}
+            circuitJsonKey={circuitJsonKey}
           />
         ))}
         {svgDiv}
