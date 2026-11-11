@@ -5,6 +5,7 @@ export const zIndexMap = {
   viewMenuIcon: 48,
   clickToInteractOverlay: 100,
   schematicComponentDetailsTooltip: 105,
+  schematicElementHighlight: 46,
   schematicComponentHoverOutline: 47,
   schematicPortHoverOutline: 48,
   schematicSearch: 101,
