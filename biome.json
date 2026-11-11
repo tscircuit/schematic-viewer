@@ -11,6 +11,8 @@
     "ignore": [
       "cosmos-export",
       "dist",
+      "playwright-report",
+      "test-results",
       "package.json",
       "examples/am3352-dev-board-4layer-dogbone.circuit.json"
     ]
