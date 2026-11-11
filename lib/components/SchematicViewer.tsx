@@ -446,10 +446,8 @@ export const SchematicViewer = ({
   }, [selectedSchematicComponent])
 
   const svgString = useMemo(() => {
-    if (!containerWidth || !containerHeight) return ""
-
     return convertCircuitJsonToSchematicSvg(circuitJson as any, {
-      width: containerWidth,
+      width: containerWidth || 1200,
       height: containerHeight || 720,
       drawPorts: showSchematicPortsInternal,
       shouldDrawWarnings: showWarnings,
