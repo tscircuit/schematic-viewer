@@ -3,16 +3,16 @@ import { useEffect, useState } from "react"
 export const useResizeHandling = (
   containerRef: React.RefObject<HTMLElement>,
 ) => {
-  const [containerWidth, setContainerWidth] = useState(0)
-  const [containerHeight, setContainerHeight] = useState(0)
+  const [containerWidth, setContainerWidth] = useState(1200)
+  const [containerHeight, setContainerHeight] = useState(720)
 
   useEffect(() => {
     if (!containerRef.current) return
 
     const updateDimensions = () => {
       const rect = containerRef.current?.getBoundingClientRect()
-      setContainerWidth(rect?.width || 0)
-      setContainerHeight(rect?.height || 0)
+      setContainerWidth(rect?.width || 1200)
+      setContainerHeight(rect?.height || 720)
     }
 
     // Set initial dimensions
