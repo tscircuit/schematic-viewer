@@ -2,6 +2,8 @@ import { useEffect, useState } from "react"
 import type { PlatformConfig } from "@tscircuit/props"
 import { fetchDatasheetDescription } from "../utils/datasheet-description"
 
+const COLLAPSED_DESCRIPTION_LENGTH = 100
+
 export const DatasheetDescription = ({
   chipName,
   platformConfig,
@@ -11,6 +13,7 @@ export const DatasheetDescription = ({
 }) => {
   const [description, setDescription] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const platformFetch = platformConfig?.platformFetch
 
   useEffect(() => {
@@ -18,6 +21,7 @@ export const DatasheetDescription = ({
     let active = true
     setLoading(true)
     setDescription(null)
+    setExpanded(false)
     const timeout = setTimeout(() => {
       controller.abort()
       if (active) setLoading(false)
@@ -45,6 +49,11 @@ export const DatasheetDescription = ({
     }
   }, [chipName, platformFetch])
 
+  const isCollapsed =
+    !expanded &&
+    description !== null &&
+    description.length > COLLAPSED_DESCRIPTION_LENGTH
+
   return (
     <span
       role="status"
@@ -52,7 +61,27 @@ export const DatasheetDescription = ({
       aria-busy={loading}
       style={loading ? { color: "#64748b" } : undefined}
     >
-      {loading ? "Loading…" : (description ?? "-")}
+      {loading ? (
+        "Loading…"
+      ) : description && isCollapsed ? (
+        <span
+          role="button"
+          tabIndex={0}
+          aria-expanded={false}
+          title="Show full description"
+          style={{ cursor: "pointer" }}
+          onClick={() => setExpanded(true)}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return
+            event.preventDefault()
+            setExpanded(true)
+          }}
+        >
+          {`${description.slice(0, COLLAPSED_DESCRIPTION_LENGTH).trimEnd()}...`}
+        </span>
+      ) : (
+        (description ?? "-")
+      )}
     </span>
   )
 }

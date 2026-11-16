@@ -814,7 +814,7 @@ test("component price lookup delegates to platformFetch when no availability pro
 })
 
 test("chips show their datasheet description, or a hyphen when it can't be loaded", async () => {
-  const { restore } = installDom()
+  const { dom, restore } = installDom()
   const reactRoot = createRoot(document.getElementById("root")!)
   const requests: {
     url: string
@@ -903,6 +903,30 @@ test("chips show their datasheet description, or a hyphen when it can't be loade
       ),
     )
     expect(getDescription()).toBe("-")
+
+    const longDescription = `${"Long description ".repeat(8)}ends here.`
+    await act(async () =>
+      reactRoot.render(renderComponent("simple_chip", "LONG-DESCRIPTION")),
+    )
+    await act(async () =>
+      requests[3].resolve(
+        Response.json({ datasheet: { ai_description: longDescription } }),
+      ),
+    )
+    expect(longDescription.length).toBeGreaterThan(100)
+    expect(getDescription()).toBe(
+      `${longDescription.slice(0, 100).trimEnd()}...`,
+    )
+    const collapsedDescription = document.querySelector(
+      '[role="button"][aria-expanded="false"]',
+    )!
+    await act(async () => {
+      collapsedDescription.dispatchEvent(
+        new dom.window.MouseEvent("click", { bubbles: true }),
+      )
+    })
+    expect(getDescription()).toBe(longDescription)
+    expect(document.querySelector('[role="button"]')).toBeNull()
     await act(async () => reactRoot.render(null))
     expect(requests.every((request) => request.signal.aborted)).toBe(true)
   } finally {
