@@ -17,6 +17,8 @@
     "start": "cosmos",
     "build": "tsup-node ./lib/index.ts --dts --format esm --sourcemap",
     "build:site": "cosmos-export",
+    "preview:cosmos": "vite preview --outDir cosmos-export --host 127.0.0.1 --port 5177 --strictPort",
+    "test:playwright": "playwright test",
     "test:package": "bun run build && bun run scripts/test-package.ts",
     "vercel-build": "bun run build:site",
     "format": "biome format --write .",
@@ -27,6 +29,7 @@
   ],
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@playwright/test": "1.58.2",
     "@types/bun": "latest",
     "@types/debug": "^4.1.12",
     "@types/jsdom": "^21.1.7",

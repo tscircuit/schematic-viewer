@@ -14,6 +14,8 @@ storybook-static
 .tool-versions
 .DS_Store
 cosmos-export
+playwright-report
+test-results
 .env
 lib/workers/spice-simulation.worker.blob.js
 .cursor
