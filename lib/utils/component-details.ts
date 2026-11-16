@@ -173,6 +173,20 @@ export const getSourceComponentInfoEntries = (
       value: formatComponentValue(sourceComponent, key, value),
     }))
 
+/**
+ * The chip name to look up in the datasheets API, when the component is a
+ * chip that names a manufacturer part.
+ */
+export const getDatasheetChipName = (
+  sourceComponent: SourceComponent,
+): string | null => {
+  if (sourceComponent.ftype !== "simple_chip") return null
+  const partNumber = sourceComponent.manufacturer_part_number
+  return typeof partNumber === "string" && partNumber.trim()
+    ? partNumber.trim()
+    : null
+}
+
 export const getSupplierPartNumberEntries = (
   sourceComponent: SourceComponent,
 ): SupplierPartNumberEntry[] => {

@@ -812,3 +812,125 @@ test("component price lookup delegates to platformFetch when no availability pro
     restore()
   }
 })
+
+test("chips show their datasheet description, or a hyphen when it can't be loaded", async () => {
+  const { dom, restore } = installDom()
+  const reactRoot = createRoot(document.getElementById("root")!)
+  const requests: {
+    url: string
+    signal: AbortSignal
+    resolve: (response: Response) => void
+  }[] = []
+  globalThis.fetch = ((url, options) =>
+    new Promise<Response>((resolve) => {
+      requests.push({
+        url: String(url),
+        signal: options!.signal!,
+        resolve,
+      })
+    })) as typeof fetch
+  const renderComponent = (
+    ftype: "simple_chip" | "simple_resistor",
+    manufacturerPartNumber?: string,
+  ) => (
+    <SchematicComponentDetailsTooltip
+      sourceComponent={
+        {
+          type: "source_component",
+          source_component_id: `${ftype}-${manufacturerPartNumber}`,
+          name: "U2",
+          ftype,
+          manufacturer_part_number: manufacturerPartNumber,
+        } as SourceComponent
+      }
+      left={0}
+      top={0}
+      width={300}
+      maxHeight={500}
+    />
+  )
+  const getDescription = () =>
+    Array.from(document.querySelectorAll("dt")).find(
+      (element) => element.textContent === "description",
+    )?.nextElementSibling?.textContent
+  try {
+    await act(async () =>
+      reactRoot.render(renderComponent("simple_resistor", "RC0603FR-071KL")),
+    )
+    await act(async () => reactRoot.render(renderComponent("simple_chip")))
+    expect(getDescription()).toBeUndefined()
+    expect(requests).toHaveLength(0)
+
+    await act(async () =>
+      reactRoot.render(renderComponent("simple_chip", "BQ24074RGTR")),
+    )
+    expect(getDescription()).toBe("Loading…")
+    expect(requests[0].url).toBe(
+      "https://api.tscircuit.com/datasheets/get?chip_name=BQ24074RGTR",
+    )
+    await act(async () =>
+      requests[0].resolve(
+        Response.json({
+          datasheet: { ai_description: "Single-cell Li-ion charger" },
+        }),
+      ),
+    )
+    expect(getDescription()).toBe("Single-cell Li-ion charger")
+
+    await act(async () =>
+      reactRoot.render(renderComponent("simple_chip", "UNKNOWN/1")),
+    )
+    expect(getDescription()).toBe("Loading…")
+    expect(requests[1].url).toBe(
+      "https://api.tscircuit.com/datasheets/get?chip_name=UNKNOWN%2F1",
+    )
+    await act(async () =>
+      requests[1].resolve(
+        Response.json(
+          { error: { error_code: "datasheet_not_found" } },
+          { status: 404 },
+        ),
+      ),
+    )
+    expect(getDescription()).toBe("-")
+
+    await act(async () =>
+      reactRoot.render(renderComponent("simple_chip", "NO-DESCRIPTION")),
+    )
+    await act(async () =>
+      requests[2].resolve(
+        Response.json({ datasheet: { ai_description: null } }),
+      ),
+    )
+    expect(getDescription()).toBe("-")
+
+    const longDescription = `${"Long description ".repeat(8)}ends here.`
+    await act(async () =>
+      reactRoot.render(renderComponent("simple_chip", "LONG-DESCRIPTION")),
+    )
+    await act(async () =>
+      requests[3].resolve(
+        Response.json({ datasheet: { ai_description: longDescription } }),
+      ),
+    )
+    expect(longDescription.length).toBeGreaterThan(100)
+    expect(getDescription()).toBe(
+      `${longDescription.slice(0, 100).trimEnd()}...`,
+    )
+    const collapsedDescription = document.querySelector(
+      '[role="button"][aria-expanded="false"]',
+    )!
+    await act(async () => {
+      collapsedDescription.dispatchEvent(
+        new dom.window.MouseEvent("click", { bubbles: true }),
+      )
+    })
+    expect(getDescription()).toBe(longDescription)
+    expect(document.querySelector('[role="button"]')).toBeNull()
+    await act(async () => reactRoot.render(null))
+    expect(requests.every((request) => request.signal.aborted)).toBe(true)
+  } finally {
+    await act(async () => reactRoot.unmount())
+    restore()
+  }
+})
