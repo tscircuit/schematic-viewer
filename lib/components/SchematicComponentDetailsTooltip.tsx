@@ -4,11 +4,13 @@ import {
   type ComponentWarning,
   type PcbBounds,
   type SourceComponent,
+  getDatasheetChipName,
   getFootprintPreviewUrl,
   getSourceComponentInfoEntries,
   getSupplierPartNumberEntries,
 } from "../utils/component-details"
 import { zIndexMap } from "../utils/z-index-map"
+import { DatasheetDescription } from "./DatasheetDescription"
 import { JlcPartAvailability } from "./JlcPartAvailability"
 import type { PlatformConfig } from "@tscircuit/props"
 
@@ -48,6 +50,10 @@ export const SchematicComponentDetailsTooltip = ({
 }: Props) => {
   const infoEntries = useMemo(
     () => getSourceComponentInfoEntries(sourceComponent),
+    [sourceComponent],
+  )
+  const datasheetChipName = useMemo(
+    () => getDatasheetChipName(sourceComponent),
     [sourceComponent],
   )
   const supplierPartNumberEntries = useMemo(
@@ -128,6 +134,29 @@ export const SchematicComponentDetailsTooltip = ({
             </dd>
           </div>
         ))}
+        {datasheetChipName && (
+          <div style={{ display: "contents" }}>
+            <dt style={detailLabelStyle}>description</dt>
+            <dd
+              style={{
+                minWidth: 0,
+                margin: 0,
+                color: "#1e293b",
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+                fontSize: "12px",
+                lineHeight: 1.45,
+                overflowWrap: "anywhere",
+              }}
+            >
+              <DatasheetDescription
+                key={datasheetChipName}
+                chipName={datasheetChipName}
+                platformConfig={platformConfig}
+              />
+            </dd>
+          </div>
+        )}
         {supplierPartNumberEntries.map((entry) => (
           <div key={entry.key} style={{ display: "contents" }}>
             <dt style={detailLabelStyle}>{entry.label}</dt>
