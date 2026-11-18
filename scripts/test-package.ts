@@ -45,13 +45,21 @@ try {
   await writeFile(
     join(temporaryDirectory, "consume.tsx"),
     `import type { ComponentProps } from "react"
-import { SchematicViewer, useSchematicViewerController } from "@tscircuit/schematic-viewer"
+import { SchematicViewer, SimulationViewer, AnalogSimulationViewer, useSchematicViewerController } from "@tscircuit/schematic-viewer"
 
 const props: ComponentProps<typeof SchematicViewer> = {
   circuitJson: [],
   platformConfig: { platformFetch: globalThis.fetch },
 }
 const viewer = <SchematicViewer {...props} />
+const simulationProps: ComponentProps<typeof SimulationViewer> = {
+  circuitJson: [],
+  hideSchematic: true,
+}
+const simulationViewer = <SimulationViewer {...simulationProps} />
+if (simulationViewer.type !== SimulationViewer || AnalogSimulationViewer !== SimulationViewer) {
+  throw new Error("The public package entry did not provide the simulation viewer exports")
+}
 if (viewer.type !== SchematicViewer || typeof useSchematicViewerController !== "function") {
   throw new Error("The public package entry did not provide the viewer exports")
 }

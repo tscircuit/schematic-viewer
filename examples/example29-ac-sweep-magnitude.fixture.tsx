@@ -1,4 +1,4 @@
-import { AnalogSimulationViewer } from "lib/components/AnalogSimulationViewer"
+import { SimulationViewer } from "lib/components/SimulationViewer"
 import {
   acSweepCircuitJson,
   withSchematicCircuitJson,
@@ -7,7 +7,7 @@ import {
 const circuitJson = withSchematicCircuitJson(acSweepCircuitJson)
 
 export default () => (
-  <AnalogSimulationViewer
+  <SimulationViewer
     circuitJson={circuitJson}
     acSweepView="magnitude"
     containerStyle={{ width: "100vw", height: "100vh" }}

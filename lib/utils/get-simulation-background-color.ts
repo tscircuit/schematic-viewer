@@ -15,7 +15,7 @@ const getGraphBackgroundColor = (simulationSvg: string) =>
     .match(/\.background\s*\{[^}]*\bfill\s*:\s*([^;}]+)/i)?.[1]
     ?.trim()
 
-export const getAnalogSimulationBackgroundColor = (
+export const getSimulationBackgroundColor = (
   simulationSvg: string,
   colorOverrides?: ColorOverrides,
 ) =>
