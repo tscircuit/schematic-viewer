@@ -4,7 +4,7 @@ import {
   colorMap,
   convertCircuitJsonToSimulationGraphSvg,
 } from "circuit-to-svg"
-import { getAnalogSimulationBackgroundColor } from "../lib/utils/get-analog-simulation-background-color"
+import { getSimulationBackgroundColor } from "../lib/utils/get-simulation-background-color"
 
 const simulationExperimentId = "simulation-experiment-background-test"
 
@@ -42,7 +42,7 @@ const graphSvgWithoutRootBackground = graphSvg.replace(
 )
 
 test("graph-only canvas matches the background rectangle", () => {
-  const backgroundColor = getAnalogSimulationBackgroundColor(
+  const backgroundColor = getSimulationBackgroundColor(
     graphSvgWithoutRootBackground,
   )
 
@@ -58,7 +58,7 @@ test("graph-only canvas matches a custom graph background", () => {
   )
 
   expect(
-    getAnalogSimulationBackgroundColor(graphSvgWithCustomBackground, {
+    getSimulationBackgroundColor(graphSvgWithCustomBackground, {
       schematic: { background: "#ffffff" },
     }),
   ).toBe(customBackground)
@@ -68,11 +68,11 @@ test("canvas falls back to the effective schematic background", () => {
   const customBackground = "#abcdef"
 
   expect(
-    getAnalogSimulationBackgroundColor("<svg></svg>", {
+    getSimulationBackgroundColor("<svg></svg>", {
       schematic: { background: customBackground },
     }),
   ).toBe(customBackground)
-  expect(getAnalogSimulationBackgroundColor("<svg></svg>")).toBe(
+  expect(getSimulationBackgroundColor("<svg></svg>")).toBe(
     colorMap.schematic.background,
   )
 })
@@ -84,5 +84,5 @@ test("combined rendering keeps the root SVG background", () => {
     </svg>
   `
 
-  expect(getAnalogSimulationBackgroundColor(combinedSvg)).toBe("#fedcba")
+  expect(getSimulationBackgroundColor(combinedSvg)).toBe("#fedcba")
 })

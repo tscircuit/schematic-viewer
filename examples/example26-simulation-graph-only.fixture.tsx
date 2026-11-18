@@ -1,5 +1,5 @@
 import type { CircuitJson } from "circuit-json"
-import { AnalogSimulationViewer } from "lib/components/AnalogSimulationViewer"
+import { SimulationViewer } from "lib/components/SimulationViewer"
 import { renderToCircuitJson } from "lib/dev/render-to-circuit-json"
 
 const simulationExperimentId = "simulation_experiment_graph_only"
@@ -43,7 +43,7 @@ const circuitJson = [
 ] as CircuitJson
 
 export default () => (
-  <AnalogSimulationViewer
+  <SimulationViewer
     circuitJson={circuitJson}
     hideSchematic
     containerStyle={{ width: "100vw", height: "100vh" }}

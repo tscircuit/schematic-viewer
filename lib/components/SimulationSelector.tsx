@@ -3,7 +3,7 @@ import type { SimulationExperiment } from "circuit-json"
 import { useState } from "react"
 import { zIndexMap } from "../utils/z-index-map"
 
-interface AnalogSimulationSelectorProps {
+interface SimulationSelectorProps {
   simulations: SimulationExperiment[]
   selectedSimulationExperimentId: string | null
   onSelectSimulation: (simulationExperimentId: string) => void
@@ -111,12 +111,12 @@ const getSimulationLabels = (simulations: SimulationExperiment[]) => {
   })
 }
 
-/** A toolbar dropdown for switching between analog simulation experiments. */
-export const AnalogSimulationSelector = ({
+/** A toolbar dropdown for switching between simulation experiments. */
+export const SimulationSelector = ({
   simulations,
   selectedSimulationExperimentId,
   onSelectSimulation,
-}: AnalogSimulationSelectorProps) => {
+}: SimulationSelectorProps) => {
   const [open, setOpen] = useState(false)
 
   if (simulations.length <= 1) return null
