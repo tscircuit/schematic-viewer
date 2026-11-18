@@ -216,7 +216,7 @@ export const SchematicComponentDetailsTooltip = ({
                 overflowWrap: "anywhere",
               }}
             >
-              {JSON.stringify(footprinterString)}
+              {footprinterString}
             </dd>
           </div>
         )}

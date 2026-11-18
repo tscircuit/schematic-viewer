@@ -270,12 +270,12 @@ test("component details include source values and the footprinter string", () =>
   expect(resistorInfo).toContainEqual({
     key: "resistance",
     label: "resistance",
-    value: '"1k"',
+    value: "1k",
   })
   expect(resistorInfo).toContainEqual({
     key: "manufacturer_part_number",
     label: "manufacturer_part_number",
-    value: '"RC0603FR-071KL"',
+    value: "RC0603FR-071KL",
   })
   expect(
     resistorInfo.some((entry) => entry.key === "are_pins_interchangeable"),
@@ -315,7 +315,7 @@ test("component details include source values and the footprinter string", () =>
   expect(getSourceComponentInfoEntries(capacitor)).toContainEqual({
     key: "capacitance",
     label: "capacitance",
-    value: '"1uF"',
+    value: "1uF",
   })
 })
 
@@ -435,10 +435,13 @@ test("component details use compact styling and close on zoom or outside click",
     expect(tooltip?.firstElementChild?.tagName).toBe("DL")
     expect(tooltip?.querySelector("button")).toBeNull()
     expect(tooltip?.textContent).not.toContain("Resistor")
-    expect(tooltip?.textContent).toContain('"1k"')
-    expect(tooltip?.textContent).toContain("RC0603FR-071KL")
+    const values = Array.from(tooltip?.querySelectorAll("dd") ?? []).map(
+      (element) => element.textContent,
+    )
+    expect(values).toContain("1k")
+    expect(values).toContain("RC0603FR-071KL")
+    expect(values).toContain("res0603")
     expect(tooltip?.textContent).not.toContain("supplier_part_numbers")
-    expect(tooltip?.textContent).toContain("res0603")
     const supplierLinks = Array.from(tooltip?.querySelectorAll("a") ?? [])
     expect(supplierLinks).toHaveLength(2)
     expect(supplierLinks.map((link) => link.textContent)).toEqual([
