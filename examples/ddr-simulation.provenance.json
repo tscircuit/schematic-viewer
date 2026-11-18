@@ -1,0 +1,40 @@
+{
+  "source_url": "https://github.com/0hmX/am3352-ddr-eye/blob/0acabf61740f7d04a46ab4314c523501ba64d98a/examples/ddr-dq-strip/index.circuit.tsx",
+  "source_commit": "0acabf61740f7d04a46ab4314c523501ba64d98a",
+  "source_modifications": [],
+  "command": "pnpm exec tsci simulate examples/ddr-dq-strip/index.circuit.tsx --output <output-directory>",
+  "source_output_file": "circuit-results.json",
+  "source_output_sha256": "58e4bef373789416fdc65a14513ee1de14e0b8036a1fcb8b6882d0707ede3fa9",
+  "fixture_command": "bun scripts/create-simulation-fixture.ts <output-directory>/circuit-results.json DDR_SWITCHING DQ0_RX examples/ddr-simulation.circuit.json",
+  "fixture_selection": "Original experiment, voltage probe, eye declaration and transient graph for DDR_SWITCHING / DQ0_RX, in source order. All fields and every sample are retained; unrelated board and simulation records are omitted.",
+  "fixture_sha256": "219d9c05d05827c539eb373ba185124e8a8d4934a90ff4f8fceecf31ea7628a0",
+  "core_version": "0.0.2199",
+  "cli_version": "0.1.2406",
+  "pipeline_commit": "63d15671ec68833225132066df317a8d7e4820e7",
+  "pipeline_archive_note": "The repository rename changes the GitHub tarball checksum. All 57 files were verified against the pinned Git blob hashes before refreshing that archive checksum in the generation checkout.",
+  "ibis_model_sha256": {
+    "sprm552c.ibs": "23011a68eb8ff35562615b5b108edcb9f017c5e61f4f68e32f35c5fb88f163be",
+    "W631GG6MB-12.ibs": "f2c0f36e24be68fd95a05f34ca4ab875ac5145f1956c5696e9a60b0d8a03e859"
+  },
+  "models_redistributed": false,
+  "simulation_model": "AM335x DQ0 to Winbond DDR3 receiver, 1.5 V, 400 MT/s, fixed repeating 00010111 data, switching DQS neighbors. Historical straightened-stage approximation with assumed 0.75 mm spacing and finite return strips.",
+  "waveform_samples": 163305,
+  "sample_times_preserved": true,
+  "waveform_values_preserved": true,
+  "eye_windows": 46,
+  "unit_interval_ns": 2.5,
+  "eye_gate_ns": [40, 160],
+  "reference_image_url": "https://github.com/0hmX/am3352-ddr-eye/blob/0acabf61740f7d04a46ab4314c523501ba64d98a/assets/simulation-api/ddr-eye.png",
+  "reference_archive_url": "https://github.com/0hmX/am3352-ddr-eye/blob/0acabf61740f7d04a46ab4314c523501ba64d98a/assets/simulation-api/ddr-report.zip",
+  "reference_csv": "csv/02-ddr_switching-eye-1.csv",
+  "reference_csv_sha256": "d18e4998165c8c523ed8302f2230988427f6fe3df0c5234266f09e8b46a7ae77",
+  "reference_comparison_points": 55200,
+  "reference_maximum_voltage_difference_v": 1.2281073935582754e-9,
+  "result_note": "Fresh native run of the source example, compared with its published eye. The fixture demonstrates recorded results of the historical strip approximation; it does not establish routed DDR accuracy, hardware validation or compliance.",
+  "native_solver_versions": {
+    "fasthenry": "3.0.1 (28May12)",
+    "fastercap": "6.0.7",
+    "ngspice": "47"
+  },
+  "platform": "macos_arm64"
+}
