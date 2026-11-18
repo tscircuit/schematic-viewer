@@ -12,7 +12,8 @@
       "cosmos-export",
       "dist",
       "package.json",
-      "examples/am3352-dev-board-4layer-dogbone.circuit.json"
+      "examples/am3352-dev-board-4layer-dogbone.circuit.json",
+      "examples/ddr-simulation.circuit.json"
     ]
   },
   "javascript": {

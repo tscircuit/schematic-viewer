@@ -99,8 +99,10 @@ const ChevronDownIcon = ({ className }: { className?: string }) => (
   </svg>
 )
 
+type SimulationName = SimulationExperiment["name"]
+
 const getSimulationLabels = (simulations: SimulationExperiment[]) => {
-  const nameCounts = new Map<string, number>()
+  const nameCounts = new Map<SimulationName, number>()
   return simulations.map((simulation) => {
     const count = (nameCounts.get(simulation.name) ?? 0) + 1
     nameCounts.set(simulation.name, count)
@@ -138,9 +140,8 @@ export const SimulationSelector = ({
             title={selectedLabel}
             onPointerDown={(event) => event.stopPropagation()}
             style={{
-              position: "absolute",
-              top: "16px",
-              left: "16px",
+              position: "relative",
+              marginRight: "auto",
               display: "flex",
               alignItems: "center",
               gap: "6px",

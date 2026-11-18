@@ -1,4 +1,4 @@
-import type { CircuitJson } from "circuit-json"
+import type { CircuitJson, SimulationEyeDiagram } from "circuit-json"
 import {
   type AcSweepView,
   type ColorOverrides,
@@ -11,6 +11,7 @@ import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
 import { getSimulationBackgroundColor } from "../utils/get-simulation-background-color"
 import { SimulationSelector } from "./SimulationSelector"
+import { SimulationResultSelector } from "./SimulationResultSelector"
 
 const DEFAULT_RENDER_WIDTH = 1200
 const DEFAULT_COMBINED_RENDER_ASPECT_RATIO = 1
@@ -32,7 +33,7 @@ interface Props {
 }
 
 export const SimulationViewer = ({
-  circuitJson: inputCircuitJson,
+  circuitJson,
   containerStyle,
   colorOverrides,
   width,
@@ -42,24 +43,14 @@ export const SimulationViewer = ({
   onSimulationChange,
   acSweepView = "magnitude",
 }: Props) => {
-  const [circuitJson, setCircuitJson] = useState<CircuitJson | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [svgObjectUrl, setSvgObjectUrl] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
-
-  const { containerWidth } = useResizeHandling(
+  const { containerWidth, containerHeight } = useResizeHandling(
     containerRef as React.RefObject<HTMLElement>,
   )
-
   const [isDragging, setIsDragging] = useState(false)
-
-  const {
-    ref: transformRef,
-    cancelDrag: _cancelDrag,
-    transform: _svgToScreenProjection,
-  } = useMouseMatrixTransform({
+  const { ref: transformRef } = useMouseMatrixTransform({
     onSetTransform(transform) {
       if (imgRef.current) {
         imgRef.current.style.transform = transformToString(transform)
@@ -70,28 +61,21 @@ export const SimulationViewer = ({
   const defaultRenderAspectRatio = hideSchematic
     ? DEFAULT_GRAPH_ONLY_RENDER_ASPECT_RATIO
     : DEFAULT_COMBINED_RENDER_ASPECT_RATIO
-  const renderAspectRatio =
-    width && height ? width / height : defaultRenderAspectRatio
   const effectiveWidth =
     width ||
-    (height ? height * renderAspectRatio : containerWidth) ||
+    (height ? height * defaultRenderAspectRatio : containerWidth) ||
     DEFAULT_RENDER_WIDTH
-  const effectiveHeight = height || effectiveWidth / renderAspectRatio
+  const effectiveHeight =
+    height ||
+    (hideSchematic && !width && containerHeight
+      ? containerHeight
+      : effectiveWidth / defaultRenderAspectRatio)
 
-  // Set CircuitJSON from props
-  useEffect(() => {
-    setIsLoading(true)
-    setError(null)
-    setCircuitJson(inputCircuitJson)
-    setIsLoading(false)
-  }, [inputCircuitJson])
-
-  const simulationExperiments = useMemo(() => {
-    if (!circuitJson) return []
-    return circuitJson.filter(
-      (element) => element.type === "simulation_experiment",
-    )
-  }, [circuitJson])
+  const simulationExperiments = useMemo(
+    () =>
+      circuitJson.filter((element) => element.type === "simulation_experiment"),
+    [circuitJson],
+  )
   const [selectedSimulationExperimentId, setSelectedSimulationExperimentId] =
     useState<string | null>(null)
   const simulationExperimentId =
@@ -111,37 +95,59 @@ export const SimulationViewer = ({
 
   const handleSelectSimulation = (nextSimulationExperimentId: string) => {
     setSelectedSimulationExperimentId(nextSimulationExperimentId)
+    setSelectedEyeDiagramId(undefined)
     onSimulationChange?.(nextSimulationExperimentId)
   }
 
-  // Generate the simulation SVG from CircuitJSON
-  const simulationSvg = useMemo(() => {
-    if (
-      !circuitJson ||
-      !effectiveWidth ||
-      !effectiveHeight ||
-      !simulationExperimentId
-    )
-      return ""
+  const eyes = useMemo(
+    () =>
+      circuitJson.filter(
+        (element): element is SimulationEyeDiagram =>
+          element.type === "simulation_eye_diagram" &&
+          element.simulation_experiment_id === simulationExperimentId,
+      ),
+    [circuitJson, simulationExperimentId],
+  )
+  // A declared eye is the experiment's requested visualization. Waveforms remain selectable.
+  const [selectedEyeDiagramId, setSelectedEyeDiagramId] = useState<
+    string | null | undefined
+  >()
+  const activeEyeDiagramId =
+    selectedEyeDiagramId === null
+      ? null
+      : (eyes.find(
+          (eye) => eye.simulation_eye_diagram_id === selectedEyeDiagramId,
+        )?.simulation_eye_diagram_id ??
+        eyes[0]?.simulation_eye_diagram_id ??
+        null)
+
+  const { simulationSvg, renderError } = useMemo(() => {
+    if (!simulationExperimentId) return { simulationSvg: "", renderError: null }
 
     try {
       const simulationOptions = {
         circuitJson,
         simulation_experiment_id: simulationExperimentId,
+        simulation_eye_diagram_id: activeEyeDiagramId ?? undefined,
         ac_sweep_view: acSweepView,
+        time_unit: "auto" as const,
         width: effectiveWidth,
         height: effectiveHeight,
       }
-
-      return hideSchematic
-        ? convertCircuitJsonToSimulationGraphSvg(simulationOptions)
-        : convertCircuitJsonToSchematicSimulationSvg({
-            ...simulationOptions,
-            schematicOptions: { colorOverrides },
-          })
+      return {
+        simulationSvg: hideSchematic
+          ? convertCircuitJsonToSimulationGraphSvg(simulationOptions)
+          : convertCircuitJsonToSchematicSimulationSvg({
+              ...simulationOptions,
+              schematicOptions: { colorOverrides },
+            }),
+        renderError: null,
+      }
     } catch (error) {
-      console.error("Failed to generate simulation SVG:", error)
-      return ""
+      return {
+        simulationSvg: "",
+        renderError: error instanceof Error ? error.message : String(error),
+      }
     }
   }, [
     circuitJson,
@@ -151,194 +157,130 @@ export const SimulationViewer = ({
     hideSchematic,
     simulationExperimentId,
     acSweepView,
+    activeEyeDiagramId,
   ])
 
-  // Create/revoke object URL whenever the SVG changes
   useEffect(() => {
     if (!simulationSvg) {
       setSvgObjectUrl(null)
       return
     }
-
-    try {
-      const blob = new Blob([simulationSvg], { type: "image/svg+xml" })
-      const url = URL.createObjectURL(blob)
-      setSvgObjectUrl(url)
-      return () => {
-        URL.revokeObjectURL(url)
-      }
-    } catch (error) {
-      console.error("Failed to create SVG object URL:", error)
-      setSvgObjectUrl(null)
-    }
+    const url = URL.createObjectURL(
+      new Blob([simulationSvg], { type: "image/svg+xml" }),
+    )
+    setSvgObjectUrl(url)
+    return () => URL.revokeObjectURL(url)
   }, [simulationSvg])
 
-  const containerBackgroundColor = useMemo(() => {
-    return getSimulationBackgroundColor(simulationSvg, colorOverrides)
-  }, [simulationSvg, colorOverrides])
-
-  const handleMouseDown = (_e: React.MouseEvent) => {
-    setIsDragging(true)
-  }
-
-  const handleTouchStart = (_e: React.TouchEvent) => {
-    setIsDragging(true)
-  }
-
   useEffect(() => {
-    const handleMouseUp = () => {
-      setIsDragging(false)
-    }
-
-    const handleTouchEnd = () => {
-      setIsDragging(false)
-    }
-
+    const handleMouseUp = () => setIsDragging(false)
     window.addEventListener("mouseup", handleMouseUp)
-    window.addEventListener("touchend", handleTouchEnd)
-
+    window.addEventListener("touchend", handleMouseUp)
     return () => {
       window.removeEventListener("mouseup", handleMouseUp)
-      window.removeEventListener("touchend", handleTouchEnd)
+      window.removeEventListener("touchend", handleMouseUp)
     }
   }, [])
 
-  if (isLoading) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#f5f5f5",
-          minHeight: "300px",
-          fontFamily: "sans-serif",
-          fontSize: "16px",
-          color: "#666",
-          ...containerStyle,
-        }}
-        className={className}
-      >
-        Loading circuit...
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#fef2f2",
-          minHeight: "300px",
-          fontFamily: "sans-serif",
-          fontSize: "16px",
-          color: "#dc2626",
-          ...containerStyle,
-        }}
-        className={className}
-      >
-        <div style={{ textAlign: "center", padding: "20px" }}>
-          <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
-            Circuit Conversion Error
-          </div>
-          <div style={{ fontSize: "14px" }}>{error}</div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!simulationSvg) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#f8fafc",
-          minHeight: "300px",
-          fontFamily: "sans-serif",
-          gap: "12px",
-          ...containerStyle,
-        }}
-        className={className}
-      >
-        <div style={{ fontSize: "16px", color: "#475569", fontWeight: 500 }}>
-          No Simulation Found
-        </div>
-        <div style={{ fontSize: "14px", color: "#64748b" }}>
-          Use{" "}
-          <code
-            style={{
-              backgroundColor: "#e2e8f0",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              fontFamily: "monospace",
-              fontSize: "13px",
-            }}
-          >
-            {"<analogsimulation />"}
-          </code>{" "}
-          to create simulations
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div
-      ref={(node) => {
-        containerRef.current = node
-        transformRef.current = node
-      }}
       style={{
         position: "relative",
-        backgroundColor: containerBackgroundColor,
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: getSimulationBackgroundColor(
+          simulationSvg,
+          colorOverrides,
+        ),
         overflow: "hidden",
         minHeight: "300px",
         cursor: isDragging ? "grabbing" : "grab",
         ...containerStyle,
       }}
       className={className}
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
     >
-      <SimulationSelector
-        simulations={simulationExperiments}
-        selectedSimulationExperimentId={simulationExperimentId}
-        onSelectSimulation={handleSelectSimulation}
-      />
-      {svgObjectUrl ? (
-        <img
-          ref={imgRef}
-          src={svgObjectUrl}
-          alt="Circuit Simulation"
-          style={{
-            transformOrigin: "0 0",
-            width: "100%",
-            height: "100%",
-            display: "block",
-            objectFit: "contain",
-          }}
-        />
-      ) : (
+      {(simulationExperiments.length > 1 || eyes.length > 0) && (
         <div
           style={{
+            flexShrink: 0,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "100%",
-            minHeight: "300px",
-            color: "#666",
-            fontFamily: "sans-serif",
+            flexWrap: "wrap",
+            gap: 8,
+            justifyContent: "flex-end",
+            padding: "8px 16px",
+            boxSizing: "border-box",
           }}
         >
-          Failed to render SVG
+          <SimulationSelector
+            simulations={simulationExperiments}
+            selectedSimulationExperimentId={simulationExperimentId}
+            onSelectSimulation={handleSelectSimulation}
+          />
+          {eyes.length > 0 && (
+            <SimulationResultSelector
+              eyes={eyes}
+              selectedEyeDiagramId={activeEyeDiagramId}
+              onSelectEyeDiagram={setSelectedEyeDiagramId}
+            />
+          )}
         </div>
       )}
+      <div
+        ref={(node) => {
+          containerRef.current = node
+          transformRef.current = node
+        }}
+        style={{
+          position: "relative",
+          flex: "1 1 auto",
+          minHeight: 0,
+          overflow: "hidden",
+        }}
+        onMouseDown={() => setIsDragging(true)}
+        onTouchStart={() => setIsDragging(true)}
+      >
+        {renderError || !simulationExperimentId ? (
+          <div
+            role={renderError ? "alert" : "status"}
+            style={{
+              display: "grid",
+              placeContent: "center",
+              height: "100%",
+              minHeight: "300px",
+              padding: 24,
+              boxSizing: "border-box",
+              fontFamily: "sans-serif",
+              color: renderError ? "#dc2626" : "#64748b",
+              textAlign: "center",
+              gap: 12,
+            }}
+          >
+            <strong>
+              {renderError
+                ? "Unable to display simulation"
+                : "No Simulation Found"}
+            </strong>
+            <span>
+              {renderError ??
+                "Pass Circuit JSON with simulation results to view them here."}
+            </span>
+          </div>
+        ) : svgObjectUrl ? (
+          <img
+            ref={imgRef}
+            src={svgObjectUrl}
+            alt="Circuit Simulation"
+            draggable={false}
+            style={{
+              transformOrigin: "0 0",
+              width: "100%",
+              height: "100%",
+              display: "block",
+              objectFit: "contain",
+            }}
+          />
+        ) : null}
+      </div>
     </div>
   )
 }
