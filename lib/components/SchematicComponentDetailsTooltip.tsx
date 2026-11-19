@@ -36,6 +36,11 @@ const detailLabelStyle: React.CSSProperties = {
   overflowWrap: "anywhere",
 }
 
+const partNumberLinkStyle: React.CSSProperties = {
+  color: "#2563eb",
+  textDecoration: "underline",
+}
+
 export const SchematicComponentDetailsTooltip = ({
   platformConfig,
   sourceComponent,
@@ -51,6 +56,18 @@ export const SchematicComponentDetailsTooltip = ({
   const infoEntries = useMemo(
     () => getSourceComponentInfoEntries(sourceComponent),
     [sourceComponent],
+  )
+  const manufacturerPartNumber =
+    sourceComponent.manufacturer_part_number?.trim()
+  const manufacturerPartNumberLink = manufacturerPartNumber && (
+    <a
+      href={`https://tscircuit.com/datasheets/${encodeURIComponent(manufacturerPartNumber)}`}
+      target="_blank"
+      rel="noreferrer noopener"
+      style={partNumberLinkStyle}
+    >
+      {manufacturerPartNumber}
+    </a>
   )
   const datasheetChipName = useMemo(
     () => getDatasheetChipName(sourceComponent),
@@ -130,7 +147,9 @@ export const SchematicComponentDetailsTooltip = ({
                 overflowWrap: "anywhere",
               }}
             >
-              {entry.value}
+              {(entry.key === "manufacturer_part_number" &&
+                manufacturerPartNumberLink) ||
+                entry.value}
             </dd>
           </div>
         ))}
@@ -185,7 +204,7 @@ export const SchematicComponentDetailsTooltip = ({
                     href={link.href}
                     target="_blank"
                     rel="noreferrer noopener"
-                    style={{ color: "#2563eb", textDecoration: "underline" }}
+                    style={partNumberLinkStyle}
                   >
                     {link.partNumber}
                   </a>
