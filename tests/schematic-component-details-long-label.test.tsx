@@ -84,7 +84,7 @@ test("long non-ID detail labels declare overflow wrapping", () => {
   )
 
   expect(label).toBeDefined()
-  expect(label?.nextElementSibling?.textContent).toBe('"RC0603FR-071KL"')
+  expect(label?.nextElementSibling?.textContent).toBe("RC0603FR-071KL")
   expect(label?.style.overflowWrap).toBe("anywhere")
   dom.window.close()
 })

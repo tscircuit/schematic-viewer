@@ -436,21 +436,25 @@ test("component details use compact styling and close on zoom or outside click",
     expect(tooltip?.querySelector("button")).toBeNull()
     expect(tooltip?.textContent).not.toContain("Resistor")
     expect(tooltip?.textContent).toContain('"1k"')
-    expect(tooltip?.textContent).toContain("RC0603FR-071KL")
     expect(tooltip?.textContent).not.toContain("supplier_part_numbers")
     expect(tooltip?.textContent).toContain("res0603")
-    const supplierLinks = Array.from(tooltip?.querySelectorAll("a") ?? [])
-    expect(supplierLinks).toHaveLength(2)
-    expect(supplierLinks.map((link) => link.textContent)).toEqual([
+    const partLinks = Array.from(tooltip?.querySelectorAll("a") ?? [])
+    expect(partLinks).toHaveLength(3)
+    expect(partLinks.map((link) => link.textContent)).toEqual([
+      "RC0603FR-071KL",
       "C2040",
       "C2040",
     ])
-    expect(supplierLinks.map((link) => link.getAttribute("href"))).toEqual([
+    expect(partLinks.map((link) => link.getAttribute("href"))).toEqual([
+      "https://tscircuit.com/datasheets/RC0603FR-071KL",
       "https://jlcpcb.com/partdetail/C2040",
       "https://www.lcsc.com/product-detail/C2040.html",
     ])
+    expect(partLinks[0].getAttribute("style")).toBe(
+      partLinks[1].getAttribute("style"),
+    )
     expect(
-      supplierLinks.every(
+      partLinks.every(
         (link) =>
           link.getAttribute("target") === "_blank" &&
           link.getAttribute("rel") === "noreferrer noopener",
@@ -859,6 +863,7 @@ test("chips show their datasheet description, or a hyphen when it can't be loade
     )
     await act(async () => reactRoot.render(renderComponent("simple_chip")))
     expect(getDescription()).toBeUndefined()
+    expect(document.querySelector("a")).toBeNull()
     expect(requests).toHaveLength(0)
 
     await act(async () =>
@@ -883,6 +888,9 @@ test("chips show their datasheet description, or a hyphen when it can't be loade
     expect(getDescription()).toBe("Loading…")
     expect(requests[1].url).toBe(
       "https://api.tscircuit.com/datasheets/get?chip_name=UNKNOWN%2F1",
+    )
+    expect(document.querySelector("a")?.href).toBe(
+      "https://tscircuit.com/datasheets/UNKNOWN%2F1",
     )
     await act(async () =>
       requests[1].resolve(
