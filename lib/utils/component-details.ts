@@ -105,6 +105,34 @@ const displayKeyAliases: Record<string, string> = {
   voltage_rating_volts: "display_voltage_rating",
 }
 
+const siUnitsByKey: Record<string, string> = {
+  frequency: "Hz",
+  load_capacitance: "F",
+}
+
+const siPrefixes = [
+  { threshold: 1e12, prefix: "T" },
+  { threshold: 1e9, prefix: "G" },
+  { threshold: 1e6, prefix: "M" },
+  { threshold: 1e3, prefix: "k" },
+  { threshold: 1, prefix: "" },
+  { threshold: 1e-3, prefix: "m" },
+  { threshold: 1e-6, prefix: "u" },
+  { threshold: 1e-9, prefix: "n" },
+  { threshold: 1e-12, prefix: "p" },
+  { threshold: 1e-15, prefix: "f" },
+] as const
+
+const formatSiQuantity = (value: number, unit: string): string => {
+  if (value === 0) return `0${unit}`
+  const absValue = Math.abs(value)
+  const matched =
+    siPrefixes.find(({ threshold }) => absValue >= threshold * (1 - 1e-12)) ??
+    siPrefixes[siPrefixes.length - 1]
+  const scaled = Number((value / matched.threshold).toPrecision(12))
+  return `${scaled}${matched.prefix}${unit}`
+}
+
 const supplierPartNumberUrls = {
   jlcpcb: (partNumber: string) =>
     `https://jlcpcb.com/partdetail/${encodeURIComponent(partNumber)}`,
@@ -138,6 +166,10 @@ const formatComponentValue = (
     const propValue =
       key === "resistance" ? displayValue.replace(/Ω$/, "") : displayValue
     return JSON.stringify(propValue)
+  }
+  const siUnit = siUnitsByKey[key]
+  if (siUnit && typeof value === "number" && Number.isFinite(value)) {
+    return JSON.stringify(formatSiQuantity(value, siUnit))
   }
   return JSON.stringify(value) ?? String(value)
 }
