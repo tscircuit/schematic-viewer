@@ -1,3 +1,7 @@
+import {
+  convertSchematicLengthUnits,
+  LEGACY_SCHEMATIC_LENGTH_UNIT,
+} from "circuit-json"
 import { getNetKeyAtElement, getNetLocations } from "../utils/get-net-locations"
 import type { SchematicViewerController } from "../hooks/useSchematicViewerController"
 import { StyleAnalysisDialog } from "./StyleAnalysisDialog"
@@ -86,7 +90,7 @@ interface SelectedSchematicComponent {
 }
 
 export const SchematicViewer = ({
-  circuitJson,
+  circuitJson: storedCircuitJson,
   platformConfig,
   containerStyle,
   debugGrid = false,
@@ -111,14 +115,15 @@ export const SchematicViewer = ({
     enableDebug()
   }
 
-  const getCircuitHash = (circuitJson: CircuitJson) => {
-    return `${circuitJson?.length || 0}_${(circuitJson as any)?.editCount || 0}`
-  }
-
-  const circuitJsonKey = useMemo(
-    () => getCircuitHash(circuitJson),
-    [circuitJson],
+  const circuitJson = useMemo(
+    () =>
+      convertSchematicLengthUnits(
+        storedCircuitJson,
+        LEGACY_SCHEMATIC_LENGTH_UNIT,
+      ),
+    [storedCircuitJson],
   )
+  const circuitJsonKey = `${storedCircuitJson.length}_${(storedCircuitJson as CircuitJson & { editCount?: number }).editCount ?? 0}`
 
   // Schematic sheets present in the circuit, sorted by sheet_index. A circuit
   // may have zero (single implicit sheet), one, or many sheets.

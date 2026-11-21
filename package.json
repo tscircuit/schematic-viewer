@@ -56,7 +56,7 @@
     "@tscircuit/internal-dynamic-import": "^0.0.17",
     "@tscircuit/props": "^0.0.697",
     "@tscircuit/soup-util": "^0.0.41",
-    "circuit-json": "^0.0.479",
+    "circuit-json": "https://pkg.pr.new/tscircuit/circuit-json/circuit-json@419411e",
     "circuit-to-svg": "0.0.445",
     "debug": "^4.4.0",
     "performance-now": "^2.1.0",
