@@ -1,4 +1,7 @@
-import {convertSchematicLengthUnits, LEGACY_SCHEMATIC_LENGTH_UNIT} from "circuit-json"
+import {
+  convertSchematicLengthUnits,
+  LEGACY_SCHEMATIC_LENGTH_UNIT,
+} from "circuit-json"
 import type { CircuitJson } from "circuit-json"
 import {
   type AcSweepView,
@@ -83,7 +86,12 @@ export const AnalogSimulationViewer = ({
   useEffect(() => {
     setIsLoading(true)
     setError(null)
-    setCircuitJson(convertSchematicLengthUnits(inputCircuitJson, LEGACY_SCHEMATIC_LENGTH_UNIT))
+    setCircuitJson(
+      convertSchematicLengthUnits(
+        inputCircuitJson,
+        LEGACY_SCHEMATIC_LENGTH_UNIT,
+      ),
+    )
     setIsLoading(false)
   }, [inputCircuitJson])
 
