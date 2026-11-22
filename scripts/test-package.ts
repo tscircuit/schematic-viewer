@@ -36,7 +36,6 @@ try {
       dependencies: {
         "@tscircuit/schematic-viewer": `file:./${archiveName}`,
         react: packageJson.devDependencies.react,
-        tscircuit: packageJson.devDependencies.tscircuit,
         typescript: packageJson.peerDependencies.typescript,
         "@types/react": packageJson.devDependencies["@types/react"],
       },

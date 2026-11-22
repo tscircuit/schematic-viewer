@@ -46,8 +46,7 @@
     "@tscircuit/circuit-json-schematic-placement-analysis": "https://jscdn.tscircuit.com/@tscircuit/circuit-json-schematic-placement-analysis/0.0.46.tgz"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0",
-    "tscircuit": "*"
+    "typescript": "^5.0.0"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
