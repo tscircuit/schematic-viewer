@@ -132,7 +132,7 @@ export const SchematicViewer = ({
       console.error("Failed to derive schematic sheets", err)
       return []
     }
-  }, [circuitJsonKey])
+  }, [circuitJson, circuitJsonKey])
 
   const hasMultipleSheets = schematicSheets.length > 1
   const defaultSheetId = schematicSheets[0]?.schematic_sheet_id
@@ -472,6 +472,7 @@ export const SchematicViewer = ({
       className,
     })
   }, [
+    circuitJson,
     circuitJsonKey,
     containerWidth,
     containerHeight,
@@ -479,6 +480,9 @@ export const SchematicViewer = ({
     showWarnings,
     showSchematicPortsInternal,
     activeSheetId,
+    colorOverrides,
+    css,
+    className,
   ])
 
   const containerBackgroundColor = useMemo(() => {
