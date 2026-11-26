@@ -1,5 +1,5 @@
 import React from "react"
-import { AnalogSimulationViewer } from "../lib/components/AnalogSimulationViewer"
+import { SimulationViewer } from "../lib/components/SimulationViewer"
 import * as Core from "@tscircuit/core"
 import createNgspiceSpiceEngine from "@tscircuit/ngspice-spice-engine"
 
@@ -130,7 +130,7 @@ export default () => {
 
   return (
     simulatedCircuitJson && (
-      <AnalogSimulationViewer
+      <SimulationViewer
         circuitJson={simulatedCircuitJson}
         containerStyle={{
           width: "100vw",

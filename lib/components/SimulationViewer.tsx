@@ -9,8 +9,8 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { toString as transformToString } from "transformation-matrix"
 import { useMouseMatrixTransform } from "use-mouse-matrix-transform"
 import { useResizeHandling } from "../hooks/use-resize-handling"
-import { getAnalogSimulationBackgroundColor } from "../utils/get-analog-simulation-background-color"
-import { AnalogSimulationSelector } from "./AnalogSimulationSelector"
+import { getSimulationBackgroundColor } from "../utils/get-simulation-background-color"
+import { SimulationSelector } from "./SimulationSelector"
 
 const DEFAULT_RENDER_WIDTH = 1200
 const DEFAULT_COMBINED_RENDER_ASPECT_RATIO = 1
@@ -31,7 +31,7 @@ interface Props {
   acSweepView?: AcSweepView
 }
 
-export const AnalogSimulationViewer = ({
+export const SimulationViewer = ({
   circuitJson: inputCircuitJson,
   containerStyle,
   colorOverrides,
@@ -174,7 +174,7 @@ export const AnalogSimulationViewer = ({
   }, [simulationSvg])
 
   const containerBackgroundColor = useMemo(() => {
-    return getAnalogSimulationBackgroundColor(simulationSvg, colorOverrides)
+    return getSimulationBackgroundColor(simulationSvg, colorOverrides)
   }, [simulationSvg, colorOverrides])
 
   const handleMouseDown = (_e: React.MouseEvent) => {
@@ -306,7 +306,7 @@ export const AnalogSimulationViewer = ({
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      <AnalogSimulationSelector
+      <SimulationSelector
         simulations={simulationExperiments}
         selectedSimulationExperimentId={simulationExperimentId}
         onSelectSimulation={handleSelectSimulation}
