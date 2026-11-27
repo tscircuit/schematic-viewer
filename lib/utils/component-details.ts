@@ -135,8 +135,9 @@ const formatComponentValue = (
     sourceComponentFields[`display_${key}`] ??
     sourceComponentFields[displayKeyAliases[key]]
   if (typeof displayValue === "string" && displayValue.trim()) {
-    const propValue =
-      key === "resistance" ? displayValue.replace(/Ω$/, "") : displayValue
+    let propValue = displayValue
+    if (key === "resistance") propValue = displayValue.replace(/Ω$/, "")
+    if (key === "capacitance") propValue = displayValue.split("/")[0]
     return JSON.stringify(propValue)
   }
   return JSON.stringify(value) ?? String(value)
