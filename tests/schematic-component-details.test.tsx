@@ -270,7 +270,7 @@ test("component details include source values and the footprinter string", () =>
   expect(resistorInfo).toContainEqual({
     key: "resistance",
     label: "resistance",
-    value: '"1k"',
+    value: '"1kΩ"',
   })
   expect(resistorInfo).toContainEqual({
     key: "manufacturer_part_number",
@@ -435,7 +435,7 @@ test("component details use compact styling and close on zoom or outside click",
     expect(tooltip?.firstElementChild?.tagName).toBe("DL")
     expect(tooltip?.querySelector("button")).toBeNull()
     expect(tooltip?.textContent).not.toContain("Resistor")
-    expect(tooltip?.textContent).toContain('"1k"')
+    expect(tooltip?.textContent).toContain('"1kΩ"')
     expect(tooltip?.textContent).toContain("RC0603FR-071KL")
     expect(tooltip?.textContent).not.toContain("supplier_part_numbers")
     expect(tooltip?.textContent).toContain("res0603")
