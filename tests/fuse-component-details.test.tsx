@@ -32,5 +32,5 @@ test("fuse details show each rating once with units", () => {
   ).toEqual(["name", "current_rating_amps", "voltage_rating_volts"])
   expect(
     Array.from(document.querySelectorAll("dd"), (row) => row.textContent),
-  ).toEqual(["F1", '"500mA"', '"24V"'])
+  ).toEqual(["F1", "500mA", "24V"])
 })
