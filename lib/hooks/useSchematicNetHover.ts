@@ -3,6 +3,7 @@ import type { CircuitJson } from "circuit-json"
 import { useEffect } from "react"
 
 const FADED_CLASS = "sch-net-faded"
+const HOVERED_CLASS = "sch-net-hovered"
 
 const TRACE_SELECTOR =
   "g.trace[data-subcircuit-connectivity-map-key], g.trace-overlays[data-subcircuit-connectivity-map-key]"
@@ -21,7 +22,8 @@ const NET_LABEL_SELECTOR =
  *  - components: g[data-schematic-component-id]
  *  - net labels: [data-schematic-net-label-id] (per element, no wrapping group)
  *
- * Faded elements get the `sch-net-faded` class (styled by SchematicViewer).
+ * Faded elements get the `sch-net-faded` class and hovered net elements get
+ * the `sch-net-hovered` class (styled by SchematicViewer).
  */
 export const useSchematicNetHover = ({
   svgDivRef,
@@ -49,7 +51,9 @@ export const useSchematicNetHover = ({
     let hoveredNetKey: string | null = null
 
     const collectNetElements = () => {
-      for (const { el } of netElements) el.classList.remove(FADED_CLASS)
+      for (const { el } of netElements) {
+        el.classList.remove(FADED_CLASS, HOVERED_CLASS)
+      }
       netElements = []
       triggerNetKeys.clear()
       hoveredNetKey = null
@@ -86,12 +90,14 @@ export const useSchematicNetHover = ({
       }
     }
 
-    // Fade everything not on `key` (null clears the fade).
+    // Fade everything not on `key` and visibly highlight elements that are on
+    // the hovered net (null clears both states).
     const highlightNet = (key: string | null) => {
       if (key === hoveredNetKey) return
       hoveredNetKey = key
       for (const { el, keys } of netElements) {
         el.classList.toggle(FADED_CLASS, key !== null && !keys.has(key))
+        el.classList.toggle(HOVERED_CLASS, key !== null && keys.has(key))
       }
     }
 
@@ -138,7 +144,9 @@ export const useSchematicNetHover = ({
       observer.disconnect()
       svgDiv.removeEventListener("mousemove", handleMouseMove)
       svgDiv.removeEventListener("mouseleave", handleMouseLeave)
-      for (const { el } of netElements) el.classList.remove(FADED_CLASS)
+      for (const { el } of netElements) {
+        el.classList.remove(FADED_CLASS, HOVERED_CLASS)
+      }
     }
     // Keyed on circuitJsonKey (content hash) rather than the circuitJson
     // reference, matching the other post-render SVG hooks.
